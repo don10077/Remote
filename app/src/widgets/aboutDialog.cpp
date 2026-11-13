@@ -27,7 +27,7 @@ namespace harmony::app {
 namespace {
 
 /// Страница проекта.
-constexpr const char* kProjectUrl = "https://github.com/don10077/Harmony";
+constexpr const char* kProjectUrl = "https://github.com/don10077/Remote";
 
 /// Ссылка в HTML.
 QString anchor(const QString& url, const QString& text) {

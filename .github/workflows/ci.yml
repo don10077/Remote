@@ -306,8 +306,11 @@ jobs:
         working-directory: packages
         run: sha256sum * > SHA256SUMS.txt
       # TODO: закрепить по SHA — сторонний action с правом contents: write.
+      # Описание — из .github/release-notes.md (обновлять к каждому выпуску);
+      # версии 0.x — предварительные (pre-release).
       - uses: softprops/action-gh-release@v2
         with:
           files: packages/*
           fail_on_unmatched_files: true
-          generate_release_notes: true
+          body_path: .github/release-notes.md
+          prerelease: ${{ startsWith(github.ref_name, 'v0.') }}
