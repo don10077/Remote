@@ -126,11 +126,12 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v5
-      # Clang 19 поддерживает std::expected из libstdc++; libFuzzer входит в compiler-rt.
+      # Для Clang 19 нужны также clang-scan-deps (CMake/Ninja) и compiler-rt (libFuzzer).
       - name: Пакеты
         run: |
           sudo apt-get update
-          sudo apt-get install -y ninja-build ccache libudev-dev libzip-dev pkg-config clang-19 libclang-rt-19-dev libpugixml-dev nlohmann-json3-dev zlib1g-dev
+          sudo apt-get install -y ninja-build ccache libudev-dev libzip-dev pkg-config \
+            clang-19 clang-tools-19 libclang-rt-19-dev libpugixml-dev nlohmann-json3-dev zlib1g-dev
       - uses: actions/cache@v5
         with:
           path: |
