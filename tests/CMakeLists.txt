@@ -34,6 +34,7 @@ add_executable(harmony_tests
     remotePreferencesTest.cpp
     transport/harmony900LinkTest.cpp
     transport/harmonyHidReaderTest.cpp
+    transport/hubConfigReaderTest.cpp
     transport/remoteServicesTest.cpp
     undo/undoStackTest.cpp
     undoEditsTest.cpp

@@ -21,10 +21,15 @@ private:
     void refresh();
     /// Выбирает файл, подтверждает запись и запускает транспорт в отдельном потоке.
     void transfer(bool writing);
+    /// Спрашивает адрес Harmony Hub и читает его конфигурацию по сети в файл *.hub.json.
+    void readHub();
+    /// Блокирует или разблокирует элементы окна на время фоновой операции.
+    void setBusy(bool busy);
     QComboBox* models_ = nullptr;
     QLabel* status_ = nullptr;
     QPushButton* read_ = nullptr;
     QPushButton* write_ = nullptr;
+    QPushButton* hub_ = nullptr;
     QPushButton* close_ = nullptr;
     QProgressBar* progress_ = nullptr;
     QThread* worker_ = nullptr;

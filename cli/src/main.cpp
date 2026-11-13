@@ -13,6 +13,7 @@
 
 #include "harmony/core/configDiff.h"
 #include "transferCommands.h"
+#include "hubCommands.h"
 #include "harmony/core/configDocument.h"
 #include "harmony/core/irdb/irDatabase.h"
 #include "harmony/core/irdb/modelFinder.h"
@@ -74,6 +75,10 @@ void printUsage(std::ostream& out) {
         << "  harmony-cli transfer-write <model-id> <config-file> --backup <new-file> --yes\n"
         << "                                   write an existing EZHex/MH ZIP without format conversion;\n"
         << "                                   use --without-backup only for models without readback\n"
+        << "  harmony-cli hub-read <hub-address> <new-file.hub.json> [--port 8088]\n"
+        << "                                   read devices and activities of a stock Harmony Hub over\n"
+        << "                                   the local network (Elite, Ultimate, 950, Companion…);\n"
+        << "                                   no rooting, no IR codes, no account data in the file\n"
         << "  harmony-cli info <path>          configuration summary; path is a folder,\n"
         << "                                   UserConfiguration.xml or an .EZHex file\n"
         << "  harmony-cli check <path> [--fix] what will not work on the remote; --fix repairs\n"
@@ -947,6 +952,8 @@ int main(int argc, char* argv[]) {
     const std::string_view command = args[1];
     if (command == "models" || command == "transfer-info" || command == "transfer-read" || command == "transfer-write")
         return runTransferCommand(args, host);
+    if (command == "hub-read")
+        return runHubCommand(args);
     if (command == "--version" || command == "-v") {
         std::cout << harmony::kVersion << "\n";
         return 0;

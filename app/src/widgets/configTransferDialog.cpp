@@ -4,14 +4,17 @@
 #include "../configLibrary.h"
 #include "harmony/core/remoteCatalog.h"
 #include "harmony/transport/concordTransfer.h"
+#include "harmony/transport/hubConfigReader.h"
 
 #include <QComboBox>
+#include <QInputDialog>
 #include <QDateTime>
 #include <QDir>
 #include <QFile>
 #include <QFileDialog>
 #include <QHBoxLayout>
 #include <QLabel>
+#include <QLineEdit>
 #include <QMessageBox>
 #include <QProgressBar>
 #include <QPushButton>
@@ -43,12 +46,18 @@ ConfigTransferDialog::ConfigTransferDialog(QWidget* parent) : QDialog(parent) {
     auto* buttons = new QHBoxLayout;
     read_ = new QPushButton(tr("Read configuration to file…"), this);
     write_ = new QPushButton(tr("Write configuration file…"), this);
+    hub_ = new QPushButton(tr("Read Harmony Hub over network…"), this);
+    hub_->setToolTip(tr("Elite, Ultimate, Ultimate Home, 950, Companion and other remotes paired with a Hub: "
+                        "devices, commands and activities are read from the Hub on your network. "
+                        "No rooting is needed; IR codes and account data are not included."));
     close_ = new QPushButton(tr("Close"), this);
-    buttons->addWidget(read_); buttons->addWidget(write_); buttons->addStretch(); buttons->addWidget(close_);
+    buttons->addWidget(read_); buttons->addWidget(write_); buttons->addWidget(hub_);
+    buttons->addStretch(); buttons->addWidget(close_);
     layout->addLayout(buttons);
     connect(models_, &QComboBox::currentIndexChanged, this, &ConfigTransferDialog::refresh);
     connect(read_, &QPushButton::clicked, this, [this] { transfer(false); });
     connect(write_, &QPushButton::clicked, this, [this] { transfer(true); });
+    connect(hub_, &QPushButton::clicked, this, &ConfigTransferDialog::readHub);
     connect(close_, &QPushButton::clicked, this, &ConfigTransferDialog::reject);
     refresh();
 }
@@ -98,7 +107,7 @@ void ConfigTransferDialog::transfer(bool writing) {
     }
     const transport::Endpoint endpoint{settings::remoteHost().toStdString(), static_cast<std::uint16_t>(settings::remotePort())};
     const bool allowWithoutBackup = writing && !model->readable;
-    models_->setEnabled(false); read_->setEnabled(false); write_->setEnabled(false); close_->setEnabled(false);
+    setBusy(true);
     status_->setText(tr("Connecting…"));
     progress_->setRange(0, 0);
     worker_ = QThread::create([this, id, filename, contents, backup, writing, endpoint, allowWithoutBackup] {
@@ -137,9 +146,78 @@ void ConfigTransferDialog::transfer(bool writing) {
     });
     connect(worker_, &QThread::finished, this, [this] {
         worker_->deleteLater(); worker_ = nullptr;
-        models_->setEnabled(true); close_->setEnabled(true);
-        const auto* selected = catalogModel(models_->currentData().toString().toStdString());
-        read_->setEnabled(selected && selected->readable); write_->setEnabled(selected && selected->writable);
+        setBusy(false);
+    });
+    worker_->start();
+}
+
+void ConfigTransferDialog::setBusy(bool busy) {
+    models_->setEnabled(!busy); close_->setEnabled(!busy); hub_->setEnabled(!busy);
+    if (busy) {
+        read_->setEnabled(false); write_->setEnabled(false);
+        return;
+    }
+    const auto* selected = catalogModel(models_->currentData().toString().toStdString());
+    read_->setEnabled(selected && selected->readable); write_->setEnabled(selected && selected->writable);
+}
+
+void ConfigTransferDialog::readHub() {
+    if (worker_) return;
+    bool accepted = false;
+    const QString host = QInputDialog::getText(this, tr("Read Harmony Hub over network"),
+        tr("IP address of the Harmony Hub on your network (see the router or the Harmony app):"),
+        QLineEdit::Normal, settings::hubHost(), &accepted).trimmed();
+    if (!accepted || host.isEmpty()) return;
+    settings::setHubHost(host);
+    QString safeHost = host;
+    safeHost.replace(':', '-');
+    const QString filename = QFileDialog::getSaveFileName(this, tr("Save Harmony Hub configuration"),
+        QDir(library::backupFolder()).filePath("HarmonyHub-" + safeHost + "-" +
+            QDateTime::currentDateTime().toString("yyyyMMdd-HHmmss") + ".hub.json"),
+        tr("Harmony Hub configuration (*.hub.json);;All files (*)"));
+    if (filename.isEmpty()) return;
+    setBusy(true);
+    status_->setText(tr("Connecting to the Hub at %1…").arg(host));
+    progress_->setRange(0, 0);
+    worker_ = QThread::create([this, host, filename] {
+        const auto progress = [this](transport::Stage stage, std::size_t done, std::size_t total) {
+            QMetaObject::invokeMethod(this, [this, stage, done, total] {
+                status_->setText(stage == transport::Stage::Read ? tr("Receiving configuration (%1 KB)…").arg((done + 1023) / 1024)
+                                                                 : tr("Connecting to the Hub…"));
+                progress_->setRange(0, total ? 100 : 0);
+                if (total) progress_->setValue(static_cast<int>(done * 100 / total));
+            }, Qt::QueuedConnection);
+            return true;
+        };
+        const auto hub = transport::readHubConfig(host.toStdString(), transport::kHubPort, progress);
+        QString text;
+        bool ok = false;
+        if (!hub) {
+            text = labels::errorText(hub.error());
+        } else {
+            QSaveFile output(filename);
+            const QByteArray bytes = QByteArray::fromStdString(hub->backupJson);
+            if (!output.open(QIODevice::WriteOnly) || output.write(bytes) != bytes.size() || !output.commit()) {
+                text = tr("Could not save the configuration file.");
+            } else {
+                ok = true;
+                text = tr("Hub “%1”, firmware %2: %3 devices, %4 activities.\nSaved: %5\n"
+                          "The file contains device names and models, but no IR codes, account or e-mail. "
+                          "You can send it to the developers.")
+                           .arg(QString::fromStdString(hub->hubName), QString::fromStdString(hub->firmware))
+                           .arg(static_cast<qulonglong>(hub->devices.size()))
+                           .arg(static_cast<qulonglong>(hub->activities.size()))
+                           .arg(QDir::toNativeSeparators(filename));
+            }
+        }
+        QMetaObject::invokeMethod(this, [this, text, ok] {
+            progress_->setRange(0, 100); progress_->setValue(ok ? 100 : 0);
+            status_->setText(text);
+        }, Qt::QueuedConnection);
+    });
+    connect(worker_, &QThread::finished, this, [this] {
+        worker_->deleteLater(); worker_ = nullptr;
+        setBusy(false);
     });
     worker_->start();
 }

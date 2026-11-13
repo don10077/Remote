@@ -21,6 +21,7 @@ constexpr auto kStartup = "settings/startup";
 constexpr auto kBackupFolder = "settings/backupFolder";
 constexpr auto kRemoteHost = "settings/remoteHost";
 constexpr auto kRemotePort = "settings/remotePort";
+constexpr auto kHubHost = "settings/hubHost";
 constexpr auto kAutoProbe = "settings/autoProbe";
 constexpr auto kLearnTimeout = "settings/learnTimeout";
 constexpr auto kTheme = "settings/theme";
@@ -95,6 +96,14 @@ int remotePort() {
 
 void setRemotePort(int port) {
     QSettings().setValue(kRemotePort, port);
+}
+
+QString hubHost() {
+    return QSettings().value(kHubHost).toString().trimmed();
+}
+
+void setHubHost(const QString& host) {
+    QSettings().setValue(kHubHost, host.trimmed());
 }
 
 bool autoProbe() {

@@ -36,6 +36,10 @@ void setRemoteHost(const QString& host);
 [[nodiscard]] int remotePort();
 void setRemotePort(int port);
 
+/// @return Последний адрес Harmony Hub в локальной сети (пусто — ещё не вводился).
+[[nodiscard]] QString hubHost();
+void setHubHost(const QString& host);
+
 /// @return Проверять подключение пульта каждые 10 секунд.
 [[nodiscard]] bool autoProbe();
 void setAutoProbe(bool on);

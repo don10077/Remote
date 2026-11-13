@@ -2269,6 +2269,16 @@ Add a device?</source>
       <translation>Подключение пульта</translation>
     </message>
     <message>
+      <location filename="../../../app/src/widgets/configTransferDialog.cpp" />
+      <source>Connecting to the Hub at %1…</source>
+      <translation>Подключение к Hub %1…</translation>
+    </message>
+    <message>
+      <location filename="../../../app/src/widgets/configTransferDialog.cpp" />
+      <source>Connecting to the Hub…</source>
+      <translation>Подключение к Hub…</translation>
+    </message>
+    <message>
       <location filename="../../../app/src/mainWindowRemote.cpp" />
       <location filename="../../../app/src/widgets/findByRemoteDialog.cpp" />
       <location filename="../../../app/src/widgets/learnWizardDialog.cpp" />
@@ -2425,6 +2435,11 @@ Add a device?</source>
       <location filename="../../../app/src/zoneEditing.cpp" />
       <source>Could not back up %1. Nothing was saved.</source>
       <translation>Не удалось создать резервную копию %1. Ничего не сохранено.</translation>
+    </message>
+    <message>
+      <location filename="../../../transport/src/hubConfigReader.cpp" />
+      <source>could not connect to the Harmony Hub at %1:%2</source>
+      <translation>не удалось подключиться к Harmony Hub %1:%2</translation>
     </message>
     <message>
       <location filename="../../../app/src/linuxUsbSetup.cpp" />
@@ -3149,6 +3164,11 @@ Copy saved: %2</source>
       <translation>Изменить…</translation>
     </message>
     <message>
+      <location filename="../../../app/src/widgets/configTransferDialog.cpp" />
+      <source>Elite, Ultimate, Ultimate Home, 950, Companion and other remotes paired with a Hub: devices, commands and activities are read from the Hub on your network. No rooting is needed; IR codes and account data are not included.</source>
+      <translation>Elite, Ultimate, Ultimate Home, 950, Companion и другие пульты, привязанные к Hub: устройства, команды и активности читаются с Hub по локальной сети. Взлом не нужен; ИК-коды и данные учётной записи в файл не попадают.</translation>
+    </message>
+    <message>
       <location filename="../../../app/src/widgets/newConfigDialog.cpp" />
       <source>Empty configuration</source>
       <translation>Пустая конфигурация</translation>
@@ -3589,6 +3609,11 @@ Copy saved: %2</source>
       <translation>Копия Harmony HID (*.hid.json)</translation>
     </message>
     <message>
+      <location filename="../../../app/src/widgets/configTransferDialog.cpp" />
+      <source>Harmony Hub configuration (*.hub.json);;All files (*)</source>
+      <translation>Конфигурация Harmony Hub (*.hub.json);;Все файлы (*)</translation>
+    </message>
+    <message>
       <location filename="../../../app/src/widgets/disclaimerDialog.cpp" />
       <source>Harmony is an unofficial program. It is not made, endorsed or supported by Logitech.</source>
       <translation>Harmony — неофициальная программа. Logitech её не создавала, не одобряла и не поддерживает.</translation>
@@ -3840,6 +3865,15 @@ Copy saved: %2</source>
       <translation>Чем «%1» отличается от другой конфигурации</translation>
     </message>
     <message>
+      <location filename="../../../app/src/widgets/configTransferDialog.cpp" />
+      <source>Hub “%1”, firmware %2: %3 devices, %4 activities.
+Saved: %5
+The file contains device names and models, but no IR codes, account or e-mail. You can send it to the developers.</source>
+      <translation>Hub «%1», прошивка %2: устройств — %3, активностей — %4.
+Сохранено: %5
+В файле есть названия и модели устройств, но нет ИК-кодов, учётной записи и e-mail. Его можно отправить разработчикам.</translation>
+    </message>
+    <message>
       <location filename="../../../app/src/widgets/disclaimerDialog.cpp" />
       <source>I understand the risks and accept these terms</source>
       <translation>Я понимаю риски и принимаю эти условия</translation>
@@ -4065,6 +4099,11 @@ Copy saved: %2</source>
       <location filename="../../../core/src/remotePreferences.cpp" />
       <source>invalid value “%1” for the remote setting %2</source>
       <translation>недопустимое значение «%1» для настройки пульта %2</translation>
+    </message>
+    <message>
+      <location filename="../../../app/src/widgets/configTransferDialog.cpp" />
+      <source>IP address of the Harmony Hub on your network (see the router or the Harmony app):</source>
+      <translation>IP-адрес Harmony Hub в вашей сети (виден в роутере или в приложении Harmony):</translation>
     </message>
     <message>
       <location filename="../../../app/src/widgets/aboutDialog.cpp" />
@@ -4892,6 +4931,11 @@ Copy saved: %2</source>
       <location filename="../../../core/src/configDocumentDatabase.cpp" />
       <source>none of the device's commands could be converted</source>
       <translation>ни одну команду устройства не удалось преобразовать</translation>
+    </message>
+    <message>
+      <location filename="../../../transport/src/hubConfigReader.cpp" />
+      <source>not a Harmony Hub configuration file</source>
+      <translation>это не файл конфигурации Harmony Hub</translation>
     </message>
     <message>
       <location filename="../../../app/src/mainWindow.cpp" />
@@ -5783,6 +5827,16 @@ Copy saved: %2</source>
       <translation>Считать с пульта…</translation>
     </message>
     <message>
+      <location filename="../../../app/src/widgets/configTransferDialog.cpp" />
+      <source>Read Harmony Hub over network</source>
+      <translation>Чтение Harmony Hub по сети</translation>
+    </message>
+    <message>
+      <location filename="../../../app/src/widgets/configTransferDialog.cpp" />
+      <source>Read Harmony Hub over network…</source>
+      <translation>Прочитать Harmony Hub по сети…</translation>
+    </message>
+    <message>
       <location filename="../../../transport/src/concordTransfer.cpp" />
       <location filename="../../../transport/src/harmonyHidReader.cpp" />
       <source>Reading cancelled</source>
@@ -5815,6 +5869,11 @@ Copy saved: %2</source>
       <translation>Чтение конфигурации по USB HID…</translation>
     </message>
     <message>
+      <location filename="../../../transport/src/hubConfigReader.cpp" />
+      <source>reading the Hub configuration was cancelled</source>
+      <translation>чтение конфигурации Hub отменено</translation>
+    </message>
+    <message>
       <location filename="../../../app/src/mainWindowRemote.cpp" />
       <source>Reading the log from the remote…</source>
       <translation>Чтение журнала с пульта…</translation>
@@ -5838,6 +5897,11 @@ Copy saved: %2</source>
       <location filename="../../../app/src/widgets/learnWizardDialog.cpp" />
       <source>Received: %1. Press the same button once more to check.</source>
       <translation>Принято: %1. Для проверки нажмите ту же кнопку ещё раз.</translation>
+    </message>
+    <message>
+      <location filename="../../../app/src/widgets/configTransferDialog.cpp" />
+      <source>Receiving configuration (%1 KB)…</source>
+      <translation>Получение конфигурации (%1 КБ)…</translation>
     </message>
     <message>
       <location filename="../../../app/src/mainWindow.cpp" />
@@ -6437,6 +6501,11 @@ Their buttons and start steps in this activity, including input switching, will 
       <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
       <source>Save changes</source>
       <translation>Сохранить изменения</translation>
+    </message>
+    <message>
+      <location filename="../../../app/src/widgets/configTransferDialog.cpp" />
+      <source>Save Harmony Hub configuration</source>
+      <translation>Сохранить конфигурацию Harmony Hub</translation>
     </message>
     <message>
       <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
@@ -7472,6 +7541,106 @@ They will not be sent to the remote either. When the device is made active again
       <translation>Harmony 900 подключается по USB и видна как сетевой адаптер. Программа сама находит пульт по адресу %1; состояние показано справа вверху. В его меню есть «Проверить связь» и другие команды пульта.</translation>
     </message>
     <message>
+      <location filename="../../../transport/src/hubConfigReader.cpp" />
+      <source>the Harmony Hub configuration file has no configuration</source>
+      <translation type="unfinished" />
+    </message>
+    <message>
+      <location filename="../../../transport/src/hubConfigReader.cpp" />
+      <source>the Hub answered %1 with code %2</source>
+      <translation>Hub ответил на %1 кодом %2</translation>
+    </message>
+    <message>
+      <location filename="../../../transport/src/hubConfigReader.cpp" />
+      <source>the Hub answered %1 without data</source>
+      <translation>Hub ответил на %1 без данных</translation>
+    </message>
+    <message>
+      <location filename="../../../transport/src/hubConfigReader.cpp" />
+      <source>the Hub at %1 did not open the WebSocket (HTTP %2)</source>
+      <translation>Hub %1 не открыл соединение WebSocket (HTTP %2)</translation>
+    </message>
+    <message>
+      <location filename="../../../transport/src/hubConfigReader.cpp" />
+      <source>the Hub at %1 refused the provisioning request (HTTP %2)</source>
+      <translation>Hub %1 отклонил запрос сведений (HTTP %2). Возможно, это не стоковый Harmony Hub или порт 8088 закрыт</translation>
+    </message>
+    <message>
+      <location filename="../../../transport/src/hubConfigReader.cpp" />
+      <source>the Hub closed the connection</source>
+      <translation>Hub закрыл соединение</translation>
+    </message>
+    <message>
+      <location filename="../../../transport/src/hubConfigReader.cpp" />
+      <source>the Hub configuration has no devices or activities</source>
+      <translation>в конфигурации Hub нет ни устройств, ни активностей</translation>
+    </message>
+    <message>
+      <location filename="../../../transport/src/hubConfigReader.cpp" />
+      <source>the Hub did not answer %1</source>
+      <translation>Hub не ответил на %1</translation>
+    </message>
+    <message>
+      <location filename="../../../transport/src/hubConfigReader.cpp" />
+      <source>the Hub did not report a valid remote id</source>
+      <translation>Hub не сообщил корректный идентификатор</translation>
+    </message>
+    <message>
+      <location filename="../../../transport/src/hubConfigReader.cpp" />
+      <source>the Hub interrupted a fragmented message</source>
+      <translation type="unfinished" />
+    </message>
+    <message>
+      <location filename="../../../transport/src/hubConfigReader.cpp" />
+      <source>the Hub refused the provisioning request (code %1)</source>
+      <translation>Hub отклонил запрос сведений (код %1)</translation>
+    </message>
+    <message>
+      <location filename="../../../transport/src/hubConfigReader.cpp" />
+      <source>the Hub sent a message larger than %1 MB</source>
+      <translation>Hub прислал сообщение больше %1 МБ</translation>
+    </message>
+    <message>
+      <location filename="../../../transport/src/hubConfigReader.cpp" />
+      <source>the Hub sent an invalid HTTP chunk</source>
+      <translation type="unfinished" />
+    </message>
+    <message>
+      <location filename="../../../transport/src/hubConfigReader.cpp" />
+      <source>the Hub sent an invalid HTTP length: %1</source>
+      <translation type="unfinished" />
+    </message>
+    <message>
+      <location filename="../../../transport/src/hubConfigReader.cpp" />
+      <source>the Hub sent an invalid WebSocket control frame</source>
+      <translation type="unfinished" />
+    </message>
+    <message>
+      <location filename="../../../transport/src/hubConfigReader.cpp" />
+      <source>the Hub sent an oversized HTTP header</source>
+      <translation type="unfinished" />
+    </message>
+    <message>
+      <location filename="../../../transport/src/hubConfigReader.cpp" />
+      <source>the Hub sent an oversized HTTP line</source>
+      <translation type="unfinished" />
+    </message>
+    <message>
+      <location filename="../../../transport/src/hubConfigReader.cpp" />
+      <source>the Hub sent an unexpected continuation frame</source>
+      <translation type="unfinished" />
+    </message>
+    <message>
+      <location filename="../../../transport/src/hubConfigReader.cpp" />
+      <source>the Hub sent an unexpected provisioning reply</source>
+      <translation>Hub прислал неожиданный ответ на запрос сведений</translation>
+    </message>
+    <message>
+      <location filename="../../../transport/src/hubConfigReader.cpp" />
+      <source>the Hub sent an unsupported WebSocket frame (%1)</source>
+      <translation type="unfinished" />
+    </message>
+    <message>
       <location filename="../../../app/src/widgets/buttonDialog.cpp" />
       <source>The icon replaces the label on the remote's screen</source>
       <translation>Значок заменяет подпись на экране пульта</translation>
@@ -8422,6 +8591,11 @@ They will not be sent to the remote either. When the device is made active again
       <location filename="../../../app/src/mainWindowVersions.cpp" />
       <source>Unsaved changes found</source>
       <translation>Найдены несохранённые правки</translation>
+    </message>
+    <message>
+      <location filename="../../../transport/src/hubConfigReader.cpp" />
+      <source>unsupported Harmony Hub configuration file version %1</source>
+      <translation>неподдерживаемая версия файла конфигурации Harmony Hub: %1</translation>
     </message>
     <message>
       <location filename="../../../transport/src/harmonyHidReader.cpp" />

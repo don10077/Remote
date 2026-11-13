@@ -11,6 +11,7 @@ add_library(harmony_transport
     src/usbnet.cpp
     src/harmonyHidReader.cpp
     src/hidChannel.cpp
+    src/hubConfigReader.cpp
 )
 add_library(harmony::transport ALIAS harmony_transport)
 
@@ -20,6 +21,8 @@ target_include_directories(harmony_transport
 target_link_libraries(harmony_transport PUBLIC harmony::core)
 target_link_libraries(harmony_transport PRIVATE hidapi::hidapi)
 target_link_libraries(harmony_transport PRIVATE harmony_concord harmony_zip pugixml::pugixml)
+# Конфигурация Harmony Hub (порт 8088) приходит в JSON.
+target_link_libraries(harmony_transport PRIVATE nlohmann_json::nlohmann_json)
 if(WIN32)
     target_link_libraries(harmony_transport PRIVATE ws2_32)
 endif()
