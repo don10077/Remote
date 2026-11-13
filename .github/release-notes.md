@@ -1,5 +1,4 @@
-**Первый выпуск. Предварительная версия (pre-release).**
-**First release. Pre-release.**
+**Предварительная версия 0.2.0 (pre-release).**
 
 Редактор конфигурации пультов Logitech Harmony без облака Logitech:
 чтение, правка и запись конфигурации на пульт по USB.
@@ -25,9 +24,9 @@
 
 | Система | Файл |
 |---|---|
-| Windows 10/11 x64 | `Harmony-0.1.0-setup.exe` или `Harmony-0.1.0-windows-portable.zip` |
-| Linux x86_64 (glibc 2.39+) | `Harmony-0.1.0-x86_64.AppImage` |
-| macOS (Apple Silicon и Intel) | `Harmony-0.1.0-macos.dmg` |
+| Windows 10/11 x64 | `Harmony-0.2.0-setup.exe` или `Harmony-0.2.0-windows-portable.zip` |
+| Linux x86_64 (glibc 2.39+) | `Harmony-0.2.0-x86_64.AppImage` |
+| macOS (Apple Silicon и Intel) | `Harmony-0.2.0-macos.dmg` |
 
 `SHA256SUMS.txt` — контрольные суммы файлов.
 
