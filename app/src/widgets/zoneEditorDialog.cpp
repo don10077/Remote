@@ -978,8 +978,12 @@ void ZoneEditorDialog::runAutoZones() {
     note(tr("Recognizing zones on the photo…"));
     QApplication::setOverrideCursor(Qt::WaitCursor);
     QByteArray out, err;
-    const bool ok = run(QStringLiteral("python"), {script, photoPath, QStringLiteral("--json")}, out, err)
-        || run(QStringLiteral("py"), {QStringLiteral("-3"), script, photoPath, QStringLiteral("--json")}, out, err);
+    const QStringList arguments{script, photoPath, QStringLiteral("--json")};
+    const QString python = qEnvironmentVariable("HARMONY_AUTO_ZONES_PYTHON");
+    const bool ok = python.isEmpty()
+        ? run(QStringLiteral("python"), arguments, out, err)
+            || run(QStringLiteral("py"), QStringList{QStringLiteral("-3")} + arguments, out, err)
+        : run(python, arguments, out, err);
     QApplication::restoreOverrideCursor();
     if (!ok) {
         note(tr("Auto zones did not start. Python 3 with the opencv package is required: pip install opencv-python."));

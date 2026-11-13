@@ -26,4 +26,4 @@ CMakeUserPresets.json
 __pycache__/
 *.pyc
 
-logs_117598569573.zip
+*.zip

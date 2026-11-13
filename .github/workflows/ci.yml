@@ -246,7 +246,8 @@ jobs:
           MSYS2_ROOT: ${{ steps.msys2.outputs.msys2-location }}
         run: |
           $mingwBin = Join-Path $env:MSYS2_ROOT 'mingw64/bin'
-          $env:Path += ";$mingwBin"
+          $env:Path = "$mingwBin;$env:Path"
+          $env:HARMONY_AUTO_ZONES_PYTHON = Join-Path $env:pythonLocation 'python.exe'
           & (Join-Path $mingwBin 'ctest.exe') --preset release
       - name: Раскладка и установщик
         run: |
