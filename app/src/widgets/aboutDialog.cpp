@@ -29,6 +29,9 @@ namespace {
 /// Страница проекта.
 constexpr const char* kProjectUrl = "https://github.com/don10077/Remote";
 
+/// Адрес для связи с автором.
+constexpr const char* kContactEmail = "don10077@mail.ru";
+
 /// Ссылка в HTML.
 QString anchor(const QString& url, const QString& text) {
     return QStringLiteral("<a href=\"%1\">%2</a>").arg(url, text.toHtmlEscaped());
@@ -71,10 +74,13 @@ AboutDialog::AboutDialog(QWidget* parent) : QDialog(parent) {
                                       "and cloud."),
                                    this);
     description->setWordWrap(true);
+    const QString contactEmail = QString::fromLatin1(kContactEmail);
     auto* links = new QLabel(anchor(QString::fromLatin1(kProjectUrl), tr("Project page")) +
                                  QStringLiteral(" · ") +
                                  anchor(QString::fromLatin1(kProjectUrl) + QStringLiteral("/issues"),
-                                        tr("Report a problem")),
+                                        tr("Report a problem")) +
+                                 QStringLiteral("<br>") +
+                                 anchor(QStringLiteral("mailto:") + contactEmail, contactEmail),
                              this);
     links->setOpenExternalLinks(true);
 
