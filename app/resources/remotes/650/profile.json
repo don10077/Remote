@@ -1,0 +1,24 @@
+{
+  "id": "650",
+  "name": "Harmony 650",
+  "image": "photo.png",
+  "size": [
+    450,
+    1500
+  ],
+  "screen": [
+    137,
+    261,
+    173,
+    182
+  ],
+  "touch": false,
+  "screenTint": "#c7506d",
+  "modes": {
+    "devices": "soft_2x2",
+    "activities": "soft_2x2",
+    "command": "soft_2x2"
+  },
+  "driver": "hid",
+  "configFormat": "unsupported"
+}

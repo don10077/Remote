@@ -1,0 +1,4 @@
+# Harmony 900 (USB 046d:c11f) подключён: выдать ему адрес (см. harmony-usbnet.sh).
+# Долгая работа из udev запрещена, поэтому скрипт запускается отдельной службой systemd.
+ACTION=="add", SUBSYSTEM=="net", ATTRS{idVendor}=="046d", ATTRS{idProduct}=="c11f", \
+    RUN+="/usr/bin/systemd-run --no-block --collect --unit=harmony-usbnet-%k /usr/local/libexec/harmony-usbnet.sh %k"

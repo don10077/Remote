@@ -1,0 +1,23 @@
+{
+  "id": "900",
+  "name": "Harmony 900",
+  "image": "photo.png",
+  "size": [
+    450,
+    1500
+  ],
+  "screen": [
+    109,
+    110,
+    232,
+    290
+  ],
+  "touch": true,
+  "modes": {
+    "devices": "list_3",
+    "activities": "list_3",
+    "command": "grid_2x3"
+  },
+  "driver": "harmony900",
+  "configFormat": "harmony900"
+}

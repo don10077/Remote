@@ -1,0 +1,17 @@
+[
+  {"id": "Off", "rect": [20, 41, 30, 30], "radius": -0.5, "kind": "System"},
+  {"id": "Activities", "rect": [197, 374, 96, 34], "radius": 14.1, "kind": "ScreenActs"},
+  {"id": "ChannelUp", "rect": [512, 51, 34, 44], "radius": 10.1, "kind": "Key"},
+  {"id": "ChannelDown", "rect": [512, 96, 34, 43], "radius": 10.1, "kind": "Key"},
+  {"id": "VolumeUp", "rect": [593, 51, 35, 44], "radius": 10.1, "kind": "Key"},
+  {"id": "VolumeDown", "rect": [593, 96, 35, 43], "radius": 10.1, "kind": "Key"},
+  {"id": "PrevChannel", "rect": [508, 154, 37, 36], "radius": -0.5, "kind": "Key"},
+  {"id": "VolumeMute", "rect": [591, 154, 37, 36], "radius": -0.5, "kind": "Key"},
+  {"id": "DirectionUp", "rect": [543, 205, 50, 28], "radius": 8.1, "kind": "Key"},
+  {"id": "DirectionLeft", "rect": [519, 230, 30, 46], "radius": 8.1, "kind": "Key"},
+  {"id": "Select", "rect": [548, 232, 40, 40], "radius": -0.5, "kind": "Key"},
+  {"id": "DirectionRight", "rect": [587, 230, 30, 46], "radius": 8.1, "kind": "Key"},
+  {"id": "DirectionDown", "rect": [543, 273, 50, 28], "radius": 8.1, "kind": "Key"},
+  {"id": "PageLeft", "rect": [508, 318, 37, 36], "radius": -0.5, "kind": "PagePrev"},
+  {"id": "PageRight", "rect": [591, 318, 37, 36], "radius": -0.5, "kind": "PageNext"}
+]

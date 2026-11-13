@@ -1,0 +1,768 @@
+[
+  {
+    "id": "900",
+    "name": "Harmony 900",
+    "skins": [
+      61
+    ],
+    "network": true,
+    "read": true,
+    "write": true,
+    "writeTested": true,
+    "visualProfile": "900"
+  },
+  {
+    "id": "harman-kardon-tc-30",
+    "name": "Harman Kardon TC-30",
+    "skins": [
+      34,
+      35,
+      42,
+      43
+    ],
+    "network": false,
+    "read": true,
+    "write": true,
+    "writeTested": false,
+    "visualProfile": ""
+  },
+  {
+    "id": "1000",
+    "name": "Harmony 1000",
+    "skins": [
+      49
+    ],
+    "network": true,
+    "read": false,
+    "write": true,
+    "writeTested": false,
+    "visualProfile": "1000"
+  },
+  {
+    "id": "1000i",
+    "name": "Harmony 1000i",
+    "skins": [
+      52
+    ],
+    "network": true,
+    "read": false,
+    "write": true,
+    "writeTested": false,
+    "visualProfile": ""
+  },
+  {
+    "id": "1100",
+    "name": "Harmony 1100",
+    "skins": [
+      62,
+      63,
+      64
+    ],
+    "network": true,
+    "read": true,
+    "write": true,
+    "writeTested": false,
+    "visualProfile": "1100"
+  },
+  {
+    "id": "1100i",
+    "name": "Harmony 1100i",
+    "skins": [],
+    "network": true,
+    "read": false,
+    "write": false,
+    "writeTested": false,
+    "visualProfile": "1100i"
+  },
+  {
+    "id": "200",
+    "name": "Harmony 200",
+    "skins": [
+      80
+    ],
+    "network": false,
+    "read": true,
+    "write": true,
+    "writeTested": false,
+    "visualProfile": ""
+  },
+  {
+    "id": "200i",
+    "name": "Harmony 200i",
+    "skins": [
+      81
+    ],
+    "network": false,
+    "read": true,
+    "write": true,
+    "writeTested": false,
+    "visualProfile": ""
+  },
+  {
+    "id": "300",
+    "name": "Harmony 300",
+    "skins": [
+      78
+    ],
+    "network": false,
+    "read": true,
+    "write": true,
+    "writeTested": false,
+    "visualProfile": ""
+  },
+  {
+    "id": "300i",
+    "name": "Harmony 300i",
+    "skins": [
+      79
+    ],
+    "network": false,
+    "read": true,
+    "write": true,
+    "writeTested": false,
+    "visualProfile": ""
+  },
+  {
+    "id": "350",
+    "name": "Harmony 350",
+    "skins": [
+      104
+    ],
+    "network": false,
+    "read": true,
+    "write": true,
+    "writeTested": false,
+    "visualProfile": ""
+  },
+  {
+    "id": "515",
+    "name": "Harmony 515",
+    "skins": [
+      67
+    ],
+    "network": false,
+    "read": true,
+    "write": true,
+    "writeTested": false,
+    "visualProfile": ""
+  },
+  {
+    "id": "520",
+    "name": "Harmony 520",
+    "skins": [
+      18
+    ],
+    "network": false,
+    "read": true,
+    "write": true,
+    "writeTested": false,
+    "visualProfile": ""
+  },
+  {
+    "id": "522",
+    "name": "Harmony 522",
+    "skins": [
+      46
+    ],
+    "network": false,
+    "read": true,
+    "write": true,
+    "writeTested": false,
+    "visualProfile": ""
+  },
+  {
+    "id": "525",
+    "name": "Harmony 525",
+    "skins": [
+      22
+    ],
+    "network": false,
+    "read": true,
+    "write": true,
+    "writeTested": false,
+    "visualProfile": ""
+  },
+  {
+    "id": "550",
+    "name": "Harmony 550",
+    "skins": [
+      41
+    ],
+    "network": false,
+    "read": true,
+    "write": true,
+    "writeTested": false,
+    "visualProfile": ""
+  },
+  {
+    "id": "552",
+    "name": "Harmony 552",
+    "skins": [
+      51
+    ],
+    "network": false,
+    "read": true,
+    "write": true,
+    "writeTested": false,
+    "visualProfile": ""
+  },
+  {
+    "id": "555",
+    "name": "Harmony 555",
+    "skins": [
+      48
+    ],
+    "network": false,
+    "read": true,
+    "write": true,
+    "writeTested": false,
+    "visualProfile": ""
+  },
+  {
+    "id": "600",
+    "name": "Harmony 600",
+    "skins": [
+      71
+    ],
+    "network": false,
+    "read": true,
+    "write": true,
+    "writeTested": false,
+    "visualProfile": "600"
+  },
+  {
+    "id": "600i",
+    "name": "Harmony 600i",
+    "skins": [
+      73
+    ],
+    "network": false,
+    "read": true,
+    "write": true,
+    "writeTested": false,
+    "visualProfile": ""
+  },
+  {
+    "id": "628",
+    "name": "Harmony 628",
+    "skins": [
+      13
+    ],
+    "network": false,
+    "read": true,
+    "write": true,
+    "writeTested": false,
+    "visualProfile": ""
+  },
+  {
+    "id": "650",
+    "name": "Harmony 650",
+    "skins": [
+      72
+    ],
+    "network": false,
+    "read": true,
+    "write": true,
+    "writeTested": false,
+    "visualProfile": "650"
+  },
+  {
+    "id": "650i",
+    "name": "Harmony 650i",
+    "skins": [
+      74
+    ],
+    "network": false,
+    "read": true,
+    "write": true,
+    "writeTested": false,
+    "visualProfile": ""
+  },
+  {
+    "id": "655",
+    "name": "Harmony 655",
+    "skins": [
+      11
+    ],
+    "network": false,
+    "read": true,
+    "write": true,
+    "writeTested": false,
+    "visualProfile": ""
+  },
+  {
+    "id": "659",
+    "name": "Harmony 659",
+    "skins": [
+      9
+    ],
+    "network": false,
+    "read": true,
+    "write": true,
+    "writeTested": false,
+    "visualProfile": ""
+  },
+  {
+    "id": "665",
+    "name": "Harmony 665",
+    "skins": [
+      75
+    ],
+    "network": false,
+    "read": true,
+    "write": true,
+    "writeTested": false,
+    "visualProfile": "665"
+  },
+  {
+    "id": "670",
+    "name": "Harmony 670",
+    "skins": [
+      50
+    ],
+    "network": false,
+    "read": true,
+    "write": true,
+    "writeTested": false,
+    "visualProfile": ""
+  },
+  {
+    "id": "675",
+    "name": "Harmony 675",
+    "skins": [
+      16
+    ],
+    "network": false,
+    "read": true,
+    "write": true,
+    "writeTested": false,
+    "visualProfile": ""
+  },
+  {
+    "id": "676",
+    "name": "Harmony 676",
+    "skins": [
+      12
+    ],
+    "network": false,
+    "read": true,
+    "write": true,
+    "writeTested": false,
+    "visualProfile": ""
+  },
+  {
+    "id": "680",
+    "name": "Harmony 680",
+    "skins": [
+      14
+    ],
+    "network": false,
+    "read": true,
+    "write": true,
+    "writeTested": false,
+    "visualProfile": ""
+  },
+  {
+    "id": "688",
+    "name": "Harmony 688",
+    "skins": [
+      10
+    ],
+    "network": false,
+    "read": true,
+    "write": true,
+    "writeTested": false,
+    "visualProfile": ""
+  },
+  {
+    "id": "700",
+    "name": "Harmony 700",
+    "skins": [
+      66
+    ],
+    "network": false,
+    "read": true,
+    "write": true,
+    "writeTested": false,
+    "visualProfile": "700"
+  },
+  {
+    "id": "700i",
+    "name": "Harmony 700i",
+    "skins": [
+      69
+    ],
+    "network": false,
+    "read": true,
+    "write": true,
+    "writeTested": false,
+    "visualProfile": ""
+  },
+  {
+    "id": "720",
+    "name": "Harmony 720",
+    "skins": [
+      44
+    ],
+    "network": false,
+    "read": true,
+    "write": true,
+    "writeTested": false,
+    "visualProfile": ""
+  },
+  {
+    "id": "745",
+    "name": "Harmony 745",
+    "skins": [
+      2
+    ],
+    "network": false,
+    "read": true,
+    "write": true,
+    "writeTested": false,
+    "visualProfile": ""
+  },
+  {
+    "id": "748",
+    "name": "Harmony 748",
+    "skins": [
+      7
+    ],
+    "network": false,
+    "read": true,
+    "write": true,
+    "writeTested": false,
+    "visualProfile": ""
+  },
+  {
+    "id": "768",
+    "name": "Harmony 768",
+    "skins": [
+      3
+    ],
+    "network": false,
+    "read": true,
+    "write": true,
+    "writeTested": false,
+    "visualProfile": ""
+  },
+  {
+    "id": "785",
+    "name": "Harmony 785",
+    "skins": [
+      45
+    ],
+    "network": false,
+    "read": true,
+    "write": true,
+    "writeTested": false,
+    "visualProfile": ""
+  },
+  {
+    "id": "800",
+    "name": "Harmony 800",
+    "skins": [
+      86
+    ],
+    "network": false,
+    "read": true,
+    "write": true,
+    "writeTested": false,
+    "visualProfile": ""
+  },
+  {
+    "id": "880",
+    "name": "Harmony 880",
+    "skins": [
+      15
+    ],
+    "network": false,
+    "read": true,
+    "write": true,
+    "writeTested": false,
+    "visualProfile": ""
+  },
+  {
+    "id": "880-pro",
+    "name": "Harmony 880 Pro",
+    "skins": [
+      39
+    ],
+    "network": false,
+    "read": true,
+    "write": true,
+    "writeTested": false,
+    "visualProfile": ""
+  },
+  {
+    "id": "882",
+    "name": "Harmony 882",
+    "skins": [
+      47
+    ],
+    "network": false,
+    "read": true,
+    "write": true,
+    "writeTested": false,
+    "visualProfile": ""
+  },
+  {
+    "id": "885",
+    "name": "Harmony 885",
+    "skins": [
+      17
+    ],
+    "network": false,
+    "read": true,
+    "write": true,
+    "writeTested": false,
+    "visualProfile": ""
+  },
+  {
+    "id": "890",
+    "name": "Harmony 890",
+    "skins": [
+      19
+    ],
+    "network": false,
+    "read": true,
+    "write": true,
+    "writeTested": false,
+    "visualProfile": ""
+  },
+  {
+    "id": "890-pro",
+    "name": "Harmony 890 Pro",
+    "skins": [
+      40
+    ],
+    "network": false,
+    "read": true,
+    "write": true,
+    "writeTested": false,
+    "visualProfile": ""
+  },
+  {
+    "id": "891",
+    "name": "Harmony 891",
+    "skins": [
+      20
+    ],
+    "network": false,
+    "read": true,
+    "write": true,
+    "writeTested": false,
+    "visualProfile": ""
+  },
+  {
+    "id": "892",
+    "name": "Harmony 892",
+    "skins": [
+      21
+    ],
+    "network": false,
+    "read": true,
+    "write": true,
+    "writeTested": false,
+    "visualProfile": ""
+  },
+  {
+    "id": "895",
+    "name": "Harmony 895",
+    "skins": [
+      23
+    ],
+    "network": false,
+    "read": true,
+    "write": true,
+    "writeTested": false,
+    "visualProfile": ""
+  },
+  {
+    "id": "896",
+    "name": "Harmony 896",
+    "skins": [
+      24
+    ],
+    "network": false,
+    "read": true,
+    "write": true,
+    "writeTested": false,
+    "visualProfile": ""
+  },
+  {
+    "id": "897",
+    "name": "Harmony 897",
+    "skins": [
+      25
+    ],
+    "network": false,
+    "read": true,
+    "write": true,
+    "writeTested": false,
+    "visualProfile": ""
+  },
+  {
+    "id": "950",
+    "name": "Harmony 950",
+    "skins": [
+      112
+    ],
+    "network": false,
+    "read": false,
+    "write": true,
+    "writeTested": false,
+    "visualProfile": ""
+  },
+  {
+    "id": "home-hub",
+    "name": "Harmony Home Hub",
+    "skins": [
+      106
+    ],
+    "network": false,
+    "read": false,
+    "write": true,
+    "writeTested": false,
+    "visualProfile": ""
+  },
+  {
+    "id": "link",
+    "name": "Harmony Link",
+    "skins": [
+      82
+    ],
+    "network": false,
+    "read": false,
+    "write": true,
+    "writeTested": false,
+    "visualProfile": ""
+  },
+  {
+    "id": "link-emea",
+    "name": "Harmony Link (EMEA)",
+    "skins": [
+      83
+    ],
+    "network": false,
+    "read": false,
+    "write": true,
+    "writeTested": false,
+    "visualProfile": ""
+  },
+  {
+    "id": "one",
+    "name": "Harmony One",
+    "skins": [
+      54
+    ],
+    "network": false,
+    "read": true,
+    "write": true,
+    "writeTested": false,
+    "visualProfile": "one"
+  },
+  {
+    "id": "touch",
+    "name": "Harmony Touch",
+    "skins": [
+      99
+    ],
+    "network": false,
+    "read": false,
+    "write": true,
+    "writeTested": false,
+    "visualProfile": ""
+  },
+  {
+    "id": "ultimate",
+    "name": "Harmony Ultimate",
+    "skins": [
+      100
+    ],
+    "network": false,
+    "read": false,
+    "write": true,
+    "writeTested": false,
+    "visualProfile": ""
+  },
+  {
+    "id": "ultimate-hub",
+    "name": "Harmony Ultimate Hub",
+    "skins": [
+      97
+    ],
+    "network": false,
+    "read": false,
+    "write": true,
+    "writeTested": false,
+    "visualProfile": ""
+  },
+  {
+    "id": "ultimate-one",
+    "name": "Harmony Ultimate One",
+    "skins": [
+      102
+    ],
+    "network": false,
+    "read": false,
+    "write": true,
+    "writeTested": false,
+    "visualProfile": ""
+  },
+  {
+    "id": "xbox360",
+    "name": "Harmony XBOX360",
+    "skins": [
+      36
+    ],
+    "network": false,
+    "read": true,
+    "write": true,
+    "writeTested": false,
+    "visualProfile": ""
+  },
+  {
+    "id": "monster-av-100",
+    "name": "Monster AV-100",
+    "skins": [
+      37,
+      38
+    ],
+    "network": false,
+    "read": true,
+    "write": true,
+    "writeTested": false,
+    "visualProfile": ""
+  },
+  {
+    "id": "monster-avl-200",
+    "name": "Monster AVL-200",
+    "skins": [
+      32,
+      33
+    ],
+    "network": false,
+    "read": true,
+    "write": true,
+    "writeTested": false,
+    "visualProfile": ""
+  },
+  {
+    "id": "monster-avl-300",
+    "name": "Monster AVL-300",
+    "skins": [
+      26,
+      27,
+      28,
+      29,
+      30,
+      31
+    ],
+    "network": false,
+    "read": true,
+    "write": true,
+    "writeTested": false,
+    "visualProfile": ""
+  }
+]

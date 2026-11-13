@@ -1,0 +1,26 @@
+{
+  "id": "1000",
+  "name": "Harmony 1000",
+  "image": "photo.png",
+  "size": [
+    680,
+    550
+  ],
+  "screen": [
+    71,
+    90,
+    349,
+    262
+  ],
+  "touch": true,
+  "modes": {
+    "devices": "t1000_activities",
+    "activities": "t1000_activities",
+    "command": "t1000_command",
+    "favorites": "t1000_command",
+    "transport": "t1000_transport",
+    "keypad": "t1000_keypad"
+  },
+  "driver": "none",
+  "configFormat": "unsupported"
+}

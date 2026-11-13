@@ -1,0 +1,28 @@
+# Каталоги сборки
+/build/
+/out/
+/dist/
+
+# Локальные пресеты (пути к тулчейну на конкретной машине)
+CMakeUserPresets.json
+
+# IDE
+.vs/
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.user
+.cache/
+
+# Резервные копии конфигурации пульта, снятые при разработке
+/backup/
+/photo/
+/.claude/
+
+# Памятка для Claude (локальная)
+/CLAUDE.md
+
+# Кэш Python
+__pycache__/
+*.pyc
+

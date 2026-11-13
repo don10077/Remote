@@ -1,0 +1,24 @@
+{
+  "id": "600",
+  "name": "Harmony 600",
+  "image": "photo.png",
+  "size": [
+    450,
+    1500
+  ],
+  "screen": [
+    139,
+    258,
+    172,
+    184
+  ],
+  "touch": false,
+  "screenTint": "#7d7f82",
+  "modes": {
+    "devices": "soft_2x2",
+    "activities": "soft_2x2",
+    "command": "soft_2x2"
+  },
+  "driver": "hid",
+  "configFormat": "unsupported"
+}

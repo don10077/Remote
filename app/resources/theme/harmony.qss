@@ -1,0 +1,165 @@
+/* Harmony — дополнение к modern.qss: только новые элементы
+   (шапка окна, стартовый экран, обзор пульта).
+   Цвета — токенами @имя, значения в палитре app/src/theme.cpp. */
+
+/* ── шапка окна ───────────────────────────────────────────────────────── */
+
+QWidget#appHeader {
+  background: @window;
+  border-bottom: 1px solid @border;
+}
+
+QWidget#appHeader QToolButton {
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  padding: 5px 8px;
+  color: @text;
+}
+
+QWidget#appHeader QToolButton:hover {
+  background: @surface;
+  border-color: @border;
+}
+
+QWidget#appHeader QToolButton:pressed,
+QWidget#appHeader QToolButton:open {
+  background: @accentSoft;
+  border-color: @accentSoft;
+}
+
+QWidget#appHeader QToolButton::menu-indicator {
+  image: none;
+  width: 0;
+}
+
+QWidget#appHeader QToolButton#connectionButton {
+  border: 1px solid @border;
+  border-radius: 14px;
+  padding: 4px 12px 4px 8px;
+  background: @surface;
+}
+
+QWidget#appHeader QToolButton#connectionButton:hover {
+  border-color: @accent;
+}
+
+/* ── стартовый экран ──────────────────────────────────────────────────── */
+
+QWidget#welcome {
+  background: @surface;
+}
+
+QLabel#welcomeTitle {
+  font-size: 22pt;
+  font-weight: 600;
+  color: @text;
+}
+
+QLabel#welcomeSubtitle {
+  color: @textMuted;
+  font-size: 11pt;
+}
+
+QFrame#welcomeCard {
+  border: 1px solid @border;
+  border-radius: 10px;
+  background: @surface;
+}
+
+QFrame#welcomeCard:hover,
+QFrame#welcomeCard:focus {
+  border-color: @accent;
+  background: @accentSoft;
+}
+
+QFrame#welcomeCard QLabel {
+  background: transparent;
+  border: none;
+}
+
+QLabel#welcomeCardTitle {
+  font-size: 11.5pt;
+  font-weight: 600;
+  color: @text;
+}
+
+QLabel#welcomeHint {
+  color: @textMuted;
+}
+
+/* ── обзор пульта ─────────────────────────────────────────────────────── */
+
+QLabel#overviewText {
+  color: @text;
+  font-size: 10.5pt;
+  padding-top: 8px;
+}
+
+/* Перегородка между списком слева и страницей: её можно тянуть. */
+QSplitter#mainSplitter::handle {
+  background: @border;
+}
+
+QSplitter#mainSplitter::handle:hover {
+  background: @accent;
+}
+
+/* «Добавить устройство / активность» в заголовке раздела: круглая кнопка
+   с плюсом-значком на мягком акцентном фоне. */
+QToolButton#navAdd {
+  background: @accentSoft;
+  border: 1px solid @accentSoft;
+  border-radius: 11px;
+  padding: 0;
+}
+QToolButton#navAdd:hover {
+  border-color: @accent;
+}
+QToolButton#navAdd:pressed {
+  background: @surface;
+  border-color: @accent;
+}
+
+/* Действия над выбранным объектом в заголовке страницы */
+QPushButton#pageAction,
+QPushButton#pageActionDanger {
+  background: @surface;
+  border: 1px solid @border;
+  border-radius: 6px;
+  padding: 5px 14px;
+  color: @text;
+}
+QPushButton#pageAction:hover {
+  border-color: @accent;
+  background: @accentSoft;
+}
+QPushButton#pageActionDanger {
+  color: #b42318;
+}
+QPushButton#pageActionDanger:hover {
+  border-color: #b42318;
+  background: #fdecea;
+}
+QPushButton#pageAction:disabled,
+QPushButton#pageActionDanger:disabled {
+  color: @textMuted;
+  background: @window;
+}
+
+/* Разделитель групп в панели над таблицей команд */
+QFrame#toolbarDivider {
+  background: @border;
+  border: none;
+  margin: 4px 0;
+}
+
+/* Редактор зон: те же поверхности, что у основных панелей приложения. */
+QWidget#zoneProperties {
+  background: @surface;
+}
+QScrollArea#zonePropertiesScroll,
+QScrollArea#zonePropertiesScroll > QWidget > QWidget {
+  background: @surface;
+  border: none;
+}

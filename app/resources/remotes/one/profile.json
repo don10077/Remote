@@ -1,0 +1,23 @@
+{
+  "id": "one",
+  "name": "Harmony One",
+  "image": "photo.png",
+  "size": [
+    450,
+    1500
+  ],
+  "screen": [
+    105,
+    115,
+    243,
+    295
+  ],
+  "touch": true,
+  "modes": {
+    "devices": "list_3",
+    "activities": "list_3",
+    "command": "grid_2x3"
+  },
+  "driver": "hid",
+  "configFormat": "unsupported"
+}

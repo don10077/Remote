@@ -1,0 +1,24 @@
+{
+  "id": "665",
+  "name": "Harmony 665",
+  "image": "photo.png",
+  "size": [
+    450,
+    1500
+  ],
+  "screen": [
+    138,
+    260,
+    173,
+    183
+  ],
+  "touch": false,
+  "screenTint": "#c7506d",
+  "modes": {
+    "devices": "soft_2x2",
+    "activities": "soft_2x2",
+    "command": "soft_2x2"
+  },
+  "driver": "hid",
+  "configFormat": "unsupported"
+}

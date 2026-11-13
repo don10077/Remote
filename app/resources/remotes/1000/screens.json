@@ -1,0 +1,76 @@
+{
+  "description": "Экраны Harmony 1000: картинки из resources/sprites по местам, единицы — экран 320x240. Плитки, подписи и подсветку программа рисует по layouts.json поверх. tint — цвет значка текущего экрана в углу.",
+  "ref": [320, 240],
+  "images": {
+    "arrow": {"file": "sprites/arrow_1000.png"},
+    "background": {"file": "sprites/background_1000.png"},
+    "buttonleft": {"file": "sprites/buttonleft_1000.png"},
+    "buttonleft_full": {"file": "sprites/buttonleft_full_1000.png"},
+    "buttonright": {"file": "sprites/buttonright_1000.png"},
+    "digital": {"file": "sprites/digital_1000.png"},
+    "favorites": {"file": "sprites/favorites.png"},
+    "footer": {"file": "sprites/footer_1000.png"},
+    "heart": {"file": "sprites/heart.png"},
+    "home": {"file": "sprites/home.png"},
+    "mmedia": {"file": "sprites/mmedia_1000.png"},
+    "number": {"file": "sprites/number.png"},
+    "play": {"file": "sprites/play.png"},
+    "setting": {"file": "sprites/setting_1000.png"}
+  },
+  "screens": {
+    "devices": [
+      {"image": "background", "rect": [0.0, 0.0, 320.0, 240.0]},
+      {"image": "setting", "rect": [6.67, 5.83, 16.67, 16.33]},
+      {"image": "home", "rect": [296.67, 6.33, 16.67, 15.33], "tint": "#8BAD2D"}
+    ],
+    "activities": [
+      {"image": "background", "rect": [0.0, 0.0, 320.0, 240.0]},
+      {"image": "setting", "rect": [6.67, 5.83, 16.67, 16.33]},
+      {"image": "home", "rect": [296.67, 6.33, 16.67, 15.33], "tint": "#8BAD2D"}
+    ],
+    "transport": [
+      {"image": "background", "rect": [0.0, 0.0, 320.0, 240.0]},
+      {"image": "footer", "rect": [0.0, 202.0, 320.0, 38.0]},
+      {"image": "buttonleft_full", "rect": [0.0, 44.0, 53.33, 154.67]},
+      {"image": "buttonright", "rect": [266.67, 44.0, 53.33, 154.67]},
+      {"image": "mmedia", "rect": [0.0, 0.0, 320.0, 240.0]},
+      {"image": "play", "rect": [6.67, 5.33, 16.67, 17.33], "tint": "#8BAD2D"},
+      {"image": "heart", "rect": [296.67, 7.17, 16.67, 13.67]},
+      {"image": "number", "rect": [6.67, 218.17, 16.67, 17.0]},
+      {"image": "favorites", "rect": [296.67, 219.0, 16.67, 15.33]}
+    ],
+    "keypad": [
+      {"image": "background", "rect": [0.0, 0.0, 320.0, 240.0]},
+      {"image": "footer", "rect": [0.0, 202.0, 320.0, 38.0]},
+      {"image": "buttonleft_full", "rect": [0.0, 44.0, 53.33, 154.67]},
+      {"image": "buttonright", "rect": [266.67, 44.0, 53.33, 154.67]},
+      {"image": "digital", "rect": [76.67, 30.67, 166.67, 166.67]},
+      {"image": "play", "rect": [6.67, 5.33, 16.67, 17.33]},
+      {"image": "heart", "rect": [296.67, 7.17, 16.67, 13.67]},
+      {"image": "number", "rect": [6.67, 218.17, 16.67, 17.0], "tint": "#8BAD2D"},
+      {"image": "favorites", "rect": [296.67, 219.0, 16.67, 15.33]}
+    ],
+    "command": [
+      {"image": "background", "rect": [0.0, 0.0, 320.0, 240.0]},
+      {"image": "footer", "rect": [0.0, 202.0, 320.0, 38.0]},
+      {"image": "buttonleft", "rect": [0.0, 44.0, 52.67, 153.33]},
+      {"image": "arrow", "rect": [6.5, 100.83, 34.33, 79.67]},
+      {"image": "buttonright", "rect": [266.67, 44.0, 53.33, 154.67]},
+      {"image": "play", "rect": [6.67, 5.33, 16.67, 17.33]},
+      {"image": "heart", "rect": [296.67, 7.17, 16.67, 13.67]},
+      {"image": "number", "rect": [6.67, 218.17, 16.67, 17.0]},
+      {"image": "favorites", "rect": [296.67, 219.0, 16.67, 15.33], "tint": "#8BAD2D"}
+    ],
+    "favorites": [
+      {"image": "background", "rect": [0.0, 0.0, 320.0, 240.0]},
+      {"image": "footer", "rect": [0.0, 202.0, 320.0, 38.0]},
+      {"image": "buttonleft", "rect": [0.0, 44.0, 52.67, 153.33]},
+      {"image": "arrow", "rect": [6.5, 100.83, 34.33, 79.67]},
+      {"image": "buttonright", "rect": [266.67, 44.0, 53.33, 154.67]},
+      {"image": "play", "rect": [6.67, 5.33, 16.67, 17.33]},
+      {"image": "heart", "rect": [296.67, 7.17, 16.67, 13.67], "tint": "#8BAD2D"},
+      {"image": "number", "rect": [6.67, 218.17, 16.67, 17.0]},
+      {"image": "favorites", "rect": [296.67, 219.0, 16.67, 15.33]}
+    ]
+  }
+}

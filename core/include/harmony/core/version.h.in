@@ -1,0 +1,24 @@
+#pragma once
+
+/**
+ * @file version.h
+ * @brief Версия проекта. Файл генерируется CMake из version.h.in — не редактировать вручную.
+ */
+
+#include <string_view>
+
+namespace harmony {
+
+/// Полная версия в формате «major.minor.patch».
+inline constexpr std::string_view kVersion = "@PROJECT_VERSION@";
+
+/// Старший номер версии.
+inline constexpr int kVersionMajor = @PROJECT_VERSION_MAJOR@;
+
+/// Младший номер версии.
+inline constexpr int kVersionMinor = @PROJECT_VERSION_MINOR@;
+
+/// Номер исправления.
+inline constexpr int kVersionPatch = @PROJECT_VERSION_PATCH@;
+
+} // namespace harmony

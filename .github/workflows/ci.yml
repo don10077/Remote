@@ -1,0 +1,313 @@
+# CI: сборка и тесты на каждый коммит и pull request — Linux, Windows, macOS.
+#
+# Каждая сборка, кроме core-only, выкладывает пакет в артефакты запуска:
+#   Linux   — Harmony-<версия>-x86_64.AppImage;
+#   Windows — установщик Harmony-<версия>-setup.exe и портативный .zip;
+#   macOS   — Harmony-<версия>-macos.dmg (универсальный: Apple Silicon и Intel).
+# Тег v* (например, v0.2.0) — ещё и релиз на GitHub с этими файлами.
+#
+# TODO: закрепить actions по полному SHA коммита (uses: owner/action@<sha40> # vX.Y.Z),
+#       прежде всего сторонние (jurplel, msys2, softprops) и всё в job release (contents: write).
+#       Пока стоят теги: SHA без сети не узнать, выдумывать нельзя.
+#
+# Кэш: ccache (.ccache в рабочей папке) и исходники FetchContent (build/<пресет>/_deps) — через actions/cache.
+
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+# Новый коммит в ту же ветку отменяет ещё идущую сборку прошлого.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  CCACHE_DIR: ${{ github.workspace }}/.ccache
+  CCACHE_MAXSIZE: 500M
+  # Qt для Linux и macOS: последний LTS. Windows берёт Qt из MSYS2 — там всегда свежий.
+  QT_VERSION: "6.12.0"
+
+jobs:
+  # --- Ядро без Qt, предупреждения = ошибки: самая быстрая проверка ---------------
+  core-only:
+    name: Core (GCC, -Werror)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Пакеты
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build ccache libudev-dev libzip-dev pkg-config libgtest-dev libpugixml-dev nlohmann-json3-dev zlib1g-dev
+      - uses: actions/cache@v4
+        with:
+          path: |
+            .ccache
+            build/core-only/_deps/*-src
+            build/core-only/_deps/*-subbuild
+          key: build-${{ runner.os }}-${{ github.job }}-${{ hashFiles('cmake/Dependencies.cmake') }}-${{ github.sha }}
+          restore-keys: |
+            build-${{ runner.os }}-${{ github.job }}-${{ hashFiles('cmake/Dependencies.cmake') }}-
+      - name: Настройка
+        run: cmake --preset core-only
+      - name: Сборка
+        run: cmake --build --preset core-only
+      - name: Тесты
+        run: ctest --preset core-only
+
+  # --- Ядро на Clang с libc++ — той же стандартной библиотекой, что на macOS ----
+  # libc++ строже libstdc++ к include: ловит забытый <algorithm> за минуту, а не в сборке macOS.
+  core-libcxx:
+    name: Core (Clang, libc++)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Пакеты
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build ccache libudev-dev libzip-dev pkg-config clang libc++-dev libc++abi-dev
+      - uses: actions/cache@v4
+        with:
+          path: |
+            .ccache
+            build/core-only/_deps/*-src
+            build/core-only/_deps/*-subbuild
+          key: build-${{ runner.os }}-${{ github.job }}-${{ hashFiles('cmake/Dependencies.cmake') }}-${{ github.sha }}
+          restore-keys: |
+            build-${{ runner.os }}-${{ github.job }}-${{ hashFiles('cmake/Dependencies.cmake') }}-
+      # GoogleTest и pugixml — из исходников: системные собраны под libstdc++.
+      - name: Настройка
+        run: >-
+          cmake --preset core-only
+          -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++
+          -DCMAKE_CXX_FLAGS=-stdlib=libc++ -DCMAKE_EXE_LINKER_FLAGS=-stdlib=libc++
+          -DCMAKE_DISABLE_FIND_PACKAGE_googletest=ON -DCMAKE_DISABLE_FIND_PACKAGE_pugixml=ON
+      - name: Сборка
+        run: cmake --build --preset core-only
+      - name: Тесты
+        run: ctest --preset core-only
+
+  # --- Ядро и тесты с AddressSanitizer и UndefinedBehaviorSanitizer (GCC) -------
+  asan-ubsan:
+    name: Core (ASan + UBSan)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Пакеты
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build ccache libudev-dev libzip-dev pkg-config libgtest-dev libpugixml-dev nlohmann-json3-dev zlib1g-dev
+      - uses: actions/cache@v4
+        with:
+          path: |
+            .ccache
+            build/asan-ubsan/_deps/*-src
+            build/asan-ubsan/_deps/*-subbuild
+          key: build-${{ runner.os }}-${{ github.job }}-${{ hashFiles('cmake/Dependencies.cmake') }}-${{ github.sha }}
+          restore-keys: |
+            build-${{ runner.os }}-${{ github.job }}-${{ hashFiles('cmake/Dependencies.cmake') }}-
+      - name: Настройка
+        run: cmake --preset asan-ubsan
+      - name: Сборка
+        run: cmake --build --preset asan-ubsan
+      - name: Тесты
+        run: ctest --preset asan-ubsan
+
+  # --- libFuzzer: короткий прогон разборщиков (по 60 с на цель) ---------------
+  fuzz:
+    name: Fuzz (libFuzzer, 60 s)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      # libFuzzer входит в compiler-rt пакета clang Ubuntu.
+      - name: Пакеты
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build ccache libudev-dev libzip-dev pkg-config clang libpugixml-dev nlohmann-json3-dev zlib1g-dev
+      - uses: actions/cache@v4
+        with:
+          path: |
+            .ccache
+            build/fuzz/_deps/*-src
+            build/fuzz/_deps/*-subbuild
+          key: build-${{ runner.os }}-${{ github.job }}-${{ hashFiles('cmake/Dependencies.cmake') }}-${{ github.sha }}
+          restore-keys: |
+            build-${{ runner.os }}-${{ github.job }}-${{ hashFiles('cmake/Dependencies.cmake') }}-
+      - name: Настройка
+        run: cmake --preset fuzz
+      - name: Сборка
+        run: cmake --build --preset fuzz
+      - name: Прогон
+        run: bash fuzz/run.sh build/fuzz 60
+      # Входы, на которых упало: скачать и воспроизвести — build/fuzz/fuzz/fuzz_<цель> <файл>.
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: fuzz-crashes
+          path: build/fuzz/fuzz-crashes/
+          if-no-files-found: ignore
+
+  # --- Linux: приложение, тесты, AppImage ------------------------------------
+  linux:
+    name: Linux (AppImage)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Пакеты
+        # libxcb-*, libxkbcommon-x11: зависимости плагина xcb, которые linuxdeploy кладёт в AppImage.
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build ccache libudev-dev libzip-dev pkg-config libgtest-dev libpugixml-dev nlohmann-json3-dev zlib1g-dev \
+            libgl1-mesa-dev libegl-dev libxkbcommon-dev libxkbcommon-x11-0 libfontconfig1 libdbus-1-3 \
+            libxcb-cursor0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 \
+            libxcb-shape0 libxcb-xinerama0 libxcb-xkb1
+      # Qt 6.5+ нужен программе, а в Ubuntu 24.04 только 6.4 — берём официальную сборку Qt.
+      - uses: jurplel/install-qt-action@v4
+        with:
+          version: ${{ env.QT_VERSION }}
+          cache: true
+      - uses: actions/cache@v4
+        with:
+          path: |
+            .ccache
+            build/release/_deps/*-src
+            build/release/_deps/*-subbuild
+          key: build-${{ runner.os }}-${{ github.job }}-${{ hashFiles('cmake/Dependencies.cmake') }}-${{ github.sha }}
+          restore-keys: |
+            build-${{ runner.os }}-${{ github.job }}-${{ hashFiles('cmake/Dependencies.cmake') }}-
+      - name: Настройка
+        run: cmake --preset release
+      - name: Сборка
+        run: cmake --build --preset release
+      - name: Тесты
+        run: ctest --preset release
+      - name: AppImage
+        run: bash tools/make-appimage.sh build/release dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: harmony-linux
+          path: dist/*.AppImage
+          if-no-files-found: error
+
+  # --- Windows (MSYS2 MinGW64, как build.cmd): тесты, установщик, zip -----------
+  windows:
+    name: Windows (installer)
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          install: >-
+            zip
+            mingw-w64-x86_64-toolchain
+            mingw-w64-x86_64-cmake
+            mingw-w64-x86_64-ninja
+            mingw-w64-x86_64-qt6-base
+            mingw-w64-x86_64-qt6-svg
+            mingw-w64-x86_64-qt6-translations
+            mingw-w64-x86_64-gtest
+            mingw-w64-x86_64-libzip
+            mingw-w64-x86_64-pkgconf
+            mingw-w64-x86_64-pugixml
+            mingw-w64-x86_64-nsis
+      # Пресеты win-* живут в локальном CMakeUserPresets.json; здесь MSYS2 уже в PATH,
+      # поэтому подходит обычный release.
+      - name: Настройка
+        run: cmake --preset release
+      - name: Сборка
+        run: cmake --build --preset release
+      - name: Тесты
+        run: ctest --preset release
+      - name: Раскладка и установщик
+        run: |
+          bash tools/deploy-win.sh build/release/app/harmony.exe dist/win build/release/cli/harmony-cli.exe
+          bash tools/make-installer-win.sh build/release dist/win dist
+          version="$(sed -n 's/^CMAKE_PROJECT_VERSION:STATIC=//p' build/release/CMakeCache.txt | tr -d '\r')"
+          (cd dist/win && zip -qr "../Harmony-$version-windows-portable.zip" .)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: harmony-windows
+          path: |
+            dist/*-setup.exe
+            dist/*-portable.zip
+          if-no-files-found: error
+
+  # --- macOS: универсальный бандл и DMG --------------------------------------
+  macos:
+    name: macOS (DMG)
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Пакеты
+        run: brew install ninja ccache
+      # Официальная сборка Qt — универсальная (arm64 + x86_64), в отличие от Homebrew.
+      - uses: jurplel/install-qt-action@v4
+        with:
+          version: ${{ env.QT_VERSION }}
+          cache: true
+      - uses: actions/cache@v4
+        with:
+          path: |
+            .ccache
+            build/release/_deps/*-src
+            build/release/_deps/*-subbuild
+          key: build-${{ runner.os }}-${{ github.job }}-${{ hashFiles('cmake/Dependencies.cmake') }}-${{ github.sha }}
+          restore-keys: |
+            build-${{ runner.os }}-${{ github.job }}-${{ hashFiles('cmake/Dependencies.cmake') }}-
+      - name: Настройка
+        run: cmake --preset release -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64"
+      - name: Сборка
+        run: cmake --build --preset release
+      - name: Тесты
+        run: ctest --preset release
+      - name: Бандл и DMG
+        run: bash tools/make-macos.sh build/release dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: harmony-macos
+          path: dist/*.dmg
+          if-no-files-found: error
+
+  # --- Релиз по тегу v*: пакеты всех систем -----------------------------------
+  release:
+    name: Release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [core-only, core-libcxx, asan-ubsan, fuzz, linux, windows, macos]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check release version
+        shell: bash
+        run: |
+          version="$(sed -n 's/^[[:space:]]*VERSION \([0-9.]*\).*/\1/p' CMakeLists.txt)"
+          test "$GITHUB_REF_NAME" = "v$version" || {
+            echo "Tag $GITHUB_REF_NAME does not match project version v$version"
+            exit 1
+          }
+      - uses: actions/download-artifact@v4
+        with:
+          path: packages
+          merge-multiple: true
+      - name: Package checksums
+        working-directory: packages
+        run: sha256sum * > SHA256SUMS.txt
+      # TODO: закрепить по SHA — сторонний action с правом contents: write.
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: packages/*
+          fail_on_unmatched_files: true
+          generate_release_notes: true

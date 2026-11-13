@@ -1,0 +1,70 @@
+{
+  "version": 6,
+  "configurePresets": [
+    {
+      "name": "msys2",
+      "hidden": true,
+      "description": "Тулчейн MSYS2 MinGW64. Скопируйте файл в CMakeUserPresets.json и поправьте путь к MSYS2.",
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
+      },
+      "environment": {
+        "PATH": "D:/Install/MSYS2/mingw64/bin;D:/Install/MSYS2/usr/bin;$penv{PATH}"
+      },
+      "cacheVariables": {
+        "CMAKE_C_COMPILER": "gcc",
+        "CMAKE_CXX_COMPILER": "g++"
+      }
+    },
+    {
+      "name": "win-debug",
+      "displayName": "Windows Debug (MSYS2)",
+      "inherits": [
+        "msys2",
+        "debug"
+      ]
+    },
+    {
+      "name": "win-release",
+      "displayName": "Windows Release (MSYS2)",
+      "inherits": [
+        "msys2",
+        "release"
+      ]
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "win-debug",
+      "configurePreset": "win-debug"
+    },
+    {
+      "name": "win-release",
+      "configurePreset": "win-release"
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "win-debug",
+      "configurePreset": "win-debug",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "noTestsAction": "error"
+      }
+    },
+    {
+      "name": "win-release",
+      "configurePreset": "win-release",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "noTestsAction": "error"
+      }
+    }
+  ]
+}

@@ -1,0 +1,6 @@
+# Harmony 600/650/665/700 (USB HID, Logitech 046d:c110–c14f — диапазон из Concordance):
+# доступ к /dev/hidraw* для пользователя, сидящего за компьютером (systemd-logind).
+# Номер меньше 73: тег uaccess обрабатывает 73-seat-late.rules.
+SUBSYSTEM=="hidraw", ATTRS{idVendor}=="046d", ATTRS{idProduct}=="c1[1-4][0-9a-f]", TAG+="uaccess"
+# Older Harmony 7xx/6xx use National Semiconductor's USB identity.
+SUBSYSTEM=="hidraw", ATTRS{idVendor}=="0400", ATTRS{idProduct}=="c359", TAG+="uaccess"

@@ -1,0 +1,16 @@
+# Остальной текст — LF.
+# ВАЖНО: в .gitattributes побеждает последнее совпавшее правило, а не самое
+# специфичное, поэтому общее правило должно идти ВЫШЕ исключений.
+* text=auto eol=lf
+
+# Батники Windows — только с CRLF, иначе cmd.exe неверно обрабатывает goto и метки.
+*.cmd text eol=crlf
+*.bat text eol=crlf
+
+*.png binary
+*.ico binary
+
+# Файлы пульта — двоичные: git не должен трогать в них концы строк.
+*.bin binary
+*.EZHex binary
+*.ezhex binary

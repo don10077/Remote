@@ -1,0 +1,24 @@
+{
+  "id": "700",
+  "name": "Harmony 700",
+  "image": "photo.png",
+  "size": [
+    450,
+    1500
+  ],
+  "screen": [
+    136,
+    267,
+    181,
+    196
+  ],
+  "touch": false,
+  "screenTint": "#c7506d",
+  "modes": {
+    "devices": "soft_2x2",
+    "activities": "soft_2x2",
+    "command": "soft_2x2"
+  },
+  "driver": "hid",
+  "configFormat": "unsupported"
+}

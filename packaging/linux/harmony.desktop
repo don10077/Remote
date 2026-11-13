@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Name=Harmony
+GenericName=Harmony 900 Configuration Editor
+GenericName[ru]=Редактор конфигурации Harmony 900
+Comment=Edit the configuration of a Logitech Harmony 900 remote
+Comment[ru]=Редактор конфигурации пульта Logitech Harmony 900
+Exec=harmony
+Icon=harmony
+Terminal=false
+Categories=Utility;
+Keywords=remote;harmony;logitech;infrared;IR;
+Keywords[ru]=пульт;harmony;logitech;ИК;

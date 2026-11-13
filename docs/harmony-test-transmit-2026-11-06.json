@@ -1,0 +1,188 @@
+[
+  {
+    "name": "NEC",
+    "protocol": "NEC",
+    "address": 4,
+    "command": 8,
+    "status": "pass",
+    "recordedPulses": 34,
+    "expectedPulses": 34,
+    "file": "docs\\harmony-test-captures\\44791927-NEC.json",
+    "observedToggle": null
+  },
+  {
+    "name": "NECext",
+    "protocol": "NEC (extended)",
+    "address": 487,
+    "command": 69,
+    "status": "pass",
+    "recordedPulses": 34,
+    "expectedPulses": 34,
+    "file": "docs\\harmony-test-captures\\44791927-NECext.json",
+    "observedToggle": null
+  },
+  {
+    "name": "Samsung32",
+    "protocol": "Samsung32",
+    "address": 1799,
+    "command": 2,
+    "status": "pass",
+    "recordedPulses": 34,
+    "expectedPulses": 34,
+    "file": "docs\\harmony-test-captures\\44791927-Samsung32.json",
+    "observedToggle": null
+  },
+  {
+    "name": "SIRC12",
+    "protocol": "Sony SIRC 12",
+    "address": 1,
+    "command": 21,
+    "status": "pass",
+    "recordedPulses": 13,
+    "expectedPulses": 13,
+    "file": "docs\\harmony-test-captures\\44791927-SIRC12.json",
+    "observedToggle": null
+  },
+  {
+    "name": "SIRC15",
+    "protocol": "Sony SIRC 15",
+    "address": 151,
+    "command": 42,
+    "status": "pass",
+    "recordedPulses": 16,
+    "expectedPulses": 16,
+    "file": "docs\\harmony-test-captures\\44791927-SIRC15.json",
+    "observedToggle": null
+  },
+  {
+    "name": "SIRC20",
+    "protocol": "Sony SIRC 20",
+    "address": 419,
+    "command": 60,
+    "status": "pass",
+    "recordedPulses": 21,
+    "expectedPulses": 21,
+    "file": "docs\\harmony-test-captures\\44791927-SIRC20.json",
+    "observedToggle": null
+  },
+  {
+    "name": "RC5",
+    "protocol": "RC5",
+    "address": 5,
+    "command": 53,
+    "status": "pass",
+    "recordedPulses": 10,
+    "expectedPulses": 10,
+    "file": "docs\\harmony-test-captures\\44791927-RC5.json",
+    "observedToggle": 0,
+    "toggleChangedDurationIndices": [
+      2,
+      4
+    ],
+    "toggleBetweenPresses": "confirmed"
+  },
+  {
+    "name": "RC5X",
+    "protocol": "RC5",
+    "address": 16,
+    "command": 76,
+    "status": "pass",
+    "recordedPulses": 11,
+    "expectedPulses": 11,
+    "file": "docs\\harmony-test-captures\\44791927-RC5X.json",
+    "observedToggle": 1
+  },
+  {
+    "name": "RC6",
+    "protocol": "RC6",
+    "address": 165,
+    "command": 90,
+    "status": "pass",
+    "recordedPulses": 15,
+    "expectedPulses": 15,
+    "file": "docs\\harmony-test-captures\\44791927-RC6.json",
+    "observedToggle": null,
+    "toggleChangedDurationIndices": [
+      8,
+      10
+    ],
+    "toggleBetweenPresses": "confirmed"
+  },
+  {
+    "name": "Panasonic",
+    "protocol": "Panasonic",
+    "address": 128,
+    "command": 61,
+    "status": "pass",
+    "recordedPulses": 50,
+    "expectedPulses": 50,
+    "file": "docs\\harmony-test-captures\\44791927-Panasonic.json",
+    "observedToggle": null
+  },
+  {
+    "name": "LG",
+    "protocol": "LG",
+    "address": 4,
+    "command": 4335,
+    "status": "pass",
+    "recordedPulses": 30,
+    "expectedPulses": 30,
+    "file": "docs\\harmony-test-captures\\44791927-LG.json",
+    "observedToggle": null
+  },
+  {
+    "name": "JVC",
+    "protocol": "JVC",
+    "address": 3,
+    "command": 23,
+    "status": "pass",
+    "recordedPulses": 18,
+    "expectedPulses": 18,
+    "file": "docs\\harmony-test-captures\\44791927-JVC.json",
+    "observedToggle": null
+  },
+  {
+    "name": "Onkyo",
+    "protocol": "Onkyo",
+    "address": 53970,
+    "command": 4660,
+    "status": "pass",
+    "recordedPulses": 34,
+    "expectedPulses": 34,
+    "file": "docs\\harmony-test-captures\\44791927-Onkyo.json",
+    "observedToggle": null
+  },
+  {
+    "name": "Denon",
+    "protocol": "Denon",
+    "address": 2,
+    "command": 225,
+    "status": "pass",
+    "recordedPulses": 16,
+    "expectedPulses": 16,
+    "file": "docs\\harmony-test-captures\\44791927-Denon.json",
+    "observedToggle": null
+  },
+  {
+    "name": "Sharp",
+    "protocol": "Sharp",
+    "address": 1,
+    "command": 22,
+    "status": "pass",
+    "recordedPulses": 16,
+    "expectedPulses": 16,
+    "file": "docs\\harmony-test-captures\\44791927-Sharp.json",
+    "observedToggle": null
+  },
+  {
+    "name": "RCA",
+    "protocol": "RCA",
+    "address": 15,
+    "command": 84,
+    "status": "pass",
+    "recordedPulses": 26,
+    "expectedPulses": 26,
+    "file": "docs\\harmony-test-captures\\44791927-RCA.json",
+    "observedToggle": null
+  }
+]

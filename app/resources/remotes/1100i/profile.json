@@ -1,0 +1,26 @@
+{
+  "id": "1100i",
+  "name": "Harmony 1100i",
+  "image": "photo.png",
+  "size": [
+    680,
+    550
+  ],
+  "screen": [
+    77,
+    96,
+    340,
+    255
+  ],
+  "touch": true,
+  "modes": {
+    "devices": "t1100_activities",
+    "activities": "t1100_activities",
+    "command": "t1100_command",
+    "favorites": "t1100_command",
+    "transport": "t1100_transport",
+    "keypad": "t1100_keypad"
+  },
+  "driver": "none",
+  "configFormat": "unsupported"
+}
