@@ -27,12 +27,11 @@ arch="$(uname -m)"
 # --- Инструменты --------------------------------------------------------------
 # linuxdeploy исполняется в релизной сборке, поэтому версия закреплена, а файл
 # сверяется с sha256. Переопределить можно переменными окружения с теми же именами.
-# TODO: вписать тег релиза и sha256 файла *-x86_64.AppImage с этого релиза
-#       (страницы Releases репозиториев linuxdeploy/linuxdeploy и linuxdeploy/linuxdeploy-plugin-qt).
-LINUXDEPLOY_VERSION="${LINUXDEPLOY_VERSION:-TODO-tag}"
-LINUXDEPLOY_SHA256="${LINUXDEPLOY_SHA256:-TODO-sha256}"
-LINUXDEPLOY_QT_VERSION="${LINUXDEPLOY_QT_VERSION:-TODO-tag}"
-LINUXDEPLOY_QT_SHA256="${LINUXDEPLOY_QT_SHA256:-TODO-sha256}"
+# Контрольные суммы по умолчанию относятся к файлам x86_64.
+LINUXDEPLOY_VERSION="${LINUXDEPLOY_VERSION:-1-alpha-20251107-1}"
+LINUXDEPLOY_SHA256="${LINUXDEPLOY_SHA256:-c20cd71e3a4e3b80c3483cef793cda3f4e990aca14014d23c544ca3ce1270b4d}"
+LINUXDEPLOY_QT_VERSION="${LINUXDEPLOY_QT_VERSION:-1-alpha-20250213-1}"
+LINUXDEPLOY_QT_SHA256="${LINUXDEPLOY_QT_SHA256:-15106be885c1c48a021198e7e1e9a48ce9d02a86dd0a1848f00bdbf3c1c92724}"
 
 tools="$build/_appimage-tools"
 mkdir -p "$tools"

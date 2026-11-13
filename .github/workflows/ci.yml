@@ -41,12 +41,12 @@ jobs:
     name: Core (GCC, -Werror)
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Пакеты
         run: |
           sudo apt-get update
           sudo apt-get install -y ninja-build ccache libudev-dev libzip-dev pkg-config libgtest-dev libpugixml-dev nlohmann-json3-dev zlib1g-dev
-      - uses: actions/cache@v4
+      - uses: actions/cache@v5
         with:
           path: |
             .ccache
@@ -68,12 +68,12 @@ jobs:
     name: Core (Clang, libc++)
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Пакеты
         run: |
           sudo apt-get update
           sudo apt-get install -y ninja-build ccache libudev-dev libzip-dev pkg-config clang libc++-dev libc++abi-dev
-      - uses: actions/cache@v4
+      - uses: actions/cache@v5
         with:
           path: |
             .ccache
@@ -99,12 +99,12 @@ jobs:
     name: Core (ASan + UBSan)
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Пакеты
         run: |
           sudo apt-get update
           sudo apt-get install -y ninja-build ccache libudev-dev libzip-dev pkg-config libgtest-dev libpugixml-dev nlohmann-json3-dev zlib1g-dev
-      - uses: actions/cache@v4
+      - uses: actions/cache@v5
         with:
           path: |
             .ccache
@@ -125,13 +125,13 @@ jobs:
     name: Fuzz (libFuzzer, 60 s)
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      # libFuzzer входит в compiler-rt пакета clang Ubuntu.
+      - uses: actions/checkout@v5
+      # Clang 19 поддерживает std::expected из libstdc++; libFuzzer входит в compiler-rt.
       - name: Пакеты
         run: |
           sudo apt-get update
-          sudo apt-get install -y ninja-build ccache libudev-dev libzip-dev pkg-config clang libpugixml-dev nlohmann-json3-dev zlib1g-dev
-      - uses: actions/cache@v4
+          sudo apt-get install -y ninja-build ccache libudev-dev libzip-dev pkg-config clang-19 libclang-rt-19-dev libpugixml-dev nlohmann-json3-dev zlib1g-dev
+      - uses: actions/cache@v5
         with:
           path: |
             .ccache
@@ -141,13 +141,13 @@ jobs:
           restore-keys: |
             build-${{ runner.os }}-${{ github.job }}-${{ hashFiles('cmake/Dependencies.cmake') }}-
       - name: Настройка
-        run: cmake --preset fuzz
+        run: cmake --preset fuzz -DCMAKE_C_COMPILER=clang-19 -DCMAKE_CXX_COMPILER=clang++-19
       - name: Сборка
         run: cmake --build --preset fuzz
       - name: Прогон
         run: bash fuzz/run.sh build/fuzz 60
       # Входы, на которых упало: скачать и воспроизвести — build/fuzz/fuzz/fuzz_<цель> <файл>.
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         if: failure()
         with:
           name: fuzz-crashes
@@ -159,7 +159,7 @@ jobs:
     name: Linux (AppImage)
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Пакеты
         # libxcb-*, libxkbcommon-x11: зависимости плагина xcb, которые linuxdeploy кладёт в AppImage.
         run: |
@@ -173,7 +173,7 @@ jobs:
         with:
           version: ${{ env.QT_VERSION }}
           cache: true
-      - uses: actions/cache@v4
+      - uses: actions/cache@v5
         with:
           path: |
             .ccache
@@ -186,11 +186,15 @@ jobs:
         run: cmake --preset release
       - name: Сборка
         run: cmake --build --preset release
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+          pip-install: opencv-python-headless==4.12.0.88
       - name: Тесты
         run: ctest --preset release
       - name: AppImage
         run: bash tools/make-appimage.sh build/release dist
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: harmony-linux
           path: dist/*.AppImage
@@ -204,10 +208,13 @@ jobs:
       run:
         shell: msys2 {0}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: msys2/setup-msys2@v2
+        id: msys2
         with:
           msystem: MINGW64
+          # MINGW64 объявлен устаревшим (советуют UCRT64); build.cmd тоже на MINGW64 — переход отдельно.
+          suppress-deprecation-warnings: msystem-mingw64
           update: true
           install: >-
             zip
@@ -228,15 +235,25 @@ jobs:
         run: cmake --preset release
       - name: Сборка
         run: cmake --build --preset release
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+          pip-install: opencv-python-headless==4.12.0.88
       - name: Тесты
-        run: ctest --preset release
+        shell: pwsh
+        env:
+          MSYS2_ROOT: ${{ steps.msys2.outputs.msys2-location }}
+        run: |
+          $mingwBin = Join-Path $env:MSYS2_ROOT 'mingw64/bin'
+          $env:Path += ";$mingwBin"
+          & (Join-Path $mingwBin 'ctest.exe') --preset release
       - name: Раскладка и установщик
         run: |
           bash tools/deploy-win.sh build/release/app/harmony.exe dist/win build/release/cli/harmony-cli.exe
           bash tools/make-installer-win.sh build/release dist/win dist
           version="$(sed -n 's/^CMAKE_PROJECT_VERSION:STATIC=//p' build/release/CMakeCache.txt | tr -d '\r')"
           (cd dist/win && zip -qr "../Harmony-$version-windows-portable.zip" .)
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: harmony-windows
           path: |
@@ -249,7 +266,7 @@ jobs:
     name: macOS (DMG)
     runs-on: macos-15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Пакеты
         run: brew install ninja ccache
       # Официальная сборка Qt — универсальная (arm64 + x86_64), в отличие от Homebrew.
@@ -257,7 +274,7 @@ jobs:
         with:
           version: ${{ env.QT_VERSION }}
           cache: true
-      - uses: actions/cache@v4
+      - uses: actions/cache@v5
         with:
           path: |
             .ccache
@@ -270,11 +287,15 @@ jobs:
         run: cmake --preset release -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64"
       - name: Сборка
         run: cmake --build --preset release
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+          pip-install: opencv-python-headless==4.12.0.88
       - name: Тесты
         run: ctest --preset release
       - name: Бандл и DMG
         run: bash tools/make-macos.sh build/release dist
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: harmony-macos
           path: dist/*.dmg
@@ -289,7 +310,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Check release version
         shell: bash
         run: |
@@ -298,7 +319,7 @@ jobs:
             echo "Tag $GITHUB_REF_NAME does not match project version v$version"
             exit 1
           }
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v7
         with:
           path: packages
           merge-multiple: true
@@ -308,7 +329,7 @@ jobs:
       # TODO: закрепить по SHA — сторонний action с правом contents: write.
       # Описание — из .github/release-notes.md (обновлять к каждому выпуску);
       # версии 0.x — предварительные (pre-release).
-      - uses: softprops/action-gh-release@v2
+      - uses: softprops/action-gh-release@v3
         with:
           files: packages/*
           fail_on_unmatched_files: true

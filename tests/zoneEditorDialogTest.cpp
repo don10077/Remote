@@ -6,9 +6,7 @@
 #include <QApplication>
 #include <QComboBox>
 #include <QCheckBox>
-#include <QCoreApplication>
 #include <QDebug>
-#include <QFile>
 #include <QLabel>
 #include <QMouseEvent>
 #include <QUndoStack>
@@ -134,26 +132,11 @@ TEST(ZoneEditorDialog, Harmony900HasDifferentActivityAndCommandLayers) {
     EXPECT_TRUE(counts.contains(6));
 }
 
-TEST(ZoneEditorDialog, AutoZonesFlowVisibleOnCanvas880) {
-    // Диагностика: «нашло 81, но ни одной не видно».
-    QTemporaryDir resources;
-    const QString src = QCoreApplication::applicationDirPath() + QStringLiteral("/../../../dist/win/resources");
-    ASSERT_TRUE(QDir(src).exists());
-    ASSERT_TRUE(QDir().mkpath(resources.path()));
-    ASSERT_TRUE(QFile::copy(src + "/layouts.json", resources.path() + "/layouts.json"));
-    ASSERT_TRUE(QDir().mkpath(resources.path() + "/remotes/880"));
-    for (const auto& f : QDir(src + "/remotes/880").entryList(QDir::Files))
-        ASSERT_TRUE(QFile::copy(src + "/remotes/880/" + f, resources.path() + "/remotes/880/" + f));
-    ASSERT_TRUE(QDir().mkpath(resources.path() + "/sprites"));
-    for (const auto& f : QDir(src + "/sprites").entryList(QDir::Files))
-        ASSERT_TRUE(QFile::copy(src + "/sprites/" + f, resources.path() + "/sprites/" + f));
-    ASSERT_TRUE(harmony::app::remoteResources::reload(resources.path()).isEmpty());
-    // runAutoZones берёт фото из <exedir>/resources — дадим ему туда путь.
-    const QString exeres = QCoreApplication::applicationDirPath() + "/resources";
-    ASSERT_TRUE(QDir().mkpath(exeres + "/remotes/880"));
-    QFile::remove(exeres + "/remotes/880/photo.png");
-    ASSERT_TRUE(QFile::copy(src + "/remotes/880/photo.png", exeres + "/remotes/880/photo.png"));
-    harmony::app::ZoneEditorDialog dialog("880");
+TEST(ZoneEditorDialog, AutoZonesFlowVisibleOnCanvas) {
+    // Как при запуске приложения: рабочая папка заполняется встроенными ресурсами.
+    const auto error = harmony::app::remoteResources::reload();
+    ASSERT_TRUE(error.isEmpty()) << error.toStdString();
+    harmony::app::ZoneEditorDialog dialog("600");
     auto* canvas = dialog.findChild<harmony::app::ZoneCanvas*>();
     auto* action = dialog.findChild<QAction*>("autoZones");
     auto* selectAll = dialog.findChild<QAction*>("selectAll");
@@ -169,8 +152,7 @@ TEST(ZoneEditorDialog, AutoZonesFlowVisibleOnCanvas880) {
     EXPECT_EQ(canvas->zones().size(), 0);
     action->trigger();
     for (int i = 0; i < 20; ++i) QApplication::processEvents();
-    // Регрессия: «Recognized 81» должно означать 81 зону на холсте, а не одну
-    // «пустую» (целый массив зон однажды попадал в слой как один элемент).
+    // Регрессия: каждая распознанная кнопка добавляется отдельной зоной.
     EXPECT_GE(canvas->zones().size(), 25);
     for (int i = 0; i < canvas->zones().size(); ++i)
         EXPECT_FALSE(canvas->zones()[i].toObject().value("id").toString().isEmpty());
