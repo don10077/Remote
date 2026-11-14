@@ -1314,11 +1314,6 @@ Add a device?</source>
       <translation>Назад</translation>
     </message>
     <message>
-      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
-      <source>Background colour:</source>
-      <translation>Цвет фона:</translation>
-    </message>
-    <message>
       <location filename="../../../app/src/widgets/remoteSettingsDialog.cpp" />
       <source>Backlight brightness, %</source>
       <translation>Яркость подсветки, %</translation>
@@ -2887,6 +2882,11 @@ Copy saved: %2</source>
       <location filename="../../../app/src/widgets/propertiesDialog.cpp" />
       <source>Device</source>
       <translation>Устройство</translation>
+    </message>
+    <message>
+      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <source>Device %1</source>
+      <translation>Устройство %1</translation>
     </message>
     <message>
       <location filename="../../../core/src/configDocumentAdd.cpp" />
@@ -8527,6 +8527,11 @@ They will not be sent to the remote either. When the device is made active again
       <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
       <source>Tile %1</source>
       <translation>Плитка %1</translation>
+    </message>
+    <message>
+      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <source>Tile colour:</source>
+      <translation>Цвет плиток:</translation>
     </message>
     <message>
       <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />

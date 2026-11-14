@@ -74,11 +74,11 @@ public:
      * @param mode Режим экрана профиля (его раскладка подменяется) либо новый id экрана.
      * @param ref Единицы раскладки.
      * @param zones Зоны вместо записанных в ресурсах.
-     * @param background Цвет фона; пусто — не менять.
+     * @param cellColor Цвет плиток; пусто — как у экранов пульта. Фон не меняется.
      * @param title Заголовок экрана в шапке; пусто — как у готовых экранов.
      * @note Вызывать после setRemoteProfile().
      */
-    void overrideLayout(const QString& mode, const QSizeF& ref, const QJsonArray& zones, const QString& background = {},
+    void overrideLayout(const QString& mode, const QSizeF& ref, const QJsonArray& zones, const QString& cellColor = {},
                         const QString& title = {});
 
     /** size of the source photo in pixels, all zones are relative to it */
