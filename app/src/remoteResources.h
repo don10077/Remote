@@ -32,6 +32,12 @@ QStringList modelIds(const QString& root = folder());
 QByteArray data(const QString& path);
 /// Версия снимка для сброса кэшей изображений и геометрии.
 quint64 revision();
+/// Пользовательские модели, пропущенные последним reload() из-за ошибок: сами ошибки не мешают остальным пультам.
+QStringList skipped();
+/// Ошибка конфигурации пульта, пропущенного последним reload(); пустая строка — ошибок нет.
+QString modelError(const QString& id);
+/// Идентификаторы пультов, пропущенных последним reload() из-за ошибок конфигурации.
+QStringList skippedIds();
 
 /**
  * @brief Файлы текущего снимка для выгрузки, пути относительно корня папки ресурсов.

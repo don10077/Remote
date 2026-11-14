@@ -141,15 +141,22 @@ QByteArray lineIndent(const QByteArray& t, qsizetype pos) {
     return t.mid(start, end - start);
 }
 
-/// Раскладка `id` в корневом массиве layouts.json.
-std::optional<Span> findLayout(const QByteArray& t, const QString& id) {
-    const auto list = elements(t, rootStart(t));
+/// Массив зон в remote.json: `hardware.zones` при пустом `screenId`, иначе `cells` экрана `screenId`.
+std::optional<Span> zonesSpan(const QByteArray& t, const QString& screenId) {
+    if (screenId.isEmpty()) {
+        const auto hardware = memberValue(t, rootStart(t), QStringLiteral("hardware"));
+        if (!hardware) return std::nullopt;
+        return memberValue(t, hardware->begin, QStringLiteral("zones"));
+    }
+    const auto screens = memberValue(t, rootStart(t), QStringLiteral("screens"));
+    if (!screens) return std::nullopt;
+    const auto list = elements(t, screens->begin);
     if (!list) return std::nullopt;
     for (const auto& span : *list) {
-        const auto value = memberValue(t, span.begin, QStringLiteral("id"));
-        if (!value) continue;
-        const auto doc = QJsonDocument::fromJson("[" + t.mid(value->begin, value->end - value->begin) + "]");
-        if (doc.array().at(0).toString() == id) return span;
+        const auto id = memberValue(t, span.begin, QStringLiteral("id"));
+        if (!id) continue;
+        const auto doc = QJsonDocument::fromJson("[" + t.mid(id->begin, id->end - id->begin) + "]");
+        if (doc.array().at(0).toString() == screenId) return memberValue(t, span.begin, QStringLiteral("cells"));
     }
     return std::nullopt;
 }
@@ -391,16 +398,10 @@ QByteArray zoneLine(const QJsonObject& zone) {
     return "{" + parts.join(", ") + "}";
 }
 
-std::optional<QList<QByteArray>> zoneTexts(const QByteArray& text, const QString& layoutId) {
-    qsizetype open = rootStart(text);
-    if (!layoutId.isEmpty()) {
-        const auto layout = findLayout(text, layoutId);
-        if (!layout) return std::nullopt;
-        const auto zones = memberValue(text, layout->begin, QStringLiteral("zones"));
-        if (!zones) return std::nullopt;
-        open = zones->begin;
-    }
-    const auto list = elements(text, open);
+std::optional<QList<QByteArray>> zoneTexts(const QByteArray& text, const QString& screenId) {
+    const auto zones = zonesSpan(text, screenId);
+    if (!zones) return std::nullopt;
+    const auto list = elements(text, zones->begin);
     if (!list) return std::nullopt;
     QList<QByteArray> result;
     for (const auto& span : *list) result.append(text.mid(span.begin, span.end - span.begin));
@@ -424,64 +425,21 @@ QJsonArray parseZones(const QByteArray& text) {
     return zones;
 }
 
-std::optional<QByteArray> patchZonesFile(const QByteArray& text, const QList<QByteArray>& lines) {
-    const qsizetype open = rootStart(text);
-    if (!elements(text, open)) return std::nullopt;
-    const Span array{open, skipValue(text, open)};
-    return replaced(text, array, arrayText(text, array, lines));
-}
-
-std::optional<QByteArray> patchScreen(const QByteArray& text, const std::optional<QRectF>& screen) {
-    const auto value = memberValue(text, rootStart(text), QStringLiteral("screen"));
-    if (!value) return std::nullopt;
-    const QByteArray old = text.mid(value->begin, value->end - value->begin);
-    if (!screen) return replaced(text, *value, "null");
-    // Многострочный вид, как у прежнего значения; у `null` — как у соседнего `size`.
-    bool multiline = old.contains('\n');
-    if (!old.startsWith('[')) {
-        if (const auto size = memberValue(text, rootStart(text), QStringLiteral("size")))
-            multiline = text.mid(size->begin, size->end - size->begin).contains('\n');
-    }
-    return replaced(text, *value, rectText(*screen, multiline, newline(text), lineIndent(text, value->begin)));
-}
-
-std::optional<QByteArray> patchMode(const QByteArray& text, const QString& mode, const QString& layout) {
-    const auto modes = memberValue(text, rootStart(text), QStringLiteral("modes"));
-    if (!modes) return std::nullopt;
-    const auto value = memberValue(text, modes->begin, mode);
-    if (!value) return std::nullopt;
-    return replaced(text, *value, jsonValue(QJsonValue(layout)));
-}
-
-std::optional<QByteArray> patchLayoutZones(const QByteArray& text, const QString& id,
-                                           const QList<QByteArray>& lines) {
-    const auto layout = findLayout(text, id);
-    if (!layout) return std::nullopt;
-    const auto zones = memberValue(text, layout->begin, QStringLiteral("zones"));
+std::optional<QByteArray> patchZones(const QByteArray& text, const QString& screenId, const QList<QByteArray>& lines) {
+    const auto zones = zonesSpan(text, screenId);
     if (!zones || text[zones->begin] != '[') return std::nullopt;
     return replaced(text, *zones, arrayText(text, *zones, lines));
 }
 
-std::optional<QByteArray> appendLayoutCopy(const QByteArray& text, const QString& from, const QString& to,
-                                           const QList<QByteArray>& lines) {
-    const auto source = findLayout(text, from);
-    if (!source) return std::nullopt;
-    // Копия — исходный текст раскладки с другим id и новыми зонами, отступы те же.
-    QByteArray copy = text.mid(source->begin, source->end - source->begin);
-    const auto idValue = memberValue(copy, 0, QStringLiteral("id"));
-    if (!idValue) return std::nullopt;
-    copy = replaced(copy, *idValue, jsonValue(QJsonValue(to)));
-    const auto zones = memberValue(copy, 0, QStringLiteral("zones"));
-    if (!zones || copy[zones->begin] != '[') return std::nullopt;
-    // Отступы элементов считаются по тексту копии, но строка `[` находится в нём не с начала строки.
-    const QByteArray indent = lineIndent(text, source->begin);
-    const QByteArray prefixed = indent + copy;
-    const Span shifted{zones->begin + indent.size(), zones->end + indent.size()};
-    copy = replaced(prefixed, shifted, arrayText(prefixed, shifted, lines)).mid(indent.size());
-    const auto list = elements(text, rootStart(text));
-    if (!list || list->isEmpty()) return std::nullopt;
-    const qsizetype at = list->last().end;
-    return text.left(at) + "," + newline(text) + indent + copy + text.mid(at);
+std::optional<QByteArray> patchDisplay(const QByteArray& text, const std::optional<QRectF>& rect) {
+    const auto display = memberValue(text, rootStart(text), QStringLiteral("display"));
+    if (!display) return std::nullopt;
+    const auto value = memberValue(text, display->begin, QStringLiteral("rect"));
+    if (!value) return std::nullopt;
+    if (!rect) return replaced(text, *value, "null");
+    // Многострочный вид, как у прежнего значения; у `null` — однострочный.
+    const bool multiline = text.mid(value->begin, value->end - value->begin).contains('\n');
+    return replaced(text, *value, rectText(*rect, multiline, newline(text), lineIndent(text, value->begin)));
 }
 
 

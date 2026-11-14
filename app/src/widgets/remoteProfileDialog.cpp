@@ -29,6 +29,9 @@ RemoteProfileDialog::RemoteProfileDialog(const QString& current, QWidget* parent
     for (const auto& profile : remoteProfiles) {
         models_->addItem(QString::fromUtf8(profile.name.data()), QString::fromUtf8(profile.id.data()));
     }
+    // Пульты с ошибкой в конфигурации: выбрать нельзя, но ошибка видна сразу.
+    for (const QString& id : remoteResources::skippedIds())
+        models_->addItem(tr("%1 (configuration error)").arg(id), id);
     models_->setCurrentIndex(models_->findData(current));
     if (models_->currentIndex() < 0) models_->setCurrentIndex(0);
     auto* status = new QLabel(this);
@@ -67,6 +70,11 @@ RemoteProfileDialog::RemoteProfileDialog(const QString& current, QWidget* parent
     auto refresh = [this, image, status, buttons] {
         const auto* profile = remoteProfile(selectedRemote().toStdString());
         buttons->button(QDialogButtonBox::Ok)->setEnabled(profile != nullptr);
+        if (const QString problem = remoteResources::modelError(selectedRemote()); !profile && !problem.isEmpty()) {
+            image->clear();
+            status->setText(tr("This remote has a configuration error. Open the zone editor for this remote and fix it.\n\n%1").arg(problem));
+            return;
+        }
         if (!profile) { image->clear(); status->setText(tr("Choose a remote model.")); return; }
         QPixmap photo;
         photo.loadFromData(remoteResources::data(QString::fromUtf8(profile->image.data())));

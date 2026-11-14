@@ -801,6 +801,7 @@ void RemoteView::setRemoteProfile(const QString& id) {
     allZones.clear();
     modes = {};
     layouts.clear();
+    overriddenLayouts.clear();
     activityPage = softPage = otherPage = 0;
     screenHits.clear();
     hoverId.clear();
@@ -1008,7 +1009,15 @@ QString RemoteView::screenModeName(const QString& mode) {
         {"options", QT_TR_NOOP("Options")},
     };
     const auto found = names.constFind(mode);
-    return found != names.cend() ? tr(found.value()) : mode;
+    if (found != names.cend()) return tr(found.value());
+    // Добавленные экраны: «command2» — «Команды 2».
+    int end = static_cast<int>(mode.size());
+    while (end > 0 && mode[end - 1].isDigit()) --end;
+    if (end > 0 && end < mode.size()) {
+        const auto base = names.constFind(mode.left(end));
+        if (base != names.cend()) return tr(base.value()) + QLatin1Char(' ') + mode.mid(end);
+    }
+    return mode;
 }
 
 void RemoteView::setActivities(const QList<ActivityItem>& items) {
@@ -1299,6 +1308,40 @@ void RemoteView::paintEvent(QPaintEvent*) {
     paintZones(p);
 }
 
+void RemoteView::overrideLayout(const QString& mode, const QSizeF& ref, const QJsonArray& zones,
+                                const QString& background, const QString& title) {
+    // Экран профиля ссылается на раскладку (напр. list_3): подменять нужно именно её.
+    const QString layoutId = modes.contains(mode) ? modes.value(mode).toString() : mode;
+    const bool created = !layouts.contains(layoutId);
+    QJsonObject layout = layouts.value(layoutId);
+    if (created) {
+        // Новый экран наследует фон и оформление ячеек от экранов этого пульта.
+        for (auto it = modes.begin(); it != modes.end(); ++it) {
+            const QJsonObject donor = layouts.value(it.value().toString());
+            if (!donor.contains("background")) continue;
+            for (const char* field : {"background", "cellStyle", "tile"})
+                if (donor.contains(field)) layout.insert(field, donor.value(field));
+            break;
+        }
+    }
+    layout.insert("id", layoutId);
+    layout.insert("ref", QJsonArray{ref.width(), ref.height()});
+    layout.insert("zones", zones);
+    if (!title.isEmpty()) layout.insert("title", title);
+    if (!layout.contains("grid")) layout.insert("grid", true); // единый рендерер по зонам: фон, плитки, оформление
+    QJsonObject style = layout.value("background").toObject();
+    if (QColor(background).isValid() && QColor(background) != QColor(style.value("color").toString())) {
+        style.insert("color", background);
+        style.remove("image"); // цвет, выбранный в редакторе, важнее картинки
+    }
+    layout.insert("background", style);
+    // Как на реальном пульте: «стеклянный» фон с подсветкой в центре, если нет картинки.
+    layout.insert("glass", !style.contains("image"));
+    layouts.insert(layoutId, layout);
+    overriddenLayouts.insert(layoutId);
+    if (!modes.contains(mode)) modes.insert(mode, layoutId); // новый экран ещё не записан в профиль
+}
+
 QPixmap RemoteView::screenPreview(const QSize& size) {
     const QRectF source = toWidget(modelScreen);
     if (!source.isValid() || size.isEmpty()) return {};
@@ -1502,8 +1545,9 @@ void RemoteView::paintSoftScreen(QPainter& p) {
 void RemoteView::paintScreen(QPainter& p) {
     if (activeMode.isEmpty()) return;
     const QString layoutId = modes.value(activeMode).toString();
-    if ((isListScreen() && layoutId == "list_3") ||
-        (currentScreen == Screen::SoftButtons && layoutId == "grid_2x3")) {
+    if (!overriddenLayouts.contains(layoutId) &&
+        ((isListScreen() && layoutId == "list_3") ||
+         (currentScreen == Screen::SoftButtons && layoutId == "grid_2x3"))) {
         paintClassicScreen(p);
         return;
     }
@@ -1517,6 +1561,10 @@ void RemoteView::paintModernScreen(QPainter& p) {
     const QRectF lcd = toWidget(screenRect());
     if (ref.size() != 2 || ref[0].toDouble() <= 0 || ref[1].toDouble() <= 0) {
         p.fillRect(lcd, QColor(138, 184, 255, 60));
+        return;
+    }
+    if (layout.contains("grid")) {
+        paintGridScreen(p, layout);
         return;
     }
     if (layout.value("style").toString() == "h600") {
@@ -1720,6 +1768,150 @@ void RemoteView::paintModernScreen(QPainter& p) {
                 }
                 drawSingleLine(p, rect, text, style.labelText, style.labelBold, 1.0, 0.62);
             }
+        }
+    }
+    p.restore();
+}
+
+void RemoteView::paintGridScreen(QPainter& p, const QJsonObject& layout) {
+    // Единый рендерер экранов remote.json с "grid": фон — картинка или заливка цветом,
+    // ячейки — картинка или заливка цветом с рамкой (по умолчанию #0b3442 и белая).
+    const auto ref = layout.value("ref").toArray();
+    const qreal refW = ref[0].toDouble();
+    const qreal refH = ref[1].toDouble();
+    const QRectF lcd = toWidget(screenRect());
+    const auto background = layout.value("background").toObject();
+    const auto cellStyle = layout.value("cellStyle").toObject();
+    const QColor bgColor(background.value("color").toString("#0b3442"));
+    const QColor cellColor(cellStyle.value("color").toString("#0b3442"));
+    const QColor borderColor(cellStyle.value("border").toString("#ffffff"));
+    const auto loadImage = [](const QString& file) {
+        return file.isEmpty() ? QImage() : QImage::fromData(resources::data(":/res/" + file));
+    };
+    static QHash<QString, QImage> images;
+    static quint64 version = 0;
+    if (version != resources::revision()) { images.clear(); version = resources::revision(); }
+    const auto image = [&](const QString& file) -> const QImage& {
+        auto it = images.find(file);
+        if (it == images.end()) it = images.insert(file, loadImage(file));
+        return it.value();
+    };
+
+    p.save();
+    QPainterPath clip;
+    clip.addRoundedRect(lcd, lcd.width() * 0.02, lcd.height() * 0.02);
+    p.setClipPath(clip);
+    p.translate(lcd.topLeft());
+    p.scale(lcd.width() / refW, lcd.height() / refH);
+    p.setRenderHint(QPainter::SmoothPixmapTransform);
+    const QImage& bgImage = image(background.value("image").toString());
+    if (!bgImage.isNull()) p.drawImage(QRectF(0, 0, refW, refH), bgImage);
+    else if (layout.value("glass").toBool()) {
+        QRadialGradient glass(QPointF(refW / 2.0, refH * 0.55), refH * 0.62);
+        // Те же цвета, что у классических экранов пульта.
+        const bool standard = bgColor == QColor("#0b3442");
+        glass.setColorAt(0.0, standard ? QColor("#1d7087") : bgColor.lighter(190));
+        glass.setColorAt(0.5, bgColor);
+        glass.setColorAt(1.0, standard ? QColor("#031017") : bgColor.darker(300));
+        p.fillRect(QRectF(0, 0, refW, refH), glass);
+    } else p.fillRect(QRectF(0, 0, refW, refH), bgColor);
+
+    const int capacity = std::max(1, slotsPerPage(activeMode));
+    const int first = currentPage() * capacity;
+    const bool activityScreen = isListScreen();
+    const bool softScreen = currentScreen == Screen::SoftButtons;
+    const QImage& cellImage = image(cellStyle.value("image").toString());
+    int slot = 0;
+    const auto gridZones = layout.value("zones").toArray();
+    const bool glass = layout.value("glass").toBool();
+    if (glass) {
+        // Как на реальном пульте: чёрная шапка с батарейкой над ярлыками и чёрная нижняя полоса под боковыми кнопками.
+        qreal headBottom = 0;
+        qreal footTop = refH;
+        for (const auto& value : gridZones) {
+            const auto zone = value.toObject();
+            const QRectF r = readRect(zone.value("rect"));
+            const QString kind = zone.value("kind").toString();
+            if (kind == "ScreenLabel" && r.center().y() < refH / 3) headBottom = std::max(headBottom, r.bottom() + 3);
+            if (kind == "ScreenSide" && r.center().y() > refH * 0.7) footTop = std::min(footTop, r.top() - 3);
+        }
+        if (headBottom > 0) {
+            p.fillRect(QRectF(0, 0, refW, headBottom), Qt::black);
+            p.setPen(QPen(QColor("#d7dde0"), 1.0));
+            p.setBrush(QColor("#3ecf5b"));
+            p.drawRect(QRectF(refW - 28, 5, 18, 9));
+            p.fillRect(QRectF(refW - 10, 7.5, 2.5, 4), QColor("#d7dde0"));
+        }
+        if (footTop < refH) p.fillRect(QRectF(0, footTop, refW, refH - footTop), Qt::black);
+    }
+    for (const auto& value : gridZones) {
+        const auto zone = value.toObject();
+        const QRectF rect = readRect(zone.value("rect"));
+        if (rect.isEmpty()) continue;
+        const QString zoneKind = zone.value("kind").toString("ScreenSlot");
+        if (glass && (zoneKind == "ScreenLabel" || zoneKind == "ScreenSide")) {
+            // Служебные зоны — просто текст на шапке и нижней полосе.
+            const QString id = zone.value("id").toString();
+            QString text = zone.value("label").toString();
+            QColor colour = Qt::white;
+            bool bold = false;
+            if (id == "Title" || id == "Heading" || id == "Caption") {
+                text = !layout.value("title").toString().isEmpty() ? layout.value("title").toString()
+                       : currentScreen == Screen::Devices ? tr("Devices") : softTitle;
+                bold = true;
+            } else if (id == "Page" || id == "PageLabel") {
+                text = QStringLiteral("%1/%2").arg(currentPage() + 1).arg(pageCount());
+            } else if (id == "Clock") {
+                text = QTime::currentTime().toString(QStringLiteral("HH:mm"));
+            } else if (zoneKind == "ScreenSide") {
+                if (text.isEmpty()) text = id == "Devices" ? tr("Devices") : id == "Options" ? tr("Options") : id;
+                colour = id == "Devices" ? QColor("#f08a4b") : QColor("#9bd46f");
+                bold = true;
+            }
+            if (!text.isEmpty()) drawSingleLine(p, rect, text, colour, bold, 1.0, 0.8);
+            continue;
+        }
+        const qreal radius = zone.value("radius").toDouble(cellStyle.value("radius").toDouble(6));
+        const bool slotCell = zone.value("kind").toString("ScreenSlot") == "ScreenSlot";
+        const bool hover = hoverScreenHit == screenHits.size();
+        QString label = zone.value("label").toString();
+        bool active = false;
+        int index = -1;
+        if (slotCell) {
+            index = first + slot++;
+            if (activityScreen) {
+                if (index >= listItems().size()) continue;
+                label = listItems()[index].label;
+                active = listItems()[index].selected;
+            } else if (softScreen) {
+                label = softLabels.value(index);
+                active = selectedSoft == index;
+            }
+        }
+        if (!cellImage.isNull()) {
+            p.drawImage(rect, cellImage);
+        } else {
+            if (glass) {
+                // Плитка как на пульте: объёмная заливка и светлая рамка.
+                QLinearGradient fill(rect.topLeft(), rect.bottomLeft());
+                fill.setColorAt(0.0, cellColor.lighter(180));
+                fill.setColorAt(1.0, cellColor.darker(110));
+                p.setBrush(fill);
+                p.setPen(QPen(borderColor.darker(125), active || hover ? 3.0 : 2.2));
+            } else {
+                p.setBrush(cellColor);
+                p.setPen(QPen(borderColor, active || hover ? 2.5 : 1.2));
+            }
+            p.drawRoundedRect(rect, radius, radius);
+        }
+        if (!label.isEmpty()) drawSingleLine(p, rect, label, borderColor, true, 1.0, 0.30);
+        if (slotCell && index >= 0) {
+            const QString button = zone.value("button").toString();
+            if (!button.isEmpty()) {
+                for (const auto& key : modelZones)
+                    if (key.id == button) screenHits.append({key.rect, index});
+            }
+            if (layout.value("touch").toBool()) screenHits.append({screenToPhoto(rect), index});
         }
     }
     p.restore();

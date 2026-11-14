@@ -655,6 +655,7 @@ void MainWindow::applyRemoteResources(bool interactive) {
         }
         return;
     }
+    // Ошибки чужих пультов не шумят при запуске: они показываются при выборе пульта и в редакторе зон.
     configView_->refresh();
     updateTitle();
     statusBar()->showMessage(tr("Remote resources updated"), 4000);

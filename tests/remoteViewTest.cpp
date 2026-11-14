@@ -1,5 +1,6 @@
 #include "../app/src/modern/remoteView.h"
 #include "../app/src/modern/remotePanel.h"
+#include "../app/src/remoteResources.h"
 #include "harmony/core/remoteProfile.h"
 
 #include <QApplication>
@@ -13,6 +14,7 @@
 #include <QJsonObject>
 #include <QMouseEvent>
 #include <QSet>
+#include <QTemporaryDir>
 #include <algorithm>
 #include <gtest/gtest.h>
 
@@ -40,6 +42,26 @@ QPointF widgetPoint(const harmony::app::RemoteView& view, const QPointF& photoPo
             (view.height() - h) / 2.0 + photoPoint.y() * scale};
 }
 
+/**
+ * Один раз загрузить ресурсы так же, как приложение: remote.json достраивается до
+ * profile/zones/screens. Читать файлы модели нужно через modelFile, а не напрямую из :/res.
+ */
+void ensureResourcesLoaded() {
+    static QTemporaryDir folder;
+    static const bool loaded = [] {
+        const QString error = harmony::app::remoteResources::reload(folder.path());
+        EXPECT_TRUE(error.isEmpty()) << error.toStdString();
+        return error.isEmpty();
+    }();
+    ASSERT_TRUE(loaded);
+}
+
+/** Содержимое файла модели (profile.json, zones.json, screens.json); пусто, если файла нет. */
+QByteArray modelFile(const QString& directory, const QString& name) {
+    ensureResourcesLoaded();
+    return harmony::app::remoteResources::data(directory + "/" + name);
+}
+
 /** Папка профиля модели. */
 QString profileDirectory(const QString& id) {
     const auto* profile = harmony::remoteProfile(id.toStdString());
@@ -49,18 +71,16 @@ QString profileDirectory(const QString& id) {
 
 /** Размер фото из profile.json: тесты не должны дублировать данные ресурсов. */
 QSize profilePhotoSize(const QString& id) {
-    QFile file(profileDirectory(id) + "/profile.json");
-    EXPECT_TRUE(file.open(QIODevice::ReadOnly));
-    const auto size = QJsonDocument::fromJson(file.readAll()).object().value("size").toArray();
+    const auto size = QJsonDocument::fromJson(modelFile(profileDirectory(id), "profile.json"))
+                          .object().value("size").toArray();
     EXPECT_EQ(size.size(), 2);
     return {size[0].toInt(), size[1].toInt()};
 }
 
 /** Рамка дисплея из profile.json, в пикселях фото. */
 QRectF profileScreen(const QString& id) {
-    QFile file(profileDirectory(id) + "/profile.json");
-    EXPECT_TRUE(file.open(QIODevice::ReadOnly));
-    const auto rect = QJsonDocument::fromJson(file.readAll()).object().value("screen").toArray();
+    const auto rect = QJsonDocument::fromJson(modelFile(profileDirectory(id), "profile.json"))
+                          .object().value("screen").toArray();
     EXPECT_EQ(rect.size(), 4);
     return {rect[0].toDouble(), rect[1].toDouble(),
             rect[2].toDouble(), rect[3].toDouble()};
@@ -68,21 +88,22 @@ QRectF profileScreen(const QString& id) {
 }
 
 TEST(RemoteView, BundledProfilesMatchPhotosAndHaveExplicitZones) {
+    ensureResourcesLoaded(); // до циклов: reload заменяет harmony::remoteProfiles
     for (const auto& profile : harmony::remoteProfiles) {
         SCOPED_TRACE(std::string(profile.id));
         const QString image = QString::fromUtf8(profile.image.data());
         const QPixmap photo(image);
         ASSERT_FALSE(photo.isNull());
-        QFile metadata(QFileInfo(image).path() + "/profile.json");
-        ASSERT_TRUE(metadata.open(QIODevice::ReadOnly));
-        const auto object = QJsonDocument::fromJson(metadata.readAll()).object();
+        const auto metadata = modelFile(QFileInfo(image).path(), "profile.json");
+        ASSERT_FALSE(metadata.isEmpty());
+        const auto object = QJsonDocument::fromJson(metadata).object();
         const auto size = object.value("size").toArray();
         ASSERT_EQ(size.size(), 2);
         EXPECT_EQ(photo.size(), QSize(size[0].toInt(), size[1].toInt()));
         EXPECT_EQ(object.value("id").toString().toStdString(), profile.id);
-        QFile zones(QFileInfo(image).path() + "/zones.json");
-        ASSERT_TRUE(zones.open(QIODevice::ReadOnly));
-        const auto document = QJsonDocument::fromJson(zones.readAll());
+        const auto zonesData = modelFile(QFileInfo(image).path(), "zones.json");
+        ASSERT_FALSE(zonesData.isEmpty());
+        const auto document = QJsonDocument::fromJson(zonesData);
         ASSERT_TRUE(document.isArray());
         QStringList commandKeys;
         QSet<QString> ids;
@@ -106,9 +127,9 @@ TEST(RemoteView, BundledProfilesMatchPhotosAndHaveExplicitZones) {
         }
         // Назначаемые кнопки экранов модели ("key" в layouts.json) идут после физических,
         // в порядке режимов профиля и зон раскладки.
-        QFile library(":/res/layouts.json");
-        ASSERT_TRUE(library.open(QIODevice::ReadOnly));
-        const auto layouts = QJsonDocument::fromJson(library.readAll()).array();
+        const auto layouts = QJsonDocument::fromJson(
+            harmony::app::remoteResources::data(":/res/layouts.json")).array();
+        ASSERT_FALSE(layouts.isEmpty());
         for (const auto& layoutId : object.value("modes").toObject()) {
             for (const auto& item : layouts) {
                 const auto layout = item.toObject();
@@ -125,6 +146,7 @@ TEST(RemoteView, BundledProfilesMatchPhotosAndHaveExplicitZones) {
 }
 
 TEST(RemoteView, SwitchModelsClearsOldTargetsAndPreservesAspectRatio) {
+    ensureResourcesLoaded();
     harmony::app::RemoteView view;
     QString clicked;
     QObject::connect(&view, &harmony::app::RemoteView::keyClicked,
@@ -143,9 +165,9 @@ TEST(RemoteView, SwitchModelsClearsOldTargetsAndPreservesAspectRatio) {
         }
         const auto* profile = harmony::remoteProfile(id);
         ASSERT_NE(profile, nullptr);
-        QFile zones(QFileInfo(QString::fromUtf8(profile->image.data())).path() + "/zones.json");
-        ASSERT_TRUE(zones.open(QIODevice::ReadOnly));
-        const auto definitions = QJsonDocument::fromJson(zones.readAll()).array();
+        const auto zonesData = modelFile(QFileInfo(QString::fromUtf8(profile->image.data())).path(), "zones.json");
+        ASSERT_FALSE(zonesData.isEmpty());
+        const auto definitions = QJsonDocument::fromJson(zonesData).array();
         view.resize(view.sizeHint());
         for (const auto& entry : definitions) {
             const auto zone = entry.toObject();
@@ -279,10 +301,11 @@ TEST(RemoteView, ScreenKeysSwitchScreensAndAreAssignable) {
 
 TEST(RemoteView, ComposedScreensReferenceExistingSprites) {
     // Каждый "sprite" собранных экранов модели описан в её screens.json, а источники есть в ресурсах.
-    QFile library(":/res/layouts.json");
-    ASSERT_TRUE(library.open(QIODevice::ReadOnly));
+    ensureResourcesLoaded();
+    const auto library = harmony::app::remoteResources::data(":/res/layouts.json");
+    ASSERT_FALSE(library.isEmpty());
     QHash<QString, QJsonObject> layouts;
-    for (const auto& item : QJsonDocument::fromJson(library.readAll()).array())
+    for (const auto& item : QJsonDocument::fromJson(library).array())
         layouts.insert(item.toObject().value("id").toString(), item.toObject());
     // плитка-картинка раскладки (избранное 1000/1100) встроена в ресурсы
     for (auto it = layouts.cbegin(); it != layouts.cend(); ++it) {
@@ -292,13 +315,13 @@ TEST(RemoteView, ComposedScreensReferenceExistingSprites) {
     for (const auto& profile : harmony::remoteProfiles) {
         SCOPED_TRACE(std::string(profile.id));
         const QString directory = QFileInfo(QString::fromUtf8(profile.image.data())).path();
-        QFile metadata(directory + "/profile.json");
-        ASSERT_TRUE(metadata.open(QIODevice::ReadOnly));
-        const auto modes = QJsonDocument::fromJson(metadata.readAll()).object().value("modes").toObject();
+        const auto metadata = modelFile(directory, "profile.json");
+        ASSERT_FALSE(metadata.isEmpty());
+        const auto modes = QJsonDocument::fromJson(metadata).object().value("modes").toObject();
         QJsonObject images, screens;
-        QFile screenFile(directory + "/screens.json");
-        if (screenFile.open(QIODevice::ReadOnly)) {
-            const auto document = QJsonDocument::fromJson(screenFile.readAll()).object();
+        const auto screenData = modelFile(directory, "screens.json");
+        if (!screenData.isEmpty()) {
+            const auto document = QJsonDocument::fromJson(screenData).object();
             images = document.value("images").toObject();
             screens = document.value("screens").toObject();
         }

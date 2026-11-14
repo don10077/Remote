@@ -15,6 +15,7 @@
 
 #include <QDialog>
 #include <QHash>
+#include <QLabel>
 #include <QJsonArray>
 #include <QJsonObject>
 #include <QList>
@@ -31,12 +32,37 @@ class QAction;
 class QCheckBox;
 class QComboBox;
 class QDoubleSpinBox;
-class QLabel;
 class QLineEdit;
 class QListWidget;
 class QPushButton;
+class QSpinBox;
 
 namespace harmony::app {
+
+/**
+ * @brief Подпись в одну строку: длинный текст сокращается многоточием.
+ *
+ * Нужна для строки состояния редактора: высота окна не меняется от длины
+ * текста, а полный текст остаётся во всплывающей подсказке.
+ */
+class ElidedLabel final : public QLabel {
+    Q_OBJECT
+
+public:
+    explicit ElidedLabel(QWidget* parent = nullptr);
+
+    /// Задать полный текст; на экране он сокращается по ширине подписи.
+    void setFullText(const QString& text);
+
+protected:
+    void resizeEvent(QResizeEvent* event) override;
+
+private:
+    /// Пересчитать видимый текст под текущую ширину.
+    void elide();
+
+    QString full_;
+};
 
 class ZoneEditorDialog final : public QDialog {
     Q_OBJECT
@@ -76,6 +102,11 @@ private:
         QString layout;    ///< id раскладки в layouts.json (после «копии для модели» — новый); пусто у корпуса
         QStringList modes; ///< режимы экрана модели, показывающие эту раскладку
         QString caption;
+        QString background; ///< цвет фона экрана из remote.json; пусто — цвет по умолчанию (у корпуса не используется)
+        QString role;       ///< роль экрана из remote.json
+        QJsonObject backgroundStyle; ///< фон экрана-образца для нового экрана (цвет, картинка)
+        QJsonObject cellStyle;       ///< оформление ячеек экрана-образца
+        bool draft = false; ///< новый экран, ещё не записанный в remote.json (живёт только в редакторе)
         QSizeF ref;        ///< единицы слоя: размер фото или `ref` раскладки
         State original;    ///< как в файле
         QList<QByteArray> originalText; ///< исходный текст зон `original` (пусто — не разобран)
@@ -88,10 +119,6 @@ private:
     bool loadModel(const QString& model);
     /// Текст файла папки ресурсов, а если его нет — из загруженного снимка.
     static QByteArray readResource(const QString& relative);
-    /// Модели, кроме текущей, чьи режимы экрана используют раскладку.
-    QStringList layoutUsers(const QString& layout) const;
-    /// Свободный id для копии раскладки.
-    QString copyLayoutId(const QString& layout) const;
 
     [[nodiscard]] bool hasLayer() const { return current_ >= 0 && current_ < layers_.size(); }
     Layer& layer() { return layers_[current_]; }
@@ -105,6 +132,8 @@ private:
     [[nodiscard]] bool isDirty() const;
 
     void showLayer(int index, bool keepView = false);
+    /// Перерисовать подложку холста реальным видом экрана с несохранёнными правками зон.
+    void updateScreenBackdrop();
     void refreshAll();
     void refreshList();
     void syncListSelection();
@@ -141,6 +170,30 @@ private:
 
     /// Сохранить все изменённые слои модели; false — отменено или ошибка (показана).
     bool save();
+    /// Обновить вкладку «Экраны»: список экранов модели, выбранный экран и его цвет фона.
+    void refreshScreens();
+    /// Прочитать remote.json модели; false — ошибка уже показана пользователю.
+    bool readRemoteJson(QJsonObject& remote, QByteArray& text);
+    /**
+     * @brief Записать remote.json, перечитать модель и показать экран.
+     * @param original Текст файла, с которым сверяется запись (защита от правки извне).
+     * @param remote Новое содержимое файла.
+     * @param screenId Экран, который нужно показать после перезагрузки; пусто — корпус.
+     * @return false — запись не удалась (ошибка показана).
+     */
+    bool writeRemoteJson(const QByteArray& original, const QJsonObject& remote, const QString& screenId);
+    /// Разложить плитки открытого экрана сеткой «колонки × ряды» одной отменяемой правкой.
+    void applyGrid();
+    /// Начать новый экран: черновик сразу показывается на холсте, параметры правятся вживую.
+    void beginNewScreen();
+    /// Записать черновик нового экрана в remote.json.
+    void createNewScreen();
+    /// Отбросить черновик нового экрана.
+    void cancelNewScreen();
+    /// Удалить экран, который сейчас открыт в редакторе.
+    void removeScreen();
+    /// Применить цвет фона из поля ввода к открытому экрану.
+    void applyBackground();
     /// Нет несохранённых правок либо пользователь их сохранил или отбросил.
     bool confirmDiscard();
 
@@ -149,7 +202,6 @@ private:
     QPixmap photo_;
     QSizeF photoSize_;
     QSet<QString> modes_;     ///< режимы экрана модели (для `goto`)
-    QSet<QString> layoutIds_; ///< все id раскладок в layouts.json
     QList<Layer> layers_;     ///< [0] — корпус, далее экраны
     int current_ = -1;
     /// Тексты файлов на момент загрузки/сохранения: для обнаружения правки извне.
@@ -161,6 +213,17 @@ private:
     QComboBox* layerBox_ = nullptr;
     std::optional<QRectF> previousScreen_; ///< Рамка до отключения экрана.
     QCheckBox* screenCheck_ = nullptr;
+    QListWidget* screenList_ = nullptr;      ///< экраны модели (вкладка «Экраны»)
+    QComboBox* roleBox_ = nullptr;           ///< роль нового экрана
+    QPushButton* addScreenButton_ = nullptr;
+    QPushButton* areaButton_ = nullptr;      ///< перейти к рамке экрана на фото пульта
+    QWidget* draftPanel_ = nullptr;          ///< кнопки «Создать»/«Отмена» черновика
+    int draftSerial_ = 0;                    ///< номер для уникального ключа черновика (история правок ссылается на ключ)
+    QSpinBox* arrangeColsBox_ = nullptr;     ///< колонок плиток открытого экрана
+    QSpinBox* arrangeRowsBox_ = nullptr;     ///< рядов плиток открытого экрана
+    QPushButton* removeScreenButton_ = nullptr;
+    QLineEdit* backgroundEdit_ = nullptr;    ///< цвет фона открытого экрана
+    QPushButton* pickButton_ = nullptr;
     QListWidget* zoneList_ = nullptr;
     QLineEdit* idEdit_ = nullptr;
     QComboBox* kindBox_ = nullptr;
@@ -178,8 +241,8 @@ private:
     QLabel* selectionHint_ = nullptr;
     QLabel* checkLabel_ = nullptr;
     QListWidget* checkList_ = nullptr;
-    QLabel* statusLabel_ = nullptr;
-    QLabel* noteLabel_ = nullptr;
+    ElidedLabel* statusLabel_ = nullptr;
+    ElidedLabel* noteLabel_ = nullptr;
     QPushButton* saveButton_ = nullptr;
     QAction* drawAction_ = nullptr;
     QAction* autoAction_ = nullptr;

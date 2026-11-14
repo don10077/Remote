@@ -2,11 +2,10 @@
 
 /**
  * @file zoneEditing.h
- * @brief Логика редактора зон без виджетов: проверка зон и точечная правка текста
- *        zones.json, profile.json и layouts.json.
+ * @brief Логика редактора зон без виджетов: проверка зон и точечная правка текста remote.json.
  *
- * Слои разметки: «корпус» — zones.json модели в пикселях фото, «экран» — зоны раскладки
- * из layouts.json в единицах `ref`. Правка заменяет в файле только изменённый фрагмент
+ * Слои разметки: «корпус» — `hardware.zones` в пикселях фото, «экран» — `cells` одного экрана
+ * (`screens[]`) в единицах его `ref`. Правка заменяет в файле только изменённый фрагмент
  * (массив зон, значение ключа), а неизменённые зоны переносит исходным текстом: дифф
  * остаётся минимальным, форматирование и порядок ключей остального файла не трогаются.
  */
@@ -95,29 +94,19 @@ QList<Issue> checkScreen(const QJsonArray& zones, const QSizeF& ref, const QSet<
 QByteArray zoneLine(const QJsonObject& zone);
 
 /**
- * @brief Исходный текст каждой зоны: элементы корневого массива zones.json или
- *        массива `zones` раскладки `layoutId` в layouts.json.
- * @return nullopt — текст не разобран или раскладки нет.
+ * @brief Исходный текст каждой зоны remote.json: `hardware.zones` при пустом `screenId`,
+ *        иначе `cells` экрана `screenId`.
+ * @return nullopt — текст не разобран или такого экрана нет.
  */
-std::optional<QList<QByteArray>> zoneTexts(const QByteArray& text, const QString& layoutId = {});
+std::optional<QList<QByteArray>> zoneTexts(const QByteArray& text, const QString& screenId = {});
 
 /// Разобрать вставленный текст: массив зон, одна зона или строки зон с запятыми; пусто — не зоны.
 QJsonArray parseZones(const QByteArray& text);
 
-/// Заменить корневой массив zones.json строками `lines`; nullopt — текст не массив.
-std::optional<QByteArray> patchZonesFile(const QByteArray& text, const QList<QByteArray>& lines);
-/// Заменить значение `"screen"` в profile.json (nullopt — `null`); nullopt — ключа нет.
-std::optional<QByteArray> patchScreen(const QByteArray& text, const std::optional<QRectF>& screen);
-/// Заменить раскладку режима в `"modes"` профиля; nullopt — режима нет.
-std::optional<QByteArray> patchMode(const QByteArray& text, const QString& mode, const QString& layout);
-/// Заменить массив `zones` раскладки `id` в layouts.json; nullopt — раскладки нет.
-std::optional<QByteArray> patchLayoutZones(const QByteArray& text, const QString& id,
-                                           const QList<QByteArray>& lines);
-/**
- * @brief Добавить в конец layouts.json копию раскладки `from` с id `to` и зонами `lines`.
- * @return nullopt — исходной раскладки нет или файл не разобран.
- */
-std::optional<QByteArray> appendLayoutCopy(const QByteArray& text, const QString& from, const QString& to,
-                                           const QList<QByteArray>& lines);
+/// Заменить массив зон корпуса (`screenId` пуст) или ячеек экрана строками `lines`; nullopt — массива нет.
+std::optional<QByteArray> patchZones(const QByteArray& text, const QString& screenId,
+                                     const QList<QByteArray>& lines);
+/// Заменить `display.rect` (nullopt — `null`); nullopt — ключа нет.
+std::optional<QByteArray> patchDisplay(const QByteArray& text, const std::optional<QRectF>& rect);
 
 } // namespace harmony::app::zoneEditing

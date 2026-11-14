@@ -5,3 +5,5 @@ mmedia_1100.png: тёмный транспорт 1100, получен из mmedi
 cd.png: угол справа сверху у 1100 на экране транспорта (в активности DVD, на месте сердечка-избранного)
 battery.png + energy.png: батарея 1100 в верхней планке слева от Help, до 3 делений
 pagination.png: листание страниц у 1100 внизу по центру, между стрелками надпись "1 of 3"
+900: background_900/head_900/foot_900/tile_900(_active,_selected).png — получены скриптом tools/sprites/make900.py из цветов remoteView.cpp (h900), масштаб 2x от LCD 232x290
+600/650: background_600/650, head_600, tab_600, cross_600.png — скрипт tools/sprites/make600.py, ref 172x182, масштаб 2x (650/665/700 используют background_650)

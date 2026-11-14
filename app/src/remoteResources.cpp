@@ -22,7 +22,12 @@
 namespace harmony::app::remoteResources {
 namespace {
 QHash<QString, QByteArray> snapshot;
+/// Ключи снимка, достроенные из remote.json (на диске их нет, наружу не выгружаются).
+QSet<QString> synthetic;
 quint64 generation = 0;
+/// Пользовательские модели, пропущенные последним reload() из-за ошибок (тексты ошибок).
+QStringList skippedModels;
+QHash<QString, QString> skippedById;
 /// Проверить конечные координаты прямоугольника и положительный размер.
 QRectF rect(const QJsonValue& value) {
     const auto a = value.toArray();
@@ -36,10 +41,125 @@ bool managed(const QString& relative) {
            (relative.endsWith(".json") || relative.endsWith(".png") || relative.endsWith(".svg"));
 }
 const QString kPrefix = ":/res/";
+
+/**
+ * Достроить во внутреннем снимке документы profile/zones/screens и общую библиотеку раскладок
+ * из remote.json: на диске лежит только remote.json, остальной код читает снимок.
+ * remote.json главнее одноимённых старых файлов (если они остались в пользовательской папке).
+ * Раскладка экрана получает id `screen.layout` либо `<модель>_<экран>`; при конфликте
+ * с другой моделью (тот же id, другие ячейки) к id добавляется `_<модель>`.
+ */
+void expandRemoteJson(QHash<QString, QByteArray>& candidate, QHash<QString, QString>& sources,
+                      QSet<QString>& generated) {
+    const QString layoutPath = ":/res/layouts.json";
+    QJsonArray library = QJsonDocument::fromJson(candidate.value(layoutPath)).array();
+    QHash<QString, QJsonObject> libraryById;
+    for (const auto& entry : library) libraryById.insert(entry.toObject().value("id").toString(), entry.toObject());
+    bool libraryChanged = false;
+    const auto put = [&](const QString& key, const QJsonValue& value, const QString& source) {
+        const QJsonDocument doc = value.isArray() ? QJsonDocument(value.toArray()) : QJsonDocument(value.toObject());
+        candidate.insert(key, doc.toJson(QJsonDocument::Compact));
+        sources.insert(key, source);
+        generated.insert(key);
+    };
+    QStringList keys = candidate.keys();
+    keys.sort();
+    for (const QString& key : keys) {
+        if (!key.startsWith(":/res/remotes/") || !key.endsWith("/remote.json")) continue;
+        const QString dir = key.left(key.size() - QString("/remote.json").size());
+        const QString modelId = dir.mid(QString(":/res/remotes/").size());
+        const auto remote = QJsonDocument::fromJson(candidate.value(key)).object();
+        if (remote.isEmpty()) continue;
+        const auto hardware = remote.value("hardware").toObject();
+        const auto display = remote.value("display").toObject();
+        const auto connection = remote.value("connection").toObject();
+        QJsonObject profile{{"id", remote.value("id")}, {"name", remote.value("name")},
+                            {"image", hardware.value("image")}, {"size", hardware.value("size")},
+                            {"screen", display.value("rect")},
+                            {"touch", remote.value("capabilities").toObject().value("touch")},
+                            {"driver", connection.value("driver")},
+                            {"configFormat", connection.value("configFormat")}};
+        if (display.contains("tint")) profile.insert("screenTint", display.value("tint"));
+        QJsonObject modes, spriteImages, spriteScreens;
+        for (const auto& value : remote.value("screens").toArray()) {
+            const auto screen = value.toObject();
+            const QString mode = screen.value("id").toString();
+            QString layoutId = screen.value("layout").toString();
+            if (mode.isEmpty()) continue;
+            if (layoutId.isEmpty()) layoutId = modelId + "_" + mode;
+            QJsonArray cells = screen.value("cells").toArray();
+            const auto grid = screen.value("grid").toObject();
+            const auto refSize = screen.value("ref").toArray();
+            const int cols = grid.value("cols").toInt();
+            const int rows = grid.value("rows").toInt();
+            if (cols > 0 && rows > 0 && refSize.size() == 2) {
+                // Ячейки без rect ставятся по сетке: col/row (с нуля), colSpan/rowSpan (по умолчанию 1).
+                const qreal gap = grid.value("gap").toDouble(4);
+                const qreal cw = (refSize[0].toDouble() - gap * (cols + 1)) / cols;
+                const qreal ch = (refSize[1].toDouble() - gap * (rows + 1)) / rows;
+                for (int i = 0; i < cells.size(); ++i) {
+                    auto cellObject = cells[i].toObject();
+                    if (cellObject.contains("rect") || !cellObject.contains("col") || !cellObject.contains("row")) continue;
+                    const int col = cellObject.value("col").toInt();
+                    const int row = cellObject.value("row").toInt();
+                    const int cs = std::max(1, cellObject.value("colSpan").toInt(1));
+                    const int rs = std::max(1, cellObject.value("rowSpan").toInt(1));
+                    const auto round2 = [](qreal v) { return std::round(v * 100) / 100; };
+                    cellObject.insert("rect", QJsonArray{round2(gap + col * (cw + gap)), round2(gap + row * (ch + gap)),
+                                                         round2(cw * cs + gap * (cs - 1)), round2(ch * rs + gap * (rs - 1))});
+                    if (!cellObject.contains("kind")) cellObject.insert("kind", "ScreenSlot");
+                    cells[i] = cellObject;
+                }
+            }
+            QJsonObject layout{{"id", layoutId}, {"ref", screen.value("ref")},
+                               {"touch", screen.value("touch")}, {"zones", cells}};
+            for (const char* field : {"style", "centerLastRow", "compose", "grid", "background"})
+                if (screen.contains(field)) layout.insert(field, screen.value(field));
+            if (grid.contains("cols")) layout.insert("cellStyle", screen.value("cell"));
+            const auto cell = screen.value("cell").toObject();
+            if (cell.contains("image")) layout.insert("tile", cell);
+            if (libraryById.contains(layoutId) && libraryById.value(layoutId) != layout) {
+                layoutId += "_" + modelId;
+                layout.insert("id", layoutId);
+            }
+            modes.insert(mode, layoutId);
+            if (!libraryById.contains(layoutId)) {
+                library.append(layout);
+                libraryById.insert(layoutId, layout);
+                libraryChanged = true;
+            }
+            if (!screen.contains("layers")) continue;
+            QJsonArray items;
+            for (const auto& layerValue : screen.value("layers").toArray()) {
+                auto layer = layerValue.toObject();
+                const QString file = layer.value("image").toString();
+                const QString name = QFileInfo(file).completeBaseName();
+                spriteImages.insert(name, QJsonObject{{"file", file}});
+                layer.insert("image", name);
+                items.append(layer);
+            }
+            spriteScreens.insert(mode, items);
+        }
+        profile.insert("modes", modes);
+        put(dir + "/profile.json", profile, sources.value(key));
+        put(dir + "/zones.json", hardware.value("zones").toArray(), sources.value(key));
+        if (!spriteScreens.isEmpty())
+            put(dir + "/screens.json", QJsonObject{{"images", spriteImages}, {"screens", spriteScreens}},
+                sources.value(key));
+    }
+    if (libraryChanged) put(layoutPath, library, sources.value(layoutPath));
+}
 }
 
 QString folder() { return QDir(QCoreApplication::applicationDirPath()).filePath("resources"); }
 quint64 revision() { return generation; }
+QStringList skipped() { return skippedModels; }
+QString modelError(const QString& id) { return skippedById.value(id); }
+QStringList skippedIds() {
+    auto ids = skippedById.keys();
+    ids.sort();
+    return ids;
+}
 QByteArray data(const QString& path) {
     const auto it = snapshot.constFind(path);
     if (it != snapshot.cend()) return *it;
@@ -65,19 +185,54 @@ QString reload(const QString& root) {
             sources.insert(key, file);
         }
     }
+    QSet<QString> generated;
+    expandRemoteJson(candidate, sources, generated);
     QHash<QString, QJsonDocument> json;
+    // Ошибки пультов, которые не входят в штатный набор: пульт пропускается, остальные работают.
+    QHash<QString, QString> failed;
+    QString fatal;
+    const auto customModel = [](const QString& key) -> QString {
+        static const QString prefix = ":/res/remotes/";
+        if (!key.startsWith(prefix)) return {};
+        const QString id = key.mid(prefix.size()).section('/', 0, 0);
+        for (const auto& item : harmony::bundledRemoteProfiles)
+            if (item.id == id.toStdString()) return {};
+        return id;
+    };
+    const auto reject = [&](const QString& key, const QString& message) {
+        const QString id = customModel(key);
+        if (id.isEmpty()) {
+            if (fatal.isEmpty()) fatal = message;
+        } else if (!failed.contains(id)) {
+            failed.insert(id, message);
+        }
+    };
     for (auto it = candidate.cbegin(); it != candidate.cend(); ++it) {
         if (it.key().endsWith(".json")) {
             QJsonParseError error;
             const auto doc = QJsonDocument::fromJson(it.value(), &error);
-            if (error.error != QJsonParseError::NoError)
-                return sources[it.key()] + ": " + error.errorString();
+            if (error.error != QJsonParseError::NoError) {
+                reject(it.key(), sources[it.key()] + ": " + error.errorString());
+                continue;
+            }
             const bool array = it.key().endsWith("/zones.json") || it.key().endsWith("/layouts.json");
-            if (array ? !doc.isArray() : !doc.isObject()) return sources[it.key()] + ": invalid JSON structure";
+            if (array ? !doc.isArray() : !doc.isObject()) {
+                reject(it.key(), sources[it.key()] + ": invalid JSON structure");
+                continue;
+            }
             json.insert(it.key(), doc);
         } else if (it.key().endsWith(".png")) {
-            if (QImage::fromData(it.value()).isNull()) return sources[it.key()] + ": invalid image";
-        } else if (!QSvgRenderer(it.value()).isValid()) return sources[it.key()] + ": invalid SVG";
+            if (QImage::fromData(it.value()).isNull()) reject(it.key(), sources[it.key()] + ": invalid image");
+        } else if (!QSvgRenderer(it.value()).isValid()) reject(it.key(), sources[it.key()] + ": invalid SVG");
+    }
+    if (!fatal.isEmpty()) return fatal;
+    // Файлы пропущенных пультов не попадают в снимок.
+    for (auto bad = failed.cbegin(); bad != failed.cend(); ++bad) {
+        const QString prefix = ":/res/remotes/" + bad.key() + "/";
+        for (auto it = candidate.begin(); it != candidate.end();)
+            it = it.key().startsWith(prefix) ? candidate.erase(it) : std::next(it);
+        for (auto it = json.begin(); it != json.end();)
+            it = it.key().startsWith(prefix) ? json.erase(it) : std::next(it);
     }
     const QString layoutPath = ":/res/layouts.json";
     QSet<QString> layouts;
@@ -97,8 +252,9 @@ QString reload(const QString& root) {
     std::vector<harmony::RemoteProfile> models;
     auto paths = json.keys();
     paths.sort();
-    for (const auto& path : paths) {
-        if (!path.startsWith(":/res/remotes/") || !path.endsWith("/profile.json")) continue;
+    // Проверить одну модель; при ошибке вернуть текст (модель в список не попадает).
+    const auto checkModel = [&](const QString& path) -> QString {
+        if (!path.startsWith(":/res/remotes/") || !path.endsWith("/profile.json")) return {};
         const QString dir = path.left(path.size() - QString("/profile.json").size());
         const QString modelId = dir.mid(QString(":/res/remotes/").size());
         static const QRegularExpression validId("^[a-z0-9][a-z0-9_-]*$");
@@ -160,7 +316,24 @@ QString reload(const QString& root) {
                     return sources[dir + "/screens.json"] + ": invalid image placement";
             }
         }
+        return {};
+    };
+    for (const auto& path : paths) {
+        const auto before = models.size();
+        const QString error = checkModel(path);
+        if (error.isEmpty()) continue;
+        models.erase(models.begin() + static_cast<std::ptrdiff_t>(before), models.end()); // модель могла быть добавлена до ошибки
+        const QString dir = path.left(path.size() - QString("/profile.json").size());
+        const QString modelId = dir.mid(QString(":/res/remotes/").size());
+        bool bundled = false;
+        for (const auto& item : harmony::bundledRemoteProfiles)
+            if (item.id == modelId.toStdString()) bundled = true;
+        // Ошибка в штатной модели останавливает загрузку; чужая модель просто пропускается.
+        if (bundled) return error;
+        if (!failed.contains(modelId)) failed.insert(modelId, error);
     }
+    skippedModels = failed.values();
+    skippedById = failed;
     // Сначала штатные модели в привычном порядке, затем новые по id.
     std::stable_sort(models.begin(), models.end(), [](const auto& a, const auto& b) {
         const auto rank = [](const auto& id) {
@@ -171,6 +344,7 @@ QString reload(const QString& root) {
         return rank(a.id) < rank(b.id);
     });
     snapshot.swap(candidate);
+    synthetic.swap(generated);
     harmony::remoteProfiles.swap(models);
     ++generation;
     return {};
@@ -181,7 +355,8 @@ QStringList modelIds(const QString& root) {
     for (const auto& profile : harmony::remoteProfiles) result.append(QString::fromStdString(profile.id));
     const QDir remotes(QDir(root).filePath(QStringLiteral("remotes")));
     for (const QString& id : remotes.entryList(QDir::Dirs | QDir::NoDotAndDotDot, QDir::Name)) {
-        if (!result.contains(id) && QFileInfo::exists(remotes.filePath(id + QStringLiteral("/profile.json"))))
+        if (!result.contains(id) && (QFileInfo::exists(remotes.filePath(id + QStringLiteral("/remote.json"))) ||
+                                     QFileInfo::exists(remotes.filePath(id + QStringLiteral("/profile.json")))))
             result.append(id);
     }
     return result;
@@ -190,8 +365,10 @@ QStringList modelIds(const QString& root) {
 QStringList exportFiles(const QString& modelId) {
     const QString model = kPrefix + "remotes/" + modelId + "/";
     QStringList files;
-    for (auto it = snapshot.cbegin(); it != snapshot.cend(); ++it)
+    for (auto it = snapshot.cbegin(); it != snapshot.cend(); ++it) {
+        if (synthetic.contains(it.key())) continue; // достроено из remote.json, на диск не выгружается
         if (modelId.isEmpty() || it.key().startsWith(model)) files.append(it.key().mid(kPrefix.size()));
+    }
     files.sort();
     return files;
 }

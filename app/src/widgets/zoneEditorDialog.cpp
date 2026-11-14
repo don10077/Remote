@@ -5,6 +5,7 @@
 
 #include "zoneEditorDialog.h"
 
+#include "../icons.h"
 #include "../labels.h"
 #include "../modern/remoteView.h"
 #include "../remoteResources.h"
@@ -16,9 +17,13 @@
 #include <QApplication>
 #include <QMenu>
 #include <QScrollArea>
+#include <QScrollBar>
 #include <QCompleter>
 #include <QCheckBox>
 #include <QClipboard>
+#include <QColor>
+#include <QColorDialog>
+#include <QSpinBox>
 #include <QComboBox>
 #include <QCoreApplication>
 #include <QDialogButtonBox>
@@ -43,12 +48,14 @@
 #include <QProcess>
 #include <QSaveFile>
 #include <QSplitter>
+#include <QTabWidget>
 #include <QToolBar>
 #include <QToolButton>
 #include <QUndoCommand>
 #include <QVBoxLayout>
 
 #include <algorithm>
+#include <cmath>
 
 namespace harmony::app {
 namespace {
@@ -90,10 +97,10 @@ QString modelName(const QString& id) {
     for (const auto& profile : harmony::remoteProfiles) {
         if (profile.id == id.toStdString()) return QString::fromStdString(profile.name);
     }
-    // Новая модель могла быть отклонена загрузчиком: имя читаем из её profile.json.
-    QFile file(remoteResources::folder() + QStringLiteral("/remotes/") + id + QStringLiteral("/profile.json"));
+    // Новая модель могла быть отклонена загрузчиком: имя читаем из её remote.json.
+    QFile file(remoteResources::folder() + QStringLiteral("/remotes/") + id + QStringLiteral("/remote.json"));
     if (!file.open(QIODevice::ReadOnly))
-        file.setFileName(QStringLiteral(":/res/remotes/") + id + QStringLiteral("/profile.json"));
+        file.setFileName(QStringLiteral(":/res/remotes/") + id + QStringLiteral("/remote.json"));
     if (file.open(QIODevice::ReadOnly)) {
         const auto profile = QJsonDocument::fromJson(file.readAll()).object();
         // При несовпадении id и папки показываем id: так ошибка сразу видна.
@@ -118,7 +125,66 @@ QString findAutoZonesScript() {
     return {};
 }
 
+/// Роль экрана, которую можно добавить: роль в remote.json и id экрана по умолчанию.
+struct ScreenRole {
+    const char* role;
+    const char* id;
+};
+
+constexpr ScreenRole kScreenRoles[] = {{"activity", "activities"}, {"favorites", "favorites"},
+                                       {"devices", "devices"},     {"command", "command"},
+                                       {"media", "transport"},     {"numpad", "keypad"}};
+
+/// Заголовок экрана выбранной роли (как в списке экранов).
+QString roleTitle(const QString& role) {
+    for (const ScreenRole& r : kScreenRoles)
+        if (role == QLatin1String(r.role)) return RemoteView::screenModeName(QString::fromLatin1(r.id));
+    return role;
+}
+
+/// Цвет фона экрана, если в remote.json он не задан.
+constexpr const char* kDefaultBackground = "#0b3442";
+/// Зазор между зонами нового экрана и от краёв, в единицах `ref`.
+constexpr qreal kScreenGap = 4;
+
+/// Прямоугольник зоны номер `index` в раскладке cols×rows (по рядам, слева направо) внутри области `area`.
+QRectF gridCell(int index, int cols, int rows, const QRectF& area) {
+    const qreal width = (area.width() - kScreenGap * (cols + 1)) / cols;
+    const qreal height = (area.height() - kScreenGap * (rows + 1)) / rows;
+    return {area.left() + kScreenGap + (index % cols) * (width + kScreenGap),
+            area.top() + kScreenGap + (index / cols) * (height + kScreenGap), width, height};
+}
+
+/// Зона — плитка экрана (а не заголовок, боковая кнопка или панель).
+bool isSlot(const QJsonObject& zone) {
+    return zone.value(QStringLiteral("kind")).toString(QStringLiteral("ScreenSlot")) == QLatin1String("ScreenSlot");
+}
+
 } // namespace
+
+// ── Подпись с сокращением ─────────────────────────────────────────────────────
+
+ElidedLabel::ElidedLabel(QWidget* parent) : QLabel(parent) {
+    // Ignored по ширине: подпись не растягивает окно под длинный текст.
+    setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Preferred);
+}
+
+void ElidedLabel::setFullText(const QString& text) {
+    if (full_ == text) return;
+    full_ = text;
+    setToolTip(text);
+    elide();
+}
+
+void ElidedLabel::resizeEvent(QResizeEvent* event) {
+    QLabel::resizeEvent(event);
+    elide();
+}
+
+void ElidedLabel::elide() {
+    constexpr int kMinimumWidth = 32; // при совсем узкой подписи показываем хотя бы многоточие
+    QLabel::setText(fontMetrics().elidedText(full_, Qt::ElideRight, std::max(kMinimumWidth, width())));
+}
 
 ZoneEditorDialog::ZoneEditorDialog(const QString& model, QWidget* parent) : QDialog(parent) {
     setWindowTitle(tr("Zone Editor"));
@@ -126,15 +192,19 @@ ZoneEditorDialog::ZoneEditorDialog(const QString& model, QWidget* parent) : QDia
 
     // ── Панель инструментов ──
     auto* toolbar = new QToolBar(this);
-    toolbar->setIconSize({20, 20});
+    toolbar->setIconSize({18, 18});
     toolbar->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
+    toolbar->setMovable(false);
+    toolbar->setFloatable(false);
 
     auto* undoAction = undo_.createUndoAction(this, tr("Undo"));
     undoAction->setShortcut(QKeySequence::Undo);
+    undoAction->setIcon(icons::make(icons::Icon::Undo));
     toolbar->addAction(undoAction);
 
     auto* redoAction = undo_.createRedoAction(this, tr("Redo"));
     redoAction->setShortcut(QKeySequence::Redo);
+    redoAction->setIcon(icons::make(icons::Icon::Redo));
     toolbar->addAction(redoAction);
 
     toolbar->addSeparator();
@@ -142,6 +212,7 @@ ZoneEditorDialog::ZoneEditorDialog(const QString& model, QWidget* parent) : QDia
     drawAction_ = toolbar->addAction(tr("Draw Zone"));
     drawAction_->setCheckable(true);
     drawAction_->setShortcut(Qt::Key_D);
+    drawAction_->setIcon(icons::make(icons::Icon::Plus));
     connect(drawAction_, &QAction::toggled, this, [this](bool on) {
         if (canvas_) canvas_->setDrawMode(on);
     });
@@ -156,6 +227,8 @@ ZoneEditorDialog::ZoneEditorDialog(const QString& model, QWidget* parent) : QDia
     deleteAction_->setShortcut(QKeySequence::Delete);
     deleteAction_->setEnabled(false);
     connect(deleteAction_, &QAction::triggered, this, &ZoneEditorDialog::removeZones);
+
+    toolbar->addSeparator();
 
     copyAction_ = toolbar->addAction(tr("Copy"));
     copyAction_->setShortcut(QKeySequence::Copy);
@@ -183,6 +256,7 @@ ZoneEditorDialog::ZoneEditorDialog(const QString& model, QWidget* parent) : QDia
 
     toolbar->addSeparator();
 
+    // Выравнивание выделенных зон: меню, чтобы восемь команд не занимали всю панель.
     auto* alignMenu = new QMenu(this);
     auto* alignButton = new QToolButton(this);
     alignButton->setText(tr("Align selected"));
@@ -190,7 +264,6 @@ ZoneEditorDialog::ZoneEditorDialog(const QString& model, QWidget* parent) : QDia
     alignButton->setMenu(alignMenu);
     alignButton->setPopupMode(QToolButton::InstantPopup);
     toolbar->addWidget(alignButton);
-    // Выравнивание
     const QStringList alignLabels = {tr("Left"), tr("Right"), tr("Top"),   tr("Bottom"),
                                      tr("H.Center"), tr("V.Center"), tr("Width"), tr("Height")};
     for (int i = 0; i < 8; ++i) {
@@ -202,6 +275,10 @@ ZoneEditorDialog::ZoneEditorDialog(const QString& model, QWidget* parent) : QDia
 
     // ── Холст слева ──
     canvas_ = new ZoneCanvas(this);
+    // Распорка прижимает «Вписать в окно» к правому краю панели.
+    auto* toolbarSpacer = new QWidget(this);
+    toolbarSpacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
+    toolbar->addWidget(toolbarSpacer);
     auto* fit = toolbar->addAction(tr("Fit to window"));
     connect(fit, &QAction::triggered, canvas_, &ZoneCanvas::fitView);
     for (auto* action : {drawAction_, duplicateAction_, deleteAction_, copyAction_, pasteAction, selectAllAction_}) {
@@ -234,10 +311,15 @@ ZoneEditorDialog::ZoneEditorDialog(const QString& model, QWidget* parent) : QDia
     rightPanel->setAttribute(Qt::WA_StyledBackground);
     auto* rightLayout = new QVBoxLayout(rightPanel);
     rightLayout->setContentsMargins(12, 12, 12, 12);
+    rightLayout->setSpacing(10);
 
     // Выбор модели и слоя
     auto* headerLayout = new QFormLayout;
     headerLayout->setFieldGrowthPolicy(QFormLayout::ExpandingFieldsGrow);
+    headerLayout->setLabelAlignment(Qt::AlignRight | Qt::AlignVCenter);
+    headerLayout->setContentsMargins(0, 0, 0, 0);
+    headerLayout->setHorizontalSpacing(8);
+    headerLayout->setVerticalSpacing(6);
 
     modelBox_ = new QComboBox(this);
     const QStringList models = editableModels();
@@ -253,31 +335,40 @@ ZoneEditorDialog::ZoneEditorDialog(const QString& model, QWidget* parent) : QDia
     connect(layerBox_, qOverload<int>(&QComboBox::currentIndexChanged), this, [this](int index) {
         if (index >= 0 && index < layers_.size()) showLayer(index);
     });
-    headerLayout->addRow(tr("Layer:"), layerBox_);
-
-    screenCheck_ = new QCheckBox(tr("This remote has a screen area"), this);
-    screenCheck_->setObjectName("zoneScreenArea");
-    screenCheck_->setToolTip(tr("Defines where the screen is drawn on the remote. Disabling removes the screen rectangle from the profile; it does not just hide the outline."));
-    connect(screenCheck_, &QCheckBox::toggled, this, &ZoneEditorDialog::setScreenArea);
-    headerLayout->addRow({}, screenCheck_);
-
+    headerLayout->addRow(tr("Editing:"), layerBox_);
     rightLayout->addLayout(headerLayout);
+
+    // Вкладки: у каждой только свои настройки.
+    auto* tabs = new QTabWidget(this);
+    tabs->setObjectName("zoneTabs");
+    tabs->setDocumentMode(true);
+    rightLayout->addWidget(tabs, 1);
+
+    // Вкладка «Зоны»
+    auto* zonesPage = new QWidget(this);
+    auto* zonesLayout = new QVBoxLayout(zonesPage);
+    zonesLayout->setContentsMargins(0, 12, 0, 0);
+    zonesLayout->setSpacing(10);
+    tabs->addTab(zonesPage, tr("Zones"));
+
     selectionHint_ = new QLabel(tr("Select a button on the photo, or click Draw Zone and drag a rectangle."), this);
     selectionHint_->setWordWrap(true);
-    rightLayout->addWidget(selectionHint_);
-
-    // Список зон
-    auto* zoneLabel = new QLabel(tr("Zones:"), this);
-    rightLayout->addWidget(zoneLabel);
+    selectionHint_->setObjectName("pageMeta");
+    zonesLayout->addWidget(selectionHint_);
 
     zoneList_ = new QListWidget(this);
     zoneList_->setSelectionMode(QAbstractItemView::ExtendedSelection);
+    zoneList_->setMinimumHeight(90);
     connect(zoneList_, &QListWidget::itemSelectionChanged, this, &ZoneEditorDialog::onListSelection);
-    rightLayout->addWidget(zoneList_);
+    zonesLayout->addWidget(zoneList_, 1);
 
     // Свойства выделенной зоны
     auto* propsGroup = new QGroupBox(tr("Properties"), this);
     auto* propsLayout = new QFormLayout(propsGroup);
+    propsLayout->setFieldGrowthPolicy(QFormLayout::ExpandingFieldsGrow);
+    propsLayout->setLabelAlignment(Qt::AlignRight | Qt::AlignVCenter);
+    propsLayout->setHorizontalSpacing(8);
+    propsLayout->setVerticalSpacing(6);
 
     idEdit_ = new QLineEdit(this);
     connect(idEdit_, &QLineEdit::editingFinished, this, &ZoneEditorDialog::applyId);
@@ -288,38 +379,31 @@ ZoneEditorDialog::ZoneEditorDialog(const QString& model, QWidget* parent) : QDia
     connect(kindBox_, qOverload<int>(&QComboBox::currentIndexChanged), this, &ZoneEditorDialog::applyKind);
     propsLayout->addRow(tr("Kind:"), kindBox_);
 
+    // Две пары полей в сетке 2×2: подписи узкие, поля тянутся поровну.
     auto* rectLayout = new QGridLayout;
-    xBox_ = new QDoubleSpinBox(this);
-    xBox_->setDecimals(2);
-    xBox_->setRange(-99999, 99999);
-    xBox_->setSingleStep(1);
-    connect(xBox_, &QDoubleSpinBox::editingFinished, this, &ZoneEditorDialog::applyRect);
-    rectLayout->addWidget(new QLabel("X:", this), 0, 0);
-    rectLayout->addWidget(xBox_, 0, 1);
-
-    yBox_ = new QDoubleSpinBox(this);
-    yBox_->setDecimals(2);
-    yBox_->setRange(-99999, 99999);
-    yBox_->setSingleStep(1);
-    connect(yBox_, &QDoubleSpinBox::editingFinished, this, &ZoneEditorDialog::applyRect);
-    rectLayout->addWidget(new QLabel("Y:", this), 0, 2);
-    rectLayout->addWidget(yBox_, 0, 3);
-
-    wBox_ = new QDoubleSpinBox(this);
-    wBox_->setDecimals(2);
-    wBox_->setRange(0, 99999);
-    wBox_->setSingleStep(1);
-    connect(wBox_, &QDoubleSpinBox::editingFinished, this, &ZoneEditorDialog::applyRect);
-    rectLayout->addWidget(new QLabel(tr("W:"), this), 1, 0);
-    rectLayout->addWidget(wBox_, 1, 1);
-
-    hBox_ = new QDoubleSpinBox(this);
-    hBox_->setDecimals(2);
-    hBox_->setRange(0, 99999);
-    hBox_->setSingleStep(1);
-    connect(hBox_, &QDoubleSpinBox::editingFinished, this, &ZoneEditorDialog::applyRect);
-    rectLayout->addWidget(new QLabel(tr("H:"), this), 1, 2);
-    rectLayout->addWidget(hBox_, 1, 3);
+    rectLayout->setContentsMargins(0, 0, 0, 0);
+    rectLayout->setHorizontalSpacing(6);
+    rectLayout->setVerticalSpacing(4);
+    const auto addRectBox = [&](const QString& caption, qreal minimum, int row, int column) {
+        auto* box = new QDoubleSpinBox(this);
+        box->setDecimals(2);
+        box->setRange(minimum, 99999);
+        box->setSingleStep(1);
+        box->setMinimumWidth(78);
+        box->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
+        connect(box, &QDoubleSpinBox::editingFinished, this, &ZoneEditorDialog::applyRect);
+        auto* label = new QLabel(caption, this);
+        label->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
+        rectLayout->addWidget(label, row, column * 2);
+        rectLayout->addWidget(box, row, column * 2 + 1);
+        return box;
+    };
+    xBox_ = addRectBox(QStringLiteral("X:"), -99999, 0, 0);
+    yBox_ = addRectBox(QStringLiteral("Y:"), -99999, 0, 1);
+    wBox_ = addRectBox(tr("W:"), 0, 1, 0);
+    hBox_ = addRectBox(tr("H:"), 0, 1, 1);
+    rectLayout->setColumnStretch(1, 1);
+    rectLayout->setColumnStretch(3, 1);
 
     propsLayout->addRow(tr("Position and size:"), rectLayout);
 
@@ -327,6 +411,8 @@ ZoneEditorDialog::ZoneEditorDialog(const QString& model, QWidget* parent) : QDia
     radiusBox_->setDecimals(2);
     radiusBox_->setRange(-1, 999);
     radiusBox_->setSingleStep(0.5);
+    radiusBox_->setMinimumWidth(78);
+    radiusBox_->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
     radiusBox_->setToolTip(tr("0: square corners. Positive: radius in pixels. Negative: fraction of the shorter side (-0.5: circle)."));
     connect(radiusBox_, &QDoubleSpinBox::valueChanged, this, &ZoneEditorDialog::applyRadius);
     propsLayout->addRow(tr("Radius:"), radiusBox_);
@@ -334,6 +420,10 @@ ZoneEditorDialog::ZoneEditorDialog(const QString& model, QWidget* parent) : QDia
     actionPanel_ = new QWidget(this);
     auto* actions = new QFormLayout(actionPanel_);
     actions->setContentsMargins(0, 0, 0, 0);
+    actions->setFieldGrowthPolicy(QFormLayout::ExpandingFieldsGrow);
+    actions->setLabelAlignment(Qt::AlignRight | Qt::AlignVCenter);
+    actions->setHorizontalSpacing(8);
+    actions->setVerticalSpacing(6);
     actionBox_ = new QComboBox(this);
     actionBox_->setObjectName("zoneAction");
     actionBox_->addItem(tr("Display only"), "none");
@@ -357,42 +447,184 @@ ZoneEditorDialog::ZoneEditorDialog(const QString& model, QWidget* parent) : QDia
         connect(box, qOverload<int>(&QComboBox::activated), this, [this] { applyAction(); });
     connect(commandBox_->lineEdit(), &QLineEdit::editingFinished, this, &ZoneEditorDialog::applyAction);
 
+    zonesLayout->addWidget(propsGroup);
+
+    // Ручная правка JSON — отдельным блоком под свойствами, а не группой внутри формы.
     auto* advanced = new QGroupBox(tr("Advanced properties (JSON)"), this);
     advanced->setCheckable(true);
     advanced->setChecked(false);
     auto* advancedLayout = new QVBoxLayout(advanced);
+    advancedLayout->setContentsMargins(10, 6, 10, 10);
     fieldsEdit_ = new QLineEdit(this);
     fieldsEdit_->setToolTip(tr("Additional JSON properties. Most button actions can be configured using the fields above."));
     fieldsEdit_->hide();
     advancedLayout->addWidget(fieldsEdit_);
     connect(advanced, &QGroupBox::toggled, fieldsEdit_, &QWidget::setVisible);
     connect(fieldsEdit_, &QLineEdit::editingFinished, this, &ZoneEditorDialog::applyFields);
-    propsLayout->addRow(advanced);
+    zonesLayout->addWidget(advanced);
 
-    rightLayout->addWidget(propsGroup);
+    // Вкладка «Экраны»
+    auto* screensPage = new QWidget(this);
+    auto* screensLayout = new QVBoxLayout(screensPage);
+    screensLayout->setContentsMargins(0, 12, 0, 0);
+    screensLayout->setSpacing(10);
+    tabs->addTab(screensPage, tr("Screens"));
+    connect(tabs, &QTabWidget::currentChanged, this, [this, screensPage, tabs](int index) {
+        // Вкладка «Экраны» сразу показывает экран на холсте вместо фото пульта.
+        if (tabs->widget(index) == screensPage && hasLayer() && layer().body() && layers_.size() > 1) showLayer(1);
+    });
 
-    // Замечания проверки
+    auto* screensHint = new QLabel(tr("Pick a screen: it is shown on the left instead of the remote photo, and its zones can be moved and resized right there. Every zone is independent."), this);
+    screensHint->setWordWrap(true);
+    screensHint->setObjectName("pageMeta");
+    screensLayout->addWidget(screensHint);
+
+    screenList_ = new QListWidget(this);
+    screenList_->setObjectName("zoneScreenList");
+    screenList_->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed); // высоту задаёт число экранов, см. refreshScreens()
+    connect(screenList_, &QListWidget::currentRowChanged, this, [this](int row) {
+        if (row >= 0 && row + 1 < layers_.size() && row + 1 != current_) showLayer(row + 1);
+    });
+    screensLayout->addWidget(screenList_);
+
+    // Кнопки под списком: новый экран (черновик с живым просмотром) и удаление выбранного.
+    addScreenButton_ = new QPushButton(tr("Add screen"), this);
+    addScreenButton_->setObjectName("zoneAddScreen");
+    addScreenButton_->setIcon(icons::make(icons::Icon::Plus));
+    addScreenButton_->setToolTip(tr("Shows a new screen right away; its parameters below change it live. It is written to the remote only after “Create screen”."));
+    connect(addScreenButton_, &QPushButton::clicked, this, &ZoneEditorDialog::beginNewScreen);
+    removeScreenButton_ = new QPushButton(tr("Remove"), this);
+    removeScreenButton_->setObjectName("zoneRemoveScreen");
+    connect(removeScreenButton_, &QPushButton::clicked, this, &ZoneEditorDialog::removeScreen);
+    auto* listButtons = new QHBoxLayout;
+    listButtons->setSpacing(6);
+    listButtons->addWidget(addScreenButton_);
+    listButtons->addWidget(removeScreenButton_);
+    listButtons->addStretch(1);
+    screensLayout->addLayout(listButtons);
+
+    // Настройки открытого экрана доступны, только когда на холсте экран, а не корпус.
+    auto* selectedGroup = new QGroupBox(tr("Screen parameters"), this);
+    auto* selectedForm = new QFormLayout(selectedGroup);
+    selectedForm->setFieldGrowthPolicy(QFormLayout::ExpandingFieldsGrow);
+    selectedForm->setLabelAlignment(Qt::AlignRight | Qt::AlignVCenter);
+    selectedForm->setHorizontalSpacing(8);
+    selectedForm->setVerticalSpacing(6);
+    roleBox_ = new QComboBox(this);
+    roleBox_->setObjectName("zoneScreenRole");
+    // Названия те же, что у экранов в списке (по id экрана по умолчанию).
+    for (const ScreenRole& r : kScreenRoles) roleBox_->addItem(RemoteView::screenModeName(QString::fromLatin1(r.id)), QString::fromLatin1(r.role));
+    roleBox_->setToolTip(tr("The type of a screen is chosen when it is created."));
+    connect(roleBox_, qOverload<int>(&QComboBox::activated), this, [this] {
+        if (!hasLayer() || !layer().draft) return;
+        layer().role = roleBox_->currentData().toString();
+        updateScreenBackdrop(); // заголовок экрана следует за выбранным типом
+    });
+    selectedForm->addRow(tr("Screen type:"), roleBox_);
+    // Плитки экрана: колонки × ряды применяются сразу, число плиток = колонки × ряды.
+    arrangeColsBox_ = new QSpinBox(this);
+    arrangeRowsBox_ = new QSpinBox(this);
+    arrangeColsBox_->setObjectName("zoneColumns");
+    arrangeRowsBox_->setObjectName("zoneRows");
+    for (auto* box : {arrangeColsBox_, arrangeRowsBox_}) {
+        box->setRange(1, 12);
+        box->setToolTip(tr("Tiles of this screen are laid out as columns × rows right away; undo restores the old layout."));
+        connect(box, qOverload<int>(&QSpinBox::valueChanged), this, &ZoneEditorDialog::applyGrid);
+    }
+    auto* arrangeRow = new QHBoxLayout;
+    arrangeRow->setSpacing(6);
+    arrangeRow->addWidget(arrangeColsBox_);
+    arrangeRow->addWidget(new QLabel(QStringLiteral("×"), this));
+    arrangeRow->addWidget(arrangeRowsBox_);
+    arrangeRow->addStretch(1);
+    selectedForm->addRow(tr("Columns × rows:"), arrangeRow);
+    backgroundEdit_ = new QLineEdit(this);
+    backgroundEdit_->setPlaceholderText(QString::fromLatin1(kDefaultBackground));
+    connect(backgroundEdit_, &QLineEdit::editingFinished, this, &ZoneEditorDialog::applyBackground);
+    pickButton_ = new QPushButton(tr("Pick…"), this);
+    connect(pickButton_, &QPushButton::clicked, this, [this] {
+        const QString current = backgroundEdit_->text().trimmed();
+        const QColor color = QColorDialog::getColor(QColor(current.isEmpty() ? QString::fromLatin1(kDefaultBackground) : current), this);
+        if (!color.isValid()) return;
+        backgroundEdit_->setText(color.name());
+        applyBackground();
+    });
+    auto* colourRow = new QHBoxLayout;
+    colourRow->setSpacing(6);
+    colourRow->addWidget(backgroundEdit_, 1);
+    colourRow->addWidget(pickButton_);
+    selectedForm->addRow(tr("Background colour:"), colourRow);
+    // Черновик нового экрана: записать или отбросить.
+    draftPanel_ = new QWidget(this);
+    auto* draftLayout = new QHBoxLayout(draftPanel_);
+    draftLayout->setContentsMargins(0, 4, 0, 0);
+    draftLayout->setSpacing(6);
+    auto* createButton = new QPushButton(tr("Create screen"), this);
+    createButton->setObjectName("zoneCreateScreen");
+    connect(createButton, &QPushButton::clicked, this, &ZoneEditorDialog::createNewScreen);
+    auto* cancelButton = new QPushButton(tr("Cancel"), this);
+    connect(cancelButton, &QPushButton::clicked, this, &ZoneEditorDialog::cancelNewScreen);
+    draftLayout->addWidget(createButton, 1);
+    draftLayout->addWidget(cancelButton);
+    draftPanel_->hide();
+    selectedForm->addRow(draftPanel_);
+    screensLayout->addWidget(selectedGroup);
+
+    // Рамка экрана на корпусе задаётся на фото пульта: кнопка переходит к ней.
+    areaButton_ = new QPushButton(tr("Screen area on the remote…"), this);
+    areaButton_->setObjectName("zoneScreenAreaButton");
+    areaButton_->setToolTip(tr("Shows the remote photo with the screen rectangle: move and resize it there, or turn the screen area on and off."));
+    connect(areaButton_, &QPushButton::clicked, this, [this] {
+        showLayer(0);
+        if (layers_.first().current.screen) {
+            canvas_->setSelection({ZoneCanvas::SCREEN_ITEM});
+            canvas_->reveal(ZoneCanvas::SCREEN_ITEM);
+        }
+    });
+    screensLayout->addWidget(areaButton_, 0, Qt::AlignLeft);
+    screenCheck_ = new QCheckBox(tr("This remote has a screen area"), this);
+    screenCheck_->setObjectName("zoneScreenArea");
+    screenCheck_->setToolTip(tr("Defines where the screen is drawn on the remote. Disabling removes the screen rectangle from the profile; it does not just hide the outline."));
+    connect(screenCheck_, &QCheckBox::toggled, this, &ZoneEditorDialog::setScreenArea);
+    screensLayout->addWidget(screenCheck_);
+    screensLayout->addStretch(1); // свободное место внизу вкладки, а не в списке экранов
+
+    // Вкладка «Проверка»
+    auto* checkPage = new QWidget(this);
+    auto* checkLayout = new QVBoxLayout(checkPage);
+    checkLayout->setContentsMargins(0, 12, 0, 0);
+    checkLayout->setSpacing(10);
+    tabs->addTab(checkPage, tr("Check"));
+
     checkLabel_ = new QLabel(this);
-    rightLayout->addWidget(checkLabel_);
+    checkLabel_->setWordWrap(true);
+    checkLayout->addWidget(checkLabel_);
 
     checkList_ = new QListWidget(this);
-    rightLayout->addWidget(checkList_);
+    checkLayout->addWidget(checkList_, 1);
     connect(checkList_, &QListWidget::itemClicked, this, [this](QListWidgetItem* item) {
         const int zone = item->data(Qt::UserRole).toInt();
         if (zone >= 0) { canvas_->setSelection({zone}); canvas_->reveal(zone); }
     });
 
-    // ── Низ: статус и кнопки ──
-    statusLabel_ = new QLabel(this);
-    statusLabel_->setWordWrap(true);
+    // ── Низ: одна строка состояния и кнопки ──
+    // Обе подписи в одной строке и без переноса: высота низа не прыгает при длинном тексте.
+    statusLabel_ = new ElidedLabel(this);
 
-    noteLabel_ = new QLabel(this);
-    noteLabel_->setWordWrap(true);
+    noteLabel_ = new ElidedLabel(this);
     noteLabel_->setObjectName("pageMeta");
+    noteLabel_->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
+
+    auto* statusRow = new QHBoxLayout;
+    statusRow->setContentsMargins(0, 0, 0, 0);
+    statusRow->setSpacing(12);
+    statusRow->addWidget(statusLabel_, 2);
+    statusRow->addWidget(noteLabel_, 1);
 
     auto* buttons = new QDialogButtonBox(QDialogButtonBox::Close, this);
     saveButton_ = buttons->addButton(tr("Save changes"), QDialogButtonBox::AcceptRole);
     saveButton_->setAutoDefault(false);
+    saveButton_->setIcon(icons::make(icons::Icon::Save));
     auto* saveShortcut = new QAction(this);
     saveShortcut->setShortcut(QKeySequence::Save);
     addAction(saveShortcut);
@@ -402,27 +634,28 @@ ZoneEditorDialog::ZoneEditorDialog(const QString& model, QWidget* parent) : QDia
 
     // ── Сборка ──
     auto* splitter = new QSplitter(Qt::Horizontal, this);
+    splitter->setChildrenCollapsible(false);
+    splitter->setHandleWidth(6);
     splitter->addWidget(canvas_);
-    auto* scroll = new QScrollArea(this);
-    scroll->setObjectName("zonePropertiesScroll");
-    scroll->setFrameShape(QFrame::NoFrame);
-    scroll->setWidgetResizable(true);
-    scroll->setMinimumWidth(410);
-    scroll->setWidget(rightPanel);
-    splitter->addWidget(scroll);
+    // Без прокрутки: панель занимает всю высоту окна, лишнее место остаётся пустым внутри вкладки.
+    splitter->addWidget(rightPanel);
     splitter->setStretchFactor(0, 3);
     splitter->setStretchFactor(1, 1);
 
     auto* mainLayout = new QVBoxLayout(this);
+    mainLayout->setContentsMargins(12, 8, 12, 12);
+    mainLayout->setSpacing(8);
     mainLayout->addWidget(toolbar);
     mainLayout->addWidget(splitter, 1);
-    mainLayout->addWidget(statusLabel_);
-    mainLayout->addWidget(noteLabel_);
+    mainLayout->addLayout(statusRow);
     mainLayout->addWidget(buttons);
 
-    for (auto* box : {modelBox_, layerBox_, kindBox_, actionBox_, commandBox_, targetBox_, buttonBox_}) {
+    // Списки не растягивают панель под длинный текст (ширину задаёт разделитель),
+    // но и не схлопываются: Expanding + минимум в 10 символов.
+    for (auto* box : {modelBox_, layerBox_, kindBox_, actionBox_, commandBox_, targetBox_, buttonBox_, roleBox_}) {
         box->setSizeAdjustPolicy(QComboBox::AdjustToMinimumContentsLengthWithIcon);
-        box->setMinimumContentsLength(12);
+        box->setMinimumContentsLength(10);
+        box->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
     }
     const auto refreshUndo = [this, undoAction, redoAction] {
         undoAction->setText(tr("Undo"));
@@ -432,7 +665,11 @@ ZoneEditorDialog::ZoneEditorDialog(const QString& model, QWidget* parent) : QDia
     };
     connect(&undo_, &QUndoStack::undoTextChanged, this, refreshUndo);
     connect(&undo_, &QUndoStack::redoTextChanged, this, refreshUndo);
-    splitter->setSizes({780, 450});
+    // Узкие окна: подписи форм переносятся над полями, а не распирают панель.
+    for (auto* form : rightPanel->findChildren<QFormLayout*>()) form->setRowWrapPolicy(QFormLayout::WrapLongRows);
+    // Правая панель не уже своего содержимого: ничего не обрезается по ширине.
+    rightPanel->setMinimumWidth(std::max(380, rightPanel->minimumSizeHint().width()));
+    splitter->setSizes({780, std::max(450, rightPanel->minimumWidth())});
     // Загрузить модель
     const QString initialModel = models.contains(model) ? model : (models.isEmpty() ? QString() : models.first());
     if (!initialModel.isEmpty()) {
@@ -458,6 +695,7 @@ void ZoneEditorDialog::applyState(const QString& layerKey, const State& state) {
 
     // Если это текущий слой — обновить интерфейс
     if (index == current_) {
+        updateScreenBackdrop(); // экран на холсте отражает правки зон
         refreshAll();
     }
 }
@@ -477,19 +715,17 @@ QByteArray ZoneEditorDialog::readResource(const QString& relative) {
 
 bool ZoneEditorDialog::loadModel(const QString& model) {
     const QString dir = QStringLiteral("remotes/") + model + QLatin1Char('/');
-    const QString profilePath = dir + QStringLiteral("profile.json");
-    const QString zonesPath = dir + QStringLiteral("zones.json");
-    const QString layoutsPath = QStringLiteral("layouts.json");
-    const QByteArray profileText = readResource(profilePath);
-    const QByteArray zonesText = readResource(zonesPath);
-    const QByteArray layoutsText = readResource(layoutsPath);
-    const auto profile = QJsonDocument::fromJson(profileText).object();
-    const auto zonesDoc = QJsonDocument::fromJson(zonesText);
-    const auto layoutsDoc = QJsonDocument::fromJson(layoutsText);
+    const QString remotePath = dir + QStringLiteral("remote.json");
+    const QByteArray remoteText = readResource(remotePath);
+    const auto remote = QJsonDocument::fromJson(remoteText).object();
+    const auto hardware = remote.value(QStringLiteral("hardware")).toObject();
+    const auto zonesValue = hardware.value(QStringLiteral("zones"));
     QPixmap photo;
     photo.loadFromData(readResource(dir + QStringLiteral("photo.png")));
-    if (profile.isEmpty() || !zonesDoc.isArray() || !layoutsDoc.isArray() || photo.isNull()) {
-        QMessageBox::warning(this, windowTitle(), tr("Could not read the resources of remote %1.").arg(model));
+    if (remote.isEmpty() || !zonesValue.isArray() || photo.isNull()) {
+        QString text = tr("Could not read the resources of remote %1.").arg(model);
+        if (const QString problem = remoteResources::modelError(model); !problem.isEmpty()) text += QStringLiteral("\n\n") + problem;
+        QMessageBox::warning(this, windowTitle(), text);
         return false;
     }
 
@@ -498,49 +734,33 @@ bool ZoneEditorDialog::loadModel(const QString& model) {
     body.key = QStringLiteral("body");
     body.caption = tr("Body");
     body.ref = QSizeF(photo.size());
-    body.original.zones = zonesDoc.array();
-    const QRectF screen = zoneEditing::rectOf(QJsonObject{{QStringLiteral("rect"), profile.value(QStringLiteral("screen"))}});
+    body.original.zones = zonesValue.toArray();
+    const QRectF screen = zoneEditing::rectOf(
+        QJsonObject{{QStringLiteral("rect"), remote.value(QStringLiteral("display")).toObject().value(QStringLiteral("rect"))}});
     if (screen.isValid()) body.original.screen = screen;
-    body.originalText = zoneEditing::zoneTexts(zonesText).value_or(QList<QByteArray>());
+    body.originalText = zoneEditing::zoneTexts(remoteText).value_or(QList<QByteArray>());
     if (body.originalText.size() != body.original.zones.size()) body.originalText.clear();
     body.current = body.original;
     layers.append(body);
 
-    QHash<QString, QJsonObject> library;
-    QSet<QString> layoutIds;
-    for (const auto& item : layoutsDoc.array()) {
-        const auto layout = item.toObject();
-        const QString id = layout.value(QStringLiteral("id")).toString();
-        library.insert(id, layout);
-        layoutIds.insert(id);
-    }
-
-    // Режимы экрана модели → раскладки; одна раскладка может обслуживать несколько режимов.
-    const auto modes = profile.value(QStringLiteral("modes")).toObject();
+    // Экраны модели: у каждого свои ячейки `cells` в единицах `ref`.
     QSet<QString> modeNames;
-    QStringList order;
-    QHash<QString, QStringList> usedBy;
-    for (auto it = modes.begin(); it != modes.end(); ++it) {
-        modeNames.insert(it.key());
-        const QString id = it.value().toString();
-        if (!usedBy.contains(id)) order.append(id);
-        usedBy[id].append(it.key());
-    }
-    for (const QString& id : order) {
-        if (!library.contains(id)) continue;
-        const auto layout = library.value(id);
-        const auto ref = layout.value(QStringLiteral("ref")).toArray();
-        if (ref.size() != 2) continue;
+    for (const auto& value : remote.value(QStringLiteral("screens")).toArray()) {
+        const auto screenObject = value.toObject();
+        const QString id = screenObject.value(QStringLiteral("id")).toString();
+        const auto ref = screenObject.value(QStringLiteral("ref")).toArray();
+        if (id.isEmpty() || ref.size() != 2) continue;
+        modeNames.insert(id);
         Layer l;
         l.key = id;
         l.layout = id;
-        l.modes = usedBy.value(id);
-        QStringList names;
-        for (const auto& mode : l.modes) names.append(RemoteView::screenModeName(mode));
-        l.caption = tr("Screen: %1 (%2)").arg(names.join(QStringLiteral(", ")), id);
+        l.modes = {id};
+        l.caption = tr("Screen: %1").arg(RemoteView::screenModeName(id));
+        l.role = screenObject.value(QStringLiteral("role")).toString();
+        l.background = screenObject.value(QStringLiteral("background")).toObject().value(QStringLiteral("color")).toString();
         l.ref = QSizeF(ref[0].toDouble(), ref[1].toDouble());
-        l.original.zones = layout.value(QStringLiteral("zones")).toArray();
-        l.originalText = zoneEditing::zoneTexts(layoutsText, id).value_or(QList<QByteArray>());
+        l.original.zones = screenObject.value(QStringLiteral("cells")).toArray();
+        l.originalText = zoneEditing::zoneTexts(remoteText, id).value_or(QList<QByteArray>());
         if (l.originalText.size() != l.original.zones.size()) l.originalText.clear();
         l.current = l.original;
         layers.append(l);
@@ -555,13 +775,10 @@ bool ZoneEditorDialog::loadModel(const QString& model) {
     photo_ = photo;
     photoSize_ = QSizeF(photo.size());
     modes_ = modeNames;
-    layoutIds_ = layoutIds;
     layers_ = layers;
     current_ = -1;
     files_.clear();
-    files_.insert(profilePath, profileText);
-    files_.insert(zonesPath, zonesText);
-    files_.insert(layoutsPath, layoutsText);
+    files_.insert(remotePath, remoteText);
     undo_.clear();
     canvas_->setBackdrop(photo_, photoSize_);
 
@@ -572,28 +789,6 @@ bool ZoneEditorDialog::loadModel(const QString& model) {
     previousScreen_.reset();
     showLayer(0);
     return true;
-}
-
-QStringList ZoneEditorDialog::layoutUsers(const QString& layout) const {
-    QStringList users;
-    for (const QString& path : remoteResources::exportFiles({})) {
-        if (!path.startsWith(QStringLiteral("remotes/")) || !path.endsWith(QStringLiteral("/profile.json"))) continue;
-        const QString id = path.section(QLatin1Char('/'), 1, 1);
-        if (id == model_) continue;
-        const auto modes = QJsonDocument::fromJson(remoteResources::data(QStringLiteral(":/res/") + path)).object()
-                               .value(QStringLiteral("modes")).toObject();
-        for (const auto& mode : modes)
-            if (mode.toString() == layout) {
-                users.append(id);
-                break;
-            }
-    }
-    return users;
-}
-
-QString ZoneEditorDialog::copyLayoutId(const QString& layout) const {
-    const QString base = layout + QLatin1Char('_') + model_;
-    return uniqueId(base, layoutIds_);
 }
 
 // ── Вспомогательное ───────────────────────────────────────────────────────────
@@ -650,7 +845,7 @@ QList<QByteArray> ZoneEditorDialog::linesOf(const Layer& l) {
 
 bool ZoneEditorDialog::isDirty() const {
     for (const Layer& l : layers_)
-        if (!(l.current == l.original)) return true;
+        if (!l.draft && !(l.current == l.original)) return true;
     return false;
 }
 
@@ -663,33 +858,52 @@ void ZoneEditorDialog::showLayer(int index, bool keepView) {
     layerBox_->setCurrentIndex(index);
     layerBox_->blockSignals(false);
     const Layer& l = layer();
-    QRectF frame(QPointF(0, 0), photoSize_);
-    if (!l.body()) {
-        const auto& screen = layers_.first().current.screen;
-        if (screen && screen->isValid()) frame = *screen;
+    if (l.body()) {
+        // Корпус: фото пульта, зоны в его пикселях.
+        canvas_->setBackdrop(photo_, photoSize_);
+        canvas_->setSelection({});
+        canvas_->setLayer(QRectF(QPointF(0, 0), photoSize_), l.ref, false, keepView);
+    } else {
+        // Экран: на месте фото — реальный вид экрана, зоны рисуются поверх и правятся прямо на нём.
+        const QSizeF size = l.ref.isValid() ? l.ref : QSizeF(320, 240);
+        updateScreenBackdrop();
+        canvas_->setSelection({});
+        canvas_->setLayer(QRectF(QPointF(0, 0), size), l.ref, false, keepView);
     }
-    QPixmap backdrop = photo_;
-    if (!l.body()) {
-        RemoteView preview;
-        preview.setRemoteProfile(model_);
-        preview.resize(photoSize_.toSize());
-        QList<RemoteView::ActivityItem> activities;
-        QStringList commands;
-        for (int i = 1; i <= 12; ++i) {
-            activities.append({tr("Activity %1").arg(i), "VirtualTelevisionN", false});
-            commands.append(tr("Command %1").arg(i));
-        }
-        preview.setActivities(activities);
-        preview.setSoftButtons(tr("Commands"), commands);
-        if (!l.modes.isEmpty()) preview.selectScreenMode(l.modes.first());
-        QPainter painter(&backdrop);
-        painter.drawPixmap(frame.toRect(), preview.screenPreview(frame.size().toSize()));
-    }
-    canvas_->setBackdrop(backdrop, photoSize_);
-    canvas_->setSelection({});
-    canvas_->setLayer(frame, l.ref, !l.body(), keepView);
     refreshAll();
     canvas_->setFocus();
+}
+
+void ZoneEditorDialog::updateScreenBackdrop() {
+    if (!hasLayer() || layer().body()) return;
+    const Layer& l = layer();
+    const QSizeF size = l.ref.isValid() ? l.ref : QSizeF(320, 240);
+    // Настоящая отрисовка экрана тем же рендерером, что и в программе: фон, панели, оформление ячеек.
+    // Картинка вдвое больше единиц слоя, чтобы при увеличении не была мутной.
+    RemoteView preview;
+    preview.setRemoteProfile(model_);
+    preview.resize(photoSize_.toSize());
+    QList<RemoteView::ActivityItem> activities;
+    QStringList commands;
+    for (int i = 1; i <= 12; ++i) {
+        activities.append({tr("Activity %1").arg(i), "VirtualTelevisionN", false});
+        commands.append(tr("Command %1").arg(i));
+    }
+    preview.setActivities(activities);
+    preview.setSoftButtons(tr("Commands"), commands);
+    // Несохранённые правки зон и фона сразу видны на экране; без правок рисуется готовый вид пульта.
+    if (l.draft || !(l.current.zones == l.original.zones))
+        preview.overrideLayout(l.layout, l.ref, l.current.zones, l.background, l.draft ? roleTitle(l.role) : QString());
+    if (!l.modes.isEmpty()) preview.selectScreenMode(l.modes.first());
+    QPixmap screen = preview.screenPreview((size * 2).toSize().expandedTo(QSize(2, 2)));
+    if (screen.isNull()) {
+        // У пульта нет области экрана: рисовать нечем, остаётся однотонный фон.
+        QColor background(l.background);
+        if (!background.isValid()) background = QColor(QString::fromLatin1(kDefaultBackground));
+        screen = QPixmap(size.toSize().expandedTo(QSize(1, 1)));
+        screen.fill(background);
+    }
+    canvas_->setBackdrop(screen, size);
 }
 
 void ZoneEditorDialog::refreshAll() {
@@ -702,12 +916,13 @@ void ZoneEditorDialog::refreshAll() {
     screenCheck_->setChecked(l.body() && l.current.screen.has_value());
     screenCheck_->blockSignals(false);
     refreshList();
+    refreshScreens();
     refreshProperties();
     refreshContext();
     refreshCheck();
     updateTitle();
     saveButton_->setEnabled(isDirty());
-    noteLabel_->setText(tr("Arrows move, Ctrl+arrows resize, Shift ×10, Alt disables snapping, left button on empty space pans (click clears selection), Shift/Ctrl+drag selects several zones, Ctrl+wheel zooms."));
+    noteLabel_->setFullText(tr("Arrows move, Ctrl+arrows resize, Shift ×10, Alt disables snapping, left button on empty space pans (click clears selection), Shift/Ctrl+drag selects several zones, Ctrl+wheel zooms."));
 }
 
 void ZoneEditorDialog::refreshList() {
@@ -843,25 +1058,8 @@ void ZoneEditorDialog::refreshProperties() {
 }
 
 void ZoneEditorDialog::refreshContext() {
-    QList<ZoneCanvas::Context> items;
-    if (hasLayer() && !layer().body()) {
-        QSet<QString> buttons;
-        for (int item : canvas_->selection()) {
-            if (item < 0) continue;
-            const QString button = zoneAt(item).value("button").toString();
-            if (!button.isEmpty()) buttons.insert(button);
-        }
-        for (const auto& value : layers_.first().current.zones) {
-            const auto zone = value.toObject();
-            const QRectF r = zoneEditing::rectOf(zone);
-            if (!r.isValid()) continue;
-            ZoneCanvas::Context context;
-            context.rect = r;
-            context.highlight = buttons.contains(zone.value("id").toString());
-            items.append(context);
-        }
-    }
-    canvas_->setContext(items);
+    // Контур кнопок корпуса нужен только поверх фото; на экране фото нет — контекста нет.
+    canvas_->setContext({});
 }
 
 void ZoneEditorDialog::refreshCheck() {
@@ -880,8 +1078,12 @@ void ZoneEditorDialog::refreshCheck() {
         if (issue.zone >= 0 && (error || !marks.contains(issue.zone))) marks.insert(issue.zone, issue.level);
     }
     canvas_->setMarks(marks);
-    checkLabel_->setText(issues.isEmpty() ? tr("Check: no problems")
-                                          : tr("Check: %1 errors, %2 warnings").arg(errors).arg(warnings));
+    QString text = issues.isEmpty() ? tr("Check: no problems")
+                                    : tr("Check: %1 errors, %2 warnings").arg(errors).arg(warnings);
+    // Ошибка, из-за которой загрузчик пропустил этот пульт.
+    if (const QString problem = remoteResources::modelError(model_); !problem.isEmpty())
+        text += QStringLiteral("\n\n") + tr("Configuration error of this remote: %1").arg(problem);
+    checkLabel_->setText(text);
 }
 
 void ZoneEditorDialog::updateTitle() {
@@ -891,7 +1093,7 @@ void ZoneEditorDialog::updateTitle() {
 }
 
 void ZoneEditorDialog::note(const QString& text) {
-    statusLabel_->setText(text);
+    statusLabel_->setFullText(text);
 }
 
 // ── История правок и обработчики ──────────────────────────────────────────────
@@ -1253,7 +1455,7 @@ bool ZoneEditorDialog::save() {
     }
     if (!isDirty()) return true;
     for (const Layer& l : layers_) {
-        if (l.current == l.original) continue;
+        if (l.draft || l.current == l.original) continue;
         for (const auto& issue : issuesOf(l)) {
             if (issue.level != zoneEditing::Issue::Level::Error) continue;
             QMessageBox::warning(this, windowTitle(),
@@ -1263,9 +1465,7 @@ bool ZoneEditorDialog::save() {
     }
 
     const QString dir = QStringLiteral("remotes/") + model_ + QLatin1Char('/');
-    const QString profilePath = dir + QStringLiteral("profile.json");
-    const QString zonesPath = dir + QStringLiteral("zones.json");
-    const QString layoutsPath = QStringLiteral("layouts.json");
+    const QString remotePath = dir + QStringLiteral("remote.json");
 
     // Внешние изменения нельзя незаметно заменить целым старым массивом зон.
     QHash<QString, QByteArray> disk;
@@ -1279,29 +1479,10 @@ bool ZoneEditorDialog::save() {
         }
     }
     if (!conflicts.isEmpty()) {
-        // Какие файлы запишет сохранение: остальные внешние правки не пострадают.
-        QSet<QString> willWrite;
-        for (const Layer& l : layers_) {
-            if (l.current == l.original) continue;
-            if (l.body()) {
-                if (l.current.zones != l.original.zones) willWrite.insert(zonesPath);
-                if (l.current.screen != l.original.screen) willWrite.insert(profilePath);
-            } else if (l.current.zones != l.original.zones) {
-                willWrite.insert(layoutsPath);
-                if (!layoutUsers(l.layout).isEmpty()) willWrite.insert(profilePath); // возможна копия раскладки
-            }
-        }
-        QStringList overwritten;
-        for (const QString& path : conflicts)
-            if (willWrite.contains(path)) overwritten.append(path);
         QMessageBox box(QMessageBox::Warning, windowTitle(),
             tr("These files changed outside the editor."), QMessageBox::Cancel, this);
         box.setDetailedText(conflicts.join('\n'));
-        QString info = tr("Save my edits: the editor writes only the parts it changed into the current files. Reload: discard my edits and take the files from disk.");
-        if (!overwritten.isEmpty())
-            info += QStringLiteral("\n\n") +
-                    tr("The editor also changes these externally modified files: %1. Its edits will replace the current content there.").arg(overwritten.join(QStringLiteral(", ")));
-        box.setInformativeText(info);
+        box.setInformativeText(tr("Save my edits: the editor writes only the parts it changed into the current file. Reload: discard my edits and take the file from disk."));
         auto* merge = box.addButton(tr("Save my edits on top"), QMessageBox::AcceptRole);
         auto* reload = box.addButton(tr("Reload and discard my edits"), QMessageBox::DestructiveRole);
         box.setDefaultButton(QMessageBox::Cancel);
@@ -1309,94 +1490,356 @@ bool ZoneEditorDialog::save() {
         if (box.clickedButton() == reload) loadModel(model_);
         if (box.clickedButton() != merge) return false;
     }
-    QByteArray profile = disk.value(profilePath);
-    QByteArray zones = disk.value(zonesPath);
-    QByteArray layouts = disk.value(layoutsPath);
-    QSet<QString> touched;
-    QSet<QString> taken = layoutIds_;
+    QByteArray remote = disk.value(remotePath);
     const auto fail = [this](const QString& file) {
         QMessageBox::warning(this, windowTitle(), tr("Could not update %1: the file structure is not recognised.").arg(file));
         return false;
     };
 
+    // У каждого пульта свои экраны: правка одного файла не затрагивает другие модели.
     for (const Layer& l : layers_) {
-        if (l.current == l.original) continue;
-        const QList<QByteArray> lines = linesOf(l);
-        if (l.body()) {
-            if (l.current.zones != l.original.zones) {
-                const auto patched = zoneEditing::patchZonesFile(zones, lines);
-                if (!patched) return fail(zonesPath);
-                zones = *patched;
-                touched.insert(zonesPath);
-            }
-            if (l.current.screen != l.original.screen) {
-                const auto patched = zoneEditing::patchScreen(profile, l.current.screen);
-                if (!patched) return fail(profilePath);
-                profile = *patched;
-                touched.insert(profilePath);
-            }
-            continue;
+        if (l.draft || l.current == l.original) continue;
+        if (l.current.zones != l.original.zones) {
+            const auto patched = zoneEditing::patchZones(remote, l.body() ? QString() : l.layout, linesOf(l));
+            if (!patched) return fail(remotePath);
+            remote = *patched;
         }
-        if (l.current.zones == l.original.zones) continue;
-        bool copy = false;
-        const QStringList users = layoutUsers(l.layout);
-        if (!users.isEmpty()) {
-            QMessageBox ask(QMessageBox::Question, windowTitle(),
-                            tr("Layout %1 is also used by: %2.").arg(l.layout, users.join(QStringLiteral(", "))),
-                            QMessageBox::Cancel, this);
-            ask.setInformativeText(tr("Change it for all of these remotes, or make a copy for %1 only?").arg(modelName_));
-            auto* copyButton = ask.addButton(tr("Copy for this remote"), QMessageBox::AcceptRole);
-            auto* allButton = ask.addButton(tr("Change for all"), QMessageBox::DestructiveRole);
-            ask.setDefaultButton(copyButton);
-            ask.exec();
-            if (ask.clickedButton() == copyButton) copy = true;
-            else if (ask.clickedButton() != allButton) return false;
-        }
-        if (copy) {
-            const QString newId = uniqueId(l.layout + QLatin1Char('_') + model_, taken);
-            taken.insert(newId);
-            auto patched = zoneEditing::appendLayoutCopy(layouts, l.layout, newId, lines);
-            if (!patched) return fail(layoutsPath);
-            layouts = *patched;
-            for (const QString& mode : l.modes) {
-                patched = zoneEditing::patchMode(profile, mode, newId);
-                if (!patched) return fail(profilePath);
-                profile = *patched;
-            }
-            touched.insert(layoutsPath);
-            touched.insert(profilePath);
-        } else {
-            const auto patched = zoneEditing::patchLayoutZones(layouts, l.layout, lines);
-            if (!patched) return fail(layoutsPath);
-            layouts = *patched;
-            touched.insert(layoutsPath);
+        if (l.body() && l.current.screen != l.original.screen) {
+            const auto patched = zoneEditing::patchDisplay(remote, l.current.screen);
+            if (!patched) return fail(remotePath);
+            remote = *patched;
         }
     }
 
-    // Сначала проверить, что получился корректный JSON, и только потом писать файлы.
-    const auto contentOf = [&](const QString& path) -> const QByteArray& {
-        return path == zonesPath ? zones : path == profilePath ? profile : layouts;
-    };
-    for (const QString& path : touched) {
-        QJsonParseError error;
-        QJsonDocument::fromJson(contentOf(path), &error);
-        if (error.error != QJsonParseError::NoError) {
-            QMessageBox::warning(this, windowTitle(), tr("%1: the result is not valid JSON (%2). Nothing was saved.").arg(path, error.errorString()));
-            return false;
-        }
+    // Сначала проверить, что получился корректный JSON, и только потом писать файл.
+    QJsonParseError parseError;
+    QJsonDocument::fromJson(remote, &parseError);
+    if (parseError.error != QJsonParseError::NoError) {
+        QMessageBox::warning(this, windowTitle(), tr("%1: the result is not valid JSON (%2). Nothing was saved.").arg(remotePath, parseError.errorString()));
+        return false;
     }
     QHash<QString, QByteArray> updates;
-    for (const auto& path : touched) updates.insert(path, contentOf(path));
+    updates.insert(remotePath, remote);
     if (const auto error = zoneEditing::saveFiles(remoteResources::folder(), disk, updates); !error.isEmpty()) {
         QMessageBox::warning(this, windowTitle(), error);
         return false;
     }
 
     const int index = current_;
+    remoteResources::reload(); // превью слоёв строится из снимка
     if (loadModel(model_)) showLayer(qMin(index, static_cast<int>(layers_.size()) - 1));
     note(tr("Saved"));
     emit resourcesSaved();
     return true;
+}
+
+// ── Экраны модели ─────────────────────────────────────────────────────────────
+
+void ZoneEditorDialog::refreshScreens() {
+    const bool onScreen = hasLayer() && !layer().body();
+    {
+        QSignalBlocker block(screenList_);
+        screenList_->clear();
+        for (int i = 1; i < layers_.size(); ++i) {
+            const Layer& l = layers_[i];
+            auto* item = new QListWidgetItem(
+                l.draft ? tr("New screen (not created yet)")
+                        : tr("%1 — zones: %2").arg(RemoteView::screenModeName(l.key)).arg(l.current.zones.size()),
+                screenList_);
+            item->setToolTip(l.key);
+        }
+        screenList_->setCurrentRow(onScreen ? current_ - 1 : -1); // на корпусе строка не выбрана: щелчок вернёт к экрану
+        // Список ровно по числу экранов (не больше шести строк, дальше своя прокрутка).
+        const int rowHeight = screenList_->count() > 0 ? screenList_->sizeHintForRow(0) : screenList_->fontMetrics().height() + 8;
+        const int rows = std::clamp(static_cast<int>(screenList_->count()), 1, 6);
+        screenList_->setFixedHeight(rows * rowHeight + 2 * screenList_->frameWidth() + 4);
+    }
+    // Настройки экрана доступны, пока на холсте экран, а не корпус.
+    if (onScreen) {
+        // Колонки и ряды — по текущим плиткам: число различных x и y их левых верхних углов.
+        QSet<int> xs;
+        QSet<int> ys;
+        for (const auto& value : layer().current.zones) {
+            const QJsonObject zone = value.toObject();
+            if (!isSlot(zone)) continue;
+            const QRectF r = zoneEditing::rectOf(zone);
+            xs.insert(static_cast<int>(std::lround(r.x())));
+            ys.insert(static_cast<int>(std::lround(r.y())));
+        }
+        QSignalBlocker blockCols(arrangeColsBox_);
+        QSignalBlocker blockRows(arrangeRowsBox_);
+        arrangeColsBox_->setValue(std::clamp(static_cast<int>(xs.size()), 1, 12));
+        arrangeRowsBox_->setValue(std::clamp(static_cast<int>(ys.size()), 1, 12));
+    }
+    backgroundEdit_->setEnabled(onScreen);
+    pickButton_->setEnabled(onScreen);
+    for (QWidget* w : {static_cast<QWidget*>(arrangeColsBox_), static_cast<QWidget*>(arrangeRowsBox_)})
+        w->setEnabled(onScreen);
+    const bool draft = onScreen && layer().draft;
+    bool hasDraft = false;
+    for (const Layer& l : layers_) hasDraft = hasDraft || l.draft;
+    removeScreenButton_->setEnabled(onScreen && !draft);
+    addScreenButton_->setEnabled(!hasDraft); // черновик один: сначала создать или отменить его
+    roleBox_->setEnabled(draft);
+    draftPanel_->setVisible(draft);
+    areaButton_->setVisible(onScreen);
+    {
+        QSignalBlocker blockRole(roleBox_);
+        const int role = onScreen ? roleBox_->findData(layer().role) : -1;
+        if (role >= 0) roleBox_->setCurrentIndex(role);
+    }
+    QSignalBlocker block(backgroundEdit_);
+    backgroundEdit_->setText(onScreen ? layer().background : QString());
+}
+
+bool ZoneEditorDialog::readRemoteJson(QJsonObject& remote, QByteArray& text) {
+    const QString remotePath = QStringLiteral("remotes/") + model_ + QStringLiteral("/remote.json");
+    QFile in(remoteResources::folder() + QLatin1Char('/') + remotePath);
+    if (in.open(QIODevice::ReadOnly)) {
+        text = in.readAll();
+        remote = QJsonDocument::fromJson(text).object();
+    }
+    if (remote.isEmpty()) {
+        QMessageBox::warning(this, windowTitle(), tr("Could not read %1.").arg(remotePath));
+        return false;
+    }
+    return true;
+}
+
+bool ZoneEditorDialog::writeRemoteJson(const QByteArray& original, const QJsonObject& remote, const QString& screenId) {
+    const QString remotePath = QStringLiteral("remotes/") + model_ + QStringLiteral("/remote.json");
+    const QByteArray text = QJsonDocument(remote).toJson(QJsonDocument::Indented);
+    if (const auto error = zoneEditing::saveFiles(remoteResources::folder(), {{remotePath, original}},
+                                                  {{remotePath, text}});
+        !error.isEmpty()) {
+        QMessageBox::warning(this, windowTitle(), error);
+        return false;
+    }
+    // Превью экранов строится из снимка: сначала перечитать его, потом слои.
+    remoteResources::reload();
+    if (!loadModel(model_)) return false;
+    for (int i = 1; i < layers_.size(); ++i)
+        if (layers_[i].key == screenId) {
+            showLayer(i);
+            break;
+        }
+    note(tr("Screens saved"));
+    emit resourcesSaved();
+    return true;
+}
+
+void ZoneEditorDialog::applyGrid() {
+    if (!hasLayer() || layer().body()) return;
+    const int cols = arrangeColsBox_->value();
+    const int rows = arrangeRowsBox_->value();
+    const int count = cols * rows;
+    State after = layer().current;
+
+    // Область плиток — прямоугольник, занятый текущими плитками (с зазором); служебные зоны не трогаем.
+    QRectF area;
+    for (const auto& value : after.zones) {
+        const QJsonObject zone = value.toObject();
+        if (isSlot(zone)) area = area.isNull() ? zoneEditing::rectOf(zone) : area.united(zoneEditing::rectOf(zone));
+    }
+    area = area.isValid() ? area.adjusted(-kScreenGap, -kScreenGap, kScreenGap, kScreenGap)
+                          : QRectF(QPointF(0, 0), layer().ref);
+
+    // Плитки в порядке следования; лишние убираются с конца, недостающие добавляются.
+    QList<int> tiles;
+    for (int i = 0; i < after.zones.size(); ++i)
+        if (isSlot(after.zones[i].toObject())) tiles.append(i);
+    for (int k = static_cast<int>(tiles.size()) - 1; k >= count; --k) after.zones.removeAt(tiles[k]);
+    if (tiles.size() > count) tiles.resize(count);
+    for (int k = 0; k < count; ++k) {
+        QJsonObject zone;
+        if (k < tiles.size()) {
+            zone = after.zones[tiles[k]].toObject(); // id, действие и прочие свойства сохраняются
+        } else {
+            zone.insert(QStringLiteral("id"), uniqueId(QStringLiteral("Slot%1").arg(k + 1), idsOf(after.zones)));
+            zone.insert(QStringLiteral("kind"), QStringLiteral("ScreenSlot"));
+            zone.insert(QStringLiteral("radius"), 6);
+        }
+        zoneEditing::setRect(zone, gridCell(k, cols, rows, area));
+        if (k < tiles.size()) after.zones[tiles[k]] = zone; else after.zones.append(zone);
+    }
+    edit(tr("Change tile grid"), after, QStringLiteral("grid"));
+    refreshScreens();
+}
+
+void ZoneEditorDialog::beginNewScreen() {
+    if (layers_.isEmpty()) return;
+    for (int i = 1; i < layers_.size(); ++i)
+        if (layers_[i].draft) {
+            showLayer(i);
+            return;
+        }
+    // Размер экрана — по пропорциям области экрана корпуса.
+    QSizeF size(320, 240);
+    const auto display = layers_.first().current.screen;
+    if (display && display->isValid()) size = QSizeF(320, std::round(320.0 * display->height() / display->width()));
+
+    Layer l;
+    l.key = QStringLiteral("draft:%1").arg(++draftSerial_); // уникален: старые записи истории не заденут новый черновик
+    l.layout = l.key;
+    l.modes = {l.key};
+    l.draft = true;
+    l.caption = tr("New screen");
+    l.role = roleBox_->currentData().toString();
+    l.background = QString::fromLatin1(kDefaultBackground);
+    // Фон и оформление берутся у экрана этого пульта той же роли, иначе у первого: у всех экранов один вид.
+    {
+        const auto screens = QJsonDocument::fromJson(readResource(QStringLiteral("remotes/") + model_ + QStringLiteral("/remote.json"))).object()
+                                 .value(QStringLiteral("screens")).toArray();
+        QJsonObject donor;
+        for (const auto& value : screens) {
+            const QJsonObject screen = value.toObject();
+            if (donor.isEmpty() || screen.value(QStringLiteral("role")).toString() == l.role) donor = screen;
+            if (screen.value(QStringLiteral("role")).toString() == l.role) break;
+        }
+        l.backgroundStyle = donor.value(QStringLiteral("background")).toObject();
+        l.cellStyle = donor.value(QStringLiteral("cell")).toObject();
+        // Служебные зоны (шапка, часы, нижние кнопки) и размер — как у образца: экран выглядит как на пульте.
+        const auto donorRef = donor.value(QStringLiteral("ref")).toArray();
+        if (donorRef.size() == 2 && donorRef[0].toDouble() > 0 && donorRef[1].toDouble() > 0)
+            size = QSizeF(donorRef[0].toDouble(), donorRef[1].toDouble());
+        for (const auto& value : donor.value(QStringLiteral("cells")).toArray())
+            if (!isSlot(value.toObject())) l.current.zones.append(value);
+        if (const QString color = l.backgroundStyle.value(QStringLiteral("color")).toString(); !color.isEmpty())
+            l.background = color;
+    }
+    // Плитки 2×2 (на узком экране длинного пульта три колонки не помещаются) — в области между служебными зонами.
+    QRectF area(QPointF(0, 0), size);
+    qreal top = 0;
+    qreal bottom = size.height();
+    for (const auto& value : l.current.zones) {
+        const QRectF r = zoneEditing::rectOf(value.toObject());
+        if (r.center().y() < size.height() / 3) top = std::max(top, r.bottom());
+        else if (r.center().y() > size.height() * 0.7) bottom = std::min(bottom, r.top());
+    }
+    if (bottom - top > 40) area = QRectF(0, top, size.width(), bottom - top);
+    for (int i = 0; i < 4; ++i) {
+        QJsonObject cell;
+        cell.insert(QStringLiteral("id"), QStringLiteral("Slot%1").arg(i + 1));
+        cell.insert(QStringLiteral("kind"), QStringLiteral("ScreenSlot"));
+        zoneEditing::setRect(cell, gridCell(i, 2, 2, area));
+        cell.insert(QStringLiteral("radius"), 6);
+        l.current.zones.append(cell);
+    }
+    l.ref = size;
+    layers_.append(l);
+    {
+        QSignalBlocker block(layerBox_);
+        layerBox_->addItem(l.caption);
+    }
+    showLayer(static_cast<int>(layers_.size()) - 1);
+}
+
+void ZoneEditorDialog::cancelNewScreen() {
+    if (!hasLayer() || !layer().draft) return;
+    const int index = current_;
+    layers_.removeAt(index);
+    {
+        QSignalBlocker block(layerBox_);
+        layerBox_->removeItem(index);
+    }
+    current_ = -1;
+    showLayer(index - 1);
+}
+
+void ZoneEditorDialog::createNewScreen() {
+    if (!hasLayer() || !layer().draft) return;
+    const Layer draft = layer(); // confirmDiscard() может перечитать модель и потерять слои
+    if (!confirmDiscard()) return;
+    QJsonObject remote;
+    QByteArray original;
+    if (!readRemoteJson(remote, original)) return;
+    QJsonArray screens = remote.value(QStringLiteral("screens")).toArray();
+
+    QString base = draft.role;
+    for (const ScreenRole& r : kScreenRoles)
+        if (draft.role == QLatin1String(r.role)) base = QString::fromLatin1(r.id);
+    QSet<QString> taken;
+    for (const auto& value : screens) taken.insert(value.toObject().value(QStringLiteral("id")).toString());
+    const QString id = uniqueId(base, taken);
+
+    QJsonObject screen;
+    screen.insert(QStringLiteral("id"), id);
+    screen.insert(QStringLiteral("role"), draft.role);
+    screen.insert(QStringLiteral("ref"), QJsonArray{draft.ref.width(), draft.ref.height()});
+    screen.insert(QStringLiteral("touch"), remote.value(QStringLiteral("capabilities")).toObject().value(QStringLiteral("touch")).toBool());
+    QJsonObject background = draft.backgroundStyle;
+    if (background.value(QStringLiteral("color")).toString() != draft.background) {
+        background.insert(QStringLiteral("color"), draft.background);
+        background.remove(QStringLiteral("image")); // выбранный цвет важнее картинки образца
+    }
+    screen.insert(QStringLiteral("background"), background);
+    screen.insert(QStringLiteral("cell"), draft.cellStyle.isEmpty()
+                      ? QJsonObject{{QStringLiteral("color"), QString::fromLatin1(kDefaultBackground)},
+                                    {QStringLiteral("border"), QStringLiteral("#ffffff")}}
+                      : draft.cellStyle);
+    screen.insert(QStringLiteral("cells"), draft.current.zones); // зоны ровно такие, как на холсте
+    screens.append(screen);
+    remote.insert(QStringLiteral("screens"), screens);
+    writeRemoteJson(original, remote, id);
+}
+
+void ZoneEditorDialog::removeScreen() {
+    if (!hasLayer() || layer().body()) return;
+    const QString id = layer().key;
+    if (QMessageBox::question(this, windowTitle(),
+                              tr("Remove screen «%1»? Its zones will be deleted.").arg(RemoteView::screenModeName(id))) !=
+        QMessageBox::Yes)
+        return;
+    if (!confirmDiscard()) return;
+    QJsonObject remote;
+    QByteArray original;
+    if (!readRemoteJson(remote, original)) return;
+    QJsonArray screens = remote.value(QStringLiteral("screens")).toArray();
+    for (int i = 0; i < screens.size(); ++i)
+        if (screens[i].toObject().value(QStringLiteral("id")).toString() == id) {
+            screens.removeAt(i);
+            break;
+        }
+    remote.insert(QStringLiteral("screens"), screens);
+    writeRemoteJson(original, remote, QString());
+}
+
+void ZoneEditorDialog::applyBackground() {
+    if (!hasLayer() || layer().body()) return;
+    const QString id = layer().key;
+    const QString text = backgroundEdit_->text().trimmed();
+    if (text == layer().background) return;
+    if (!text.isEmpty() && !QColor::isValidColorName(text)) {
+        note(tr("Not a valid colour: %1").arg(text));
+        refreshScreens();
+        return;
+    }
+    if (layer().draft) {
+        // Черновик: цвет только меняет вид экрана на холсте, файл не трогаем.
+        layer().background = text.isEmpty() ? QString::fromLatin1(kDefaultBackground) : text;
+        updateScreenBackdrop();
+        refreshScreens();
+        return;
+    }
+    if (!confirmDiscard()) {
+        refreshScreens();
+        return;
+    }
+    QJsonObject remote;
+    QByteArray original;
+    if (!readRemoteJson(remote, original)) return;
+    QJsonArray screens = remote.value(QStringLiteral("screens")).toArray();
+    for (int i = 0; i < screens.size(); ++i) {
+        auto screen = screens[i].toObject();
+        if (screen.value(QStringLiteral("id")).toString() != id) continue;
+        auto background = screen.value(QStringLiteral("background")).toObject();
+        background.insert(QStringLiteral("color"), text.isEmpty() ? QString::fromLatin1(kDefaultBackground) : text);
+        screen.insert(QStringLiteral("background"), background);
+        screens[i] = screen;
+        break;
+    }
+    remote.insert(QStringLiteral("screens"), screens);
+    writeRemoteJson(original, remote, id);
 }
 
 bool ZoneEditorDialog::confirmDiscard() {

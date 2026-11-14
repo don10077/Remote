@@ -4,6 +4,7 @@
 #include <QSet>
 #include <QHash>
 #include <QList>
+#include <QJsonArray>
 #include <QJsonObject>
 #include <QPixmap>
 #include <QRectF>
@@ -68,6 +69,17 @@ public:
     void setRemoteProfile(const QString& id);
     /// Снимок текущего экрана без корпуса для редактора зон; пустой при отсутствии экрана.
     QPixmap screenPreview(const QSize& size);
+    /**
+     * @brief Подменить раскладку несохранёнными правками редактора зон; новую раскладку создаёт.
+     * @param mode Режим экрана профиля (его раскладка подменяется) либо новый id экрана.
+     * @param ref Единицы раскладки.
+     * @param zones Зоны вместо записанных в ресурсах.
+     * @param background Цвет фона; пусто — не менять.
+     * @param title Заголовок экрана в шапке; пусто — как у готовых экранов.
+     * @note Вызывать после setRemoteProfile().
+     */
+    void overrideLayout(const QString& mode, const QSizeF& ref, const QJsonArray& zones, const QString& background = {},
+                        const QString& title = {});
 
     /** size of the source photo in pixels, all zones are relative to it */
     static constexpr int PHOTO_WIDTH = 400;
@@ -223,6 +235,8 @@ private:
      * картинки, сверху рисуются плитки и подписи из конфигурации. false — раскладка не собирается.
      */
     bool paintComposedScreen(QPainter& p, const QJsonObject& layout);
+    /** Единый рендерер экрана с "grid": фон и ячейки — картинка или заливка цветом, у ячеек рамка. */
+    void paintGridScreen(QPainter& p, const QJsonObject& layout);
     /** Экран 600/650/665/700 (раскладка со стилем "h600"): шапка, 2x2 у боковых кнопок, Devices. */
     void paintCompactScreen(QPainter& p, const QJsonObject& layout);
     void paintClassicScreen(QPainter& p);
@@ -255,6 +269,7 @@ private:
     QString profileDirectory; ///< папка ресурсов модели (profile.json, screens.json)
     QJsonObject modes;
     QHash<QString, QJsonObject> layouts;
+    QSet<QString> overriddenLayouts; ///< раскладки, подменённые overrideLayout(): рисуются по зонам, а не по готовому виду
     QString activeMode;
     QList<ActivityItem> deviceItems;
     int otherPage = 0;

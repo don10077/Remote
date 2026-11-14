@@ -153,159 +153,94 @@ TEST(ZoneEditing, ParseZonesReturnsEmptyOnInvalid) {
     EXPECT_TRUE(ze::parseZones("\"string\"").isEmpty());
 }
 
-TEST(ZoneEditing, PatchZonesFileReplacesArray) {
-    const QByteArray original = R"([
-    {"id": "Old1", "rect": [1, 2, 3, 4]},
-    {"id": "Old2", "rect": [5, 6, 7, 8]}
-])";
-    const QList<QByteArray> newLines{
-        R"({"id": "New1", "rect": [10, 20, 30, 40]})",
-        R"({"id": "New2", "rect": [50, 60, 70, 80]})"
-    };
-    const auto patched = ze::patchZonesFile(original, newLines);
+/// Документ remote.json в миниатюре: зоны корпуса, рамка дисплея и два экрана с ячейками.
+const QByteArray kRemote = R"({
+    "id": "880",
+    "hardware": {
+        "size": [400, 800],
+        "zones": [
+            {"id": "Old1", "rect": [1, 2, 3, 4]},
+            {"id": "Old2", "rect": [5, 6, 7, 8]}
+        ]
+    },
+    "display": {"rect": [100, 50, 200, 150], "tint": "#ffffff"},
+    "screens": [
+        {
+            "id": "Home",
+            "ref": [240, 320],
+            "cells": [
+                {"id": "A", "rect": [1, 2, 3, 4]},
+                {"id": "B", "rect": [5, 6, 7, 8]}
+            ]
+        },
+        {
+            "id": "Menu",
+            "ref": [240, 320],
+            "cells": [
+                {"id": "C", "rect": [9, 10, 11, 12]}
+            ]
+        }
+    ]
+})";
+
+TEST(ZoneEditing, PatchZonesReplacesBodyZones) {
+    const auto patched = ze::patchZones(kRemote, QString(),
+        {R"({"id": "New1", "rect": [10, 20, 30, 40]})", R"({"id": "New2", "rect": [50, 60, 70, 80]})"});
     ASSERT_TRUE(patched.has_value());
-    const auto array = QJsonDocument::fromJson(*patched).array();
-    EXPECT_EQ(array.size(), 2);
-    EXPECT_EQ(array[0].toObject()["id"].toString(), "New1");
-    EXPECT_EQ(array[1].toObject()["id"].toString(), "New2");
+    const auto root = QJsonDocument::fromJson(*patched).object();
+    const auto zones = root["hardware"].toObject()["zones"].toArray();
+    ASSERT_EQ(zones.size(), 2);
+    EXPECT_EQ(zones[0].toObject()["id"].toString(), "New1");
+    EXPECT_EQ(zones[1].toObject()["id"].toString(), "New2");
+    // Экраны не тронуты.
+    EXPECT_EQ(root["screens"].toArray()[0].toObject()["cells"].toArray().size(), 2);
 }
 
-TEST(ZoneEditing, PatchScreenInProfile) {
-    const QByteArray profile = R"({
-    "id": "900",
-    "name": "Harmony 900",
-    "screen": [100, 50, 200, 150],
-    "modes": {"Home": "home_layout"}
-})";
-    const QRectF newScreen(120, 60, 180, 140);
-    const auto patched = ze::patchScreen(profile, newScreen);
+TEST(ZoneEditing, PatchZonesReplacesCellsOfOneScreen) {
+    const auto patched = ze::patchZones(kRemote, "Home", {R"({"id": "N", "rect": [20, 20, 60, 60]})"});
     ASSERT_TRUE(patched.has_value());
-    const auto obj = QJsonDocument::fromJson(*patched).object();
-    const auto rect = obj["screen"].toArray();
-    EXPECT_EQ(rect.size(), 4);
+    const auto root = QJsonDocument::fromJson(*patched).object();
+    const auto screens = root["screens"].toArray();
+    const auto home = screens[0].toObject()["cells"].toArray();
+    ASSERT_EQ(home.size(), 1);
+    EXPECT_EQ(home[0].toObject()["id"].toString(), "N");
+    EXPECT_EQ(screens[1].toObject()["cells"].toArray().size(), 1);
+    EXPECT_EQ(root["hardware"].toObject()["zones"].toArray().size(), 2);
+}
+
+TEST(ZoneEditing, PatchZonesUnknownScreenReturnsNothing) {
+    EXPECT_FALSE(ze::patchZones(kRemote, "Nope", {}).has_value());
+}
+
+TEST(ZoneEditing, PatchDisplayChangesRect) {
+    const auto patched = ze::patchDisplay(kRemote, QRectF(120, 60, 180, 140));
+    ASSERT_TRUE(patched.has_value());
+    const auto display = QJsonDocument::fromJson(*patched).object()["display"].toObject();
+    const auto rect = display["rect"].toArray();
+    ASSERT_EQ(rect.size(), 4);
     EXPECT_DOUBLE_EQ(rect[0].toDouble(), 120.0);
     EXPECT_DOUBLE_EQ(rect[1].toDouble(), 60.0);
     EXPECT_DOUBLE_EQ(rect[2].toDouble(), 180.0);
     EXPECT_DOUBLE_EQ(rect[3].toDouble(), 140.0);
+    EXPECT_EQ(display["tint"].toString(), "#ffffff");
 }
 
-TEST(ZoneEditing, PatchScreenToNull) {
-    const QByteArray profile = R"({
-    "id": "900",
-    "screen": [100, 50, 200, 150],
-    "modes": {}
-})";
-    const auto patched = ze::patchScreen(profile, std::nullopt);
+TEST(ZoneEditing, PatchDisplayToNull) {
+    const auto patched = ze::patchDisplay(kRemote, std::nullopt);
     ASSERT_TRUE(patched.has_value());
-    const auto obj = QJsonDocument::fromJson(*patched).object();
-    EXPECT_TRUE(obj["screen"].isNull());
+    EXPECT_TRUE(QJsonDocument::fromJson(*patched).object()["display"].toObject()["rect"].isNull());
 }
 
-TEST(ZoneEditing, PatchModeLayout) {
-    const QByteArray profile = R"({
-    "modes": {
-        "Home": "old_layout",
-        "Menu": "menu_layout"
-    }
-})";
-    const auto patched = ze::patchMode(profile, "Home", "new_layout");
-    ASSERT_TRUE(patched.has_value());
-    const auto obj = QJsonDocument::fromJson(*patched).object();
-    const auto modes = obj["modes"].toObject();
-    EXPECT_EQ(modes["Home"].toString(), "new_layout");
-    EXPECT_EQ(modes["Menu"].toString(), "menu_layout");
-}
-
-TEST(ZoneEditing, PatchLayoutZones) {
-    const QByteArray layouts = R"([
-    {
-        "id": "home_layout",
-        "ref": [240, 320],
-        "zones": [
-            {"id": "Old1", "rect": [10, 10, 50, 50]},
-            {"id": "Old2", "rect": [70, 70, 50, 50]}
-        ]
-    },
-    {
-        "id": "menu_layout",
-        "ref": [240, 320],
-        "zones": []
-    }
-])";
-    const QList<QByteArray> newLines{
-        R"({"id": "New1", "rect": [20, 20, 60, 60]})"
-    };
-    const auto patched = ze::patchLayoutZones(layouts, "home_layout", newLines);
-    ASSERT_TRUE(patched.has_value());
-    const auto array = QJsonDocument::fromJson(*patched).array();
-    EXPECT_EQ(array.size(), 2);
-    const auto home = array[0].toObject();
-    EXPECT_EQ(home["id"].toString(), "home_layout");
-    const auto zones = home["zones"].toArray();
-    EXPECT_EQ(zones.size(), 1);
-    EXPECT_EQ(zones[0].toObject()["id"].toString(), "New1");
-}
-
-TEST(ZoneEditing, AppendLayoutCopy) {
-    const QByteArray layouts = R"([
-    {
-        "id": "base_layout",
-        "ref": [240, 320],
-        "zones": [
-            {"id": "Slot1", "rect": [10, 10, 50, 50]}
-        ]
-    }
-])";
-    const QList<QByteArray> newLines{
-        R"({"id": "Slot1", "rect": [15, 15, 50, 50]})",
-        R"({"id": "Slot2", "rect": [70, 70, 50, 50]})"
-    };
-    const auto patched = ze::appendLayoutCopy(layouts, "base_layout", "custom_layout", newLines);
-    ASSERT_TRUE(patched.has_value());
-    const auto array = QJsonDocument::fromJson(*patched).array();
-    EXPECT_EQ(array.size(), 2);
-    EXPECT_EQ(array[0].toObject()["id"].toString(), "base_layout");
-    const auto copy = array[1].toObject();
-    EXPECT_EQ(copy["id"].toString(), "custom_layout");
-    EXPECT_EQ(copy["ref"].toArray(), array[0].toObject()["ref"].toArray());
-    const auto zones = copy["zones"].toArray();
-    EXPECT_EQ(zones.size(), 2);
-    EXPECT_EQ(zones[0].toObject()["id"].toString(), "Slot1");
-    EXPECT_EQ(zones[1].toObject()["id"].toString(), "Slot2");
-}
-
-TEST(ZoneEditing, ZoneTextsExtractsOriginal) {
-    const QByteArray text = R"([
-    {"id": "Zone1", "rect": [10, 20, 30, 40]},
-    {"id": "Zone2", "rect": [50, 60, 70, 80]}
-])";
-    const auto lines = ze::zoneTexts(text);
-    ASSERT_TRUE(lines.has_value());
-    EXPECT_EQ(lines->size(), 2);
-    EXPECT_TRUE(lines->at(0).contains("Zone1"));
-    EXPECT_TRUE(lines->at(1).contains("Zone2"));
-}
-
-TEST(ZoneEditing, ZoneTextsFromLayoutId) {
-    const QByteArray layouts = R"([
-    {
-        "id": "layout1",
-        "zones": [
-            {"id": "A", "rect": [1, 2, 3, 4]},
-            {"id": "B", "rect": [5, 6, 7, 8]}
-        ]
-    },
-    {
-        "id": "layout2",
-        "zones": [
-            {"id": "C", "rect": [9, 10, 11, 12]}
-        ]
-    }
-])";
-    const auto lines = ze::zoneTexts(layouts, "layout2");
-    ASSERT_TRUE(lines.has_value());
-    EXPECT_EQ(lines->size(), 1);
-    EXPECT_TRUE(lines->at(0).contains("\"C\""));
+TEST(ZoneEditing, ZoneTextsOfBodyAndScreen) {
+    const auto body = ze::zoneTexts(kRemote);
+    ASSERT_TRUE(body.has_value());
+    ASSERT_EQ(body->size(), 2);
+    EXPECT_TRUE(body->at(0).contains("Old1"));
+    const auto menu = ze::zoneTexts(kRemote, "Menu");
+    ASSERT_TRUE(menu.has_value());
+    ASSERT_EQ(menu->size(), 1);
+    EXPECT_TRUE(menu->at(0).contains("\"C\""));
+    EXPECT_FALSE(ze::zoneTexts(kRemote, "Nope").has_value());
 }
 
 
@@ -336,43 +271,32 @@ TEST(ZoneEditing, SaveFilesDetectsConflictAndWritesWholeSet) {
     EXPECT_TRUE(QDir(root.path()).entryList({".zone-editor-backup-*"}, QDir::Dirs | QDir::Hidden).isEmpty());
 }
 
-TEST(ZoneEditing, SaveOnTopKeepsExternalProfileChanges) {
+TEST(ZoneEditing, SaveOnTopKeepsExternalRemoteChanges) {
     QTemporaryDir root;
     ASSERT_TRUE(root.isValid());
-    // Снимок редактора: рамка экрана [1, 2, 3, 4].
-    const QByteArray loadedProfile = R"({
-    "id": "880",
-    "name": "Harmony 880",
-    "screen": [1, 2, 3, 4]
-})";
-    // Пока редактор был открыт, profile.json поправили вручную.
-    const QByteArray currentProfile = R"({
-    "id": "880",
-    "name": "Living room",
-    "screen": [1, 2, 3, 4]
-})";
-    EXPECT_NE(loadedProfile, currentProfile);
-    const QByteArray zones = R"([
-    {"id": "A", "rect": [0, 0, 10, 10]}
-])";
-    const QHash<QString, QByteArray> current{{"profile.json", currentProfile}, {"zones.json", zones}};
-    for (auto it = current.cbegin(); it != current.cend(); ++it) {
-        QFile file(QDir(root.path()).filePath(it.key()));
+    // Пока редактор был открыт, remote.json поправили вручную.
+    QByteArray current = kRemote;
+    current.replace("\"id\": \"880\"", "\"id\": \"880\", \"name\": \"Living room\"");
+    ASSERT_NE(current, kRemote);
+    {
+        QFile file(QDir(root.path()).filePath("remote.json"));
         ASSERT_TRUE(file.open(QIODevice::WriteOnly));
-        ASSERT_EQ(file.write(it.value()), it.value().size());
+        ASSERT_EQ(file.write(current), current.size());
     }
-    // «Сохранить мои правки поверх»: правки применяются к текущим файлам.
-    const auto profile = ze::patchScreen(currentProfile, QRectF(10, 20, 30, 40));
-    ASSERT_TRUE(profile.has_value());
-    const auto patchedZones = ze::patchZonesFile(zones, {R"({"id": "B", "rect": [1, 1, 5, 5]})"});
-    ASSERT_TRUE(patchedZones.has_value());
-    const QHash<QString, QByteArray> updates{{"profile.json", *profile}, {"zones.json", *patchedZones}};
-    ASSERT_TRUE(ze::saveFiles(root.path(), current, updates).isEmpty());
-    QFile file(QDir(root.path()).filePath("profile.json"));
+    // «Сохранить мои правки поверх»: правки применяются к текущему файлу.
+    auto patched = ze::patchDisplay(current, QRectF(10, 20, 30, 40));
+    ASSERT_TRUE(patched.has_value());
+    patched = ze::patchZones(*patched, QString(), {R"({"id": "B", "rect": [1, 1, 5, 5]})"});
+    ASSERT_TRUE(patched.has_value());
+    const QHash<QString, QByteArray> expected{{"remote.json", current}};
+    const QHash<QString, QByteArray> updates{{"remote.json", *patched}};
+    ASSERT_TRUE(ze::saveFiles(root.path(), expected, updates).isEmpty());
+    QFile file(QDir(root.path()).filePath("remote.json"));
     ASSERT_TRUE(file.open(QIODevice::ReadOnly));
     const auto saved = QJsonDocument::fromJson(file.readAll()).object();
     EXPECT_EQ(saved.value("name").toString(), "Living room"); // ручная правка сохранилась
-    EXPECT_EQ(saved.value("screen").toArray(), (QJsonArray{10, 20, 30, 40})); // рамка — из редактора
+    EXPECT_EQ(saved["display"].toObject()["rect"].toArray(), (QJsonArray{10, 20, 30, 40}));
+    EXPECT_EQ(saved["hardware"].toObject()["zones"].toArray().size(), 1);
 }
 
 TEST(ZoneEditing, AutoZonesAssignIdsRadiusAndSkipOverlaps) {

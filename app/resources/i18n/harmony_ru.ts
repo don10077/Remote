@@ -71,6 +71,11 @@ The configuration from %1 will be copied into this archive.</source>
       <translation>%1  (×%2)</translation>
     </message>
     <message>
+      <location filename="../../../app/src/widgets/remoteProfileDialog.cpp" />
+      <source>%1 (configuration error)</source>
+      <translation>%1 (ошибка конфигурации)</translation>
+    </message>
+    <message>
       <location filename="../../../app/src/widgets/newConfigDialog.cpp" />
       <source>%1 (copy)</source>
       <translation>%1 (копия)</translation>
@@ -265,6 +270,11 @@ The configuration from %1 will be copied into this archive.</source>
       <location filename="../../../app/src/widgets/learnWizardDialog.cpp" />
       <source>%1 — press “Repeat” or “Skip”.</source>
       <translation>%1 — нажмите «Повторить» или «Пропустить».</translation>
+    </message>
+    <message>
+      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <source>%1 — zones: %2</source>
+      <translation>%1 — зон: %2</translation>
     </message>
     <message>
       <location filename="../../../app/src/widgets/deviceStatesDialog.cpp" />
@@ -826,7 +836,7 @@ The configuration from %1 will be copied into this archive.</source>
     <message>
       <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
       <source>Activity %1</source>
-      <translation>Активность %1</translation>
+      <translation type="unfinished" />
     </message>
     <message>
       <location filename="../../../core/src/formats/userConfiguration.cpp" />
@@ -929,6 +939,11 @@ The configuration from %1 will be copied into this archive.</source>
       <location filename="../../../app/src/widgets/deviceStatesDialog.cpp" />
       <source>Add pause</source>
       <translation>Добавить паузу</translation>
+    </message>
+    <message>
+      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <source>Add screen</source>
+      <translation>Добавить экран</translation>
     </message>
     <message>
       <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
@@ -1299,6 +1314,11 @@ Add a device?</source>
       <translation>Назад</translation>
     </message>
     <message>
+      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <source>Background colour:</source>
+      <translation>Цвет фона:</translation>
+    </message>
+    <message>
       <location filename="../../../app/src/widgets/remoteSettingsDialog.cpp" />
       <source>Backlight brightness, %</source>
       <translation>Яркость подсветки, %</translation>
@@ -1540,6 +1560,7 @@ Add a device?</source>
       <location filename="../../../app/src/widgets/replaceDeviceDialog.cpp" />
       <location filename="../../../app/src/widgets/settingsDialog.cpp" />
       <location filename="../../../app/src/widgets/writePreviewDialog.cpp" />
+      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
       <source>Cancel</source>
       <translation>Отмена</translation>
     </message>
@@ -1645,18 +1666,8 @@ Add a device?</source>
     </message>
     <message>
       <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
-      <source>Change for all</source>
-      <translation>Изменить для всех</translation>
-    </message>
-    <message>
-      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
       <source>Change id</source>
       <translation>Изменить идентификатор</translation>
-    </message>
-    <message>
-      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
-      <source>Change it for all of these remotes, or make a copy for %1 only?</source>
-      <translation>Изменить раскладку для всех этих пультов или создать копию только для %1?</translation>
     </message>
     <message>
       <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
@@ -1677,6 +1688,11 @@ Add a device?</source>
       <location filename="../../../app/src/mainWindow.cpp" />
       <source>Change target remote…</source>
       <translation>Сменить целевой пульт…</translation>
+    </message>
+    <message>
+      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <source>Change tile grid</source>
+      <translation>Изменить сетку плиток</translation>
     </message>
     <message>
       <location filename="../../../app/src/modern/remoteView.cpp" />
@@ -1700,6 +1716,7 @@ Add a device?</source>
     </message>
     <message>
       <location filename="../../../app/src/helpContent.cpp" />
+      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
       <source>Check</source>
       <translation>Проверка</translation>
     </message>
@@ -1903,6 +1920,11 @@ Add a device?</source>
       <translation>Код</translation>
     </message>
     <message>
+      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <source>Columns × rows:</source>
+      <translation>Колонки × ряды:</translation>
+    </message>
+    <message>
       <location filename="../../../app/src/mainWindow.cpp" />
       <location filename="../../../app/src/widgets/compareDevicesDialog.cpp" />
       <location filename="../../../app/src/widgets/configView.cpp" />
@@ -1913,7 +1935,7 @@ Add a device?</source>
     <message>
       <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
       <source>Command %1</source>
-      <translation>Команда %1</translation>
+      <translation type="unfinished" />
     </message>
     <message>
       <location filename="../../../app/src/widgets/learnWizardDialog.cpp" />
@@ -2158,6 +2180,11 @@ Add a device?</source>
       <translation>Конфигурация не соответствует подключённому пульту</translation>
     </message>
     <message>
+      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <source>Configuration error of this remote: %1</source>
+      <translation>Ошибка конфигурации этого пульта: %1</translation>
+    </message>
+    <message>
       <location filename="../../../transport/src/concordTransfer.cpp" />
       <source>Configuration exceeds the remote's configuration area</source>
       <translation>Конфигурация превышает размер отведённой памяти пульта</translation>
@@ -2387,11 +2414,6 @@ Add a device?</source>
       <translation>Копирование кнопок в %1</translation>
     </message>
     <message>
-      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
-      <source>Copy for this remote</source>
-      <translation>Копия для этого пульта</translation>
-    </message>
-    <message>
       <location filename="../../../app/src/widgets/compareDevicesDialog.cpp" />
       <source>Copy marked</source>
       <translation>Скопировать отмеченные</translation>
@@ -2550,6 +2572,11 @@ Add a device?</source>
       <translation>Не удалось подготовить %1 к сохранению: %2. Ничего не сохранено.</translation>
     </message>
     <message>
+      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <source>Could not read %1.</source>
+      <translation>Не удалось прочитать %1.</translation>
+    </message>
+    <message>
       <location filename="../../../app/src/widgets/startDialog.cpp" />
       <source>could not read the configuration</source>
       <translation>не удалось прочитать конфигурацию</translation>
@@ -2673,6 +2700,11 @@ Copy saved: %2</source>
       <location filename="../../../app/src/widgets/startDialog.cpp" />
       <source>Create new…</source>
       <translation>Создать новую…</translation>
+    </message>
+    <message>
+      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <source>Create screen</source>
+      <translation>Создать экран</translation>
     </message>
     <message>
       <location filename="../../../app/src/mainWindow.cpp" />
@@ -3166,6 +3198,11 @@ Copy saved: %2</source>
       <location filename="../../../app/src/mainWindow.cpp" />
       <source>Edit “%1”</source>
       <translation>Изменить «%1»</translation>
+    </message>
+    <message>
+      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <source>Editing:</source>
+      <translation>Редактируем:</translation>
     </message>
     <message>
       <location filename="../../../app/src/widgets/configView.cpp" />
@@ -4296,16 +4333,6 @@ The file contains device names and models, but no IR codes, account or e-mail. Y
       <translation>В слое «%1» есть ошибки, программа не сможет загрузить эти ресурсы: %2</translation>
     </message>
     <message>
-      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
-      <source>Layer:</source>
-      <translation>Слой:</translation>
-    </message>
-    <message>
-      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
-      <source>Layout %1 is also used by: %2.</source>
-      <translation>Раскладку %1 также используют: %2.</translation>
-    </message>
-    <message>
       <location filename="../../../app/src/widgets/learnWizardDialog.cpp" />
       <source>Learn commands — “%1”</source>
       <translation>Обучить команды — «%1»</translation>
@@ -4753,6 +4780,16 @@ The file contains device names and models, but no IR codes, account or e-mail. Y
       <translation>Новое имя:</translation>
     </message>
     <message>
+      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <source>New screen</source>
+      <translation>Новый экран</translation>
+    </message>
+    <message>
+      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <source>New screen (not created yet)</source>
+      <translation>Новый экран (ещё не создан)</translation>
+    </message>
+    <message>
       <location filename="../../../app/src/widgets/buttonDialog.cpp" />
       <source>New screen button</source>
       <translation>Новая кнопка на экране</translation>
@@ -4982,6 +5019,11 @@ The file contains device names and models, but no IR codes, account or e-mail. Y
       <location filename="../../../transport/src/hubConfigReader.cpp" />
       <source>not a Harmony Hub configuration file</source>
       <translation>это не файл конфигурации Harmony Hub</translation>
+    </message>
+    <message>
+      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <source>Not a valid colour: %1</source>
+      <translation>Некорректный цвет: %1</translation>
     </message>
     <message>
       <location filename="../../../app/src/mainWindow.cpp" />
@@ -5466,6 +5508,16 @@ The file contains device names and models, but no IR codes, account or e-mail. Y
       <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
       <source>Physical button:</source>
       <translation>Кнопка на корпусе:</translation>
+    </message>
+    <message>
+      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <source>Pick a screen: it is shown on the left instead of the remote photo, and its zones can be moved and resized right there. Every zone is independent.</source>
+      <translation>Выберите экран: он показывается слева вместо фото пульта, зоны на нём двигаются и меняются прямо там. Каждая зона независима.</translation>
+    </message>
+    <message>
+      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <source>Pick…</source>
+      <translation>Выбрать…</translation>
     </message>
     <message>
       <location filename="../../../app/src/labels.cpp" />
@@ -6266,6 +6318,11 @@ The file contains device names and models, but no IR codes, account or e-mail. Y
       <translation>Пульт: %1</translation>
     </message>
     <message>
+      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <source>Remove</source>
+      <translation>Удалить</translation>
+    </message>
+    <message>
       <location filename="../../../app/src/widgets/activityDialog.cpp" />
       <source>Remove %1 from the activity “%2”?
 
@@ -6293,6 +6350,11 @@ Their buttons and start steps in this activity, including input switching, will 
       <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
       <source>Remove screen area</source>
       <translation>Удалить область экрана</translation>
+    </message>
+    <message>
+      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <source>Remove screen «%1»? Its zones will be deleted.</source>
+      <translation>Удалить экран «%1»? Его зоны будут удалены.</translation>
     </message>
     <message>
       <location filename="../../../app/src/mainWindow.cpp" />
@@ -6565,8 +6627,8 @@ Their buttons and start steps in this activity, including input switching, will 
     </message>
     <message>
       <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
-      <source>Save my edits: the editor writes only the parts it changed into the current files. Reload: discard my edits and take the files from disk.</source>
-      <translation>Сохранить мои правки: редактор запишет в текущие файлы только изменённые им места. Загрузить заново: отбросить мои правки и взять файлы с диска.</translation>
+      <source>Save my edits: the editor writes only the parts it changed into the current file. Reload: discard my edits and take the file from disk.</source>
+      <translation type="unfinished" />
     </message>
     <message>
       <location filename="../../../app/src/mainWindowRemote.cpp" />
@@ -6668,6 +6730,11 @@ Their buttons and start steps in this activity, including input switching, will 
       <translation>Область экрана выходит за границы фотографии</translation>
     </message>
     <message>
+      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <source>Screen area on the remote…</source>
+      <translation>Область экрана на пульте…</translation>
+    </message>
+    <message>
       <location filename="../../../app/src/zoneEditing.cpp" />
       <source>Screen area: width and height must be positive</source>
       <translation>Область экрана: ширина и высота должны быть положительными</translation>
@@ -6724,6 +6791,11 @@ Their buttons and start steps in this activity, including input switching, will 
       <translation>Панель экрана</translation>
     </message>
     <message>
+      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <source>Screen parameters</source>
+      <translation>Параметры экрана</translation>
+    </message>
+    <message>
       <location filename="../../../app/src/widgets/remoteSettingsDialog.cpp" />
       <source>Screen theme</source>
       <translation>Тема экрана</translation>
@@ -6734,14 +6806,25 @@ Their buttons and start steps in this activity, including input switching, will 
       <translation>Плитка экрана</translation>
     </message>
     <message>
+      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <source>Screen type:</source>
+      <translation>Тип экрана:</translation>
+    </message>
+    <message>
       <location filename="../../../app/src/modern/remoteView.cpp" />
+      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
       <source>Screen: %1</source>
       <translation>Экран: %1</translation>
     </message>
     <message>
       <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
-      <source>Screen: %1 (%2)</source>
-      <translation>Экран: %1 (%2)</translation>
+      <source>Screens</source>
+      <translation>Экраны</translation>
+    </message>
+    <message>
+      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <source>Screens saved</source>
+      <translation>Экраны сохранены</translation>
     </message>
     <message>
       <location filename="../../../core/src/propertyCatalog.cpp" />
@@ -6979,6 +7062,16 @@ Their buttons and start steps in this activity, including input switching, will 
       <location filename="../../../app/src/widgets/journalDialog.cpp" />
       <source>Show:</source>
       <translation>Показать:</translation>
+    </message>
+    <message>
+      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <source>Shows a new screen right away; its parameters below change it live. It is written to the remote only after “Create screen”.</source>
+      <translation>Сразу показывает новый экран; параметры ниже меняют его вживую. В пульт он записывается только после «Создать экран».</translation>
+    </message>
+    <message>
+      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <source>Shows the remote photo with the screen rectangle: move and resize it there, or turn the screen area on and off.</source>
+      <translation>Показывает фото пульта с рамкой экрана: двигайте и меняйте её размер там или включайте и выключайте область экрана.</translation>
     </message>
     <message>
       <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
@@ -7538,11 +7631,6 @@ They will not be sent to the remote either. When the device is made active again
       <translation>Устройство «%1» используется в активностях: %2.
 
 Они тоже не будут отправляться на пульт. Когда устройство снова станет активным, они снова будут отправляться.</translation>
-    </message>
-    <message>
-      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
-      <source>The editor also changes these externally modified files: %1. Its edits will replace the current content there.</source>
-      <translation>Редактор тоже меняет эти изменённые извне файлы: %1. Его правки заменят текущее содержимое в этих местах.</translation>
     </message>
     <message>
       <location filename="../../../app/src/zoneEditing.cpp" />
@@ -8213,6 +8301,11 @@ They will not be sent to the remote either. When the device is made active again
       <translation>Два нажатия дали разные сигналы — нажмите кнопку ещё раз.</translation>
     </message>
     <message>
+      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <source>The type of a screen is chosen when it is created.</source>
+      <translation>Тип экрана выбирается при создании.</translation>
+    </message>
+    <message>
       <location filename="../../../core/src/configDocument.cpp" />
       <source>the undo step has no saved state</source>
       <translation>у шага отмены нет сохранённого состояния</translation>
@@ -8387,6 +8480,15 @@ They will not be sent to the remote either. When the device is made active again
       <translation>Через это подключение нельзя считать резервную копию. Продолжить без резервной копии?</translation>
     </message>
     <message>
+      <location filename="../../../app/src/widgets/remoteProfileDialog.cpp" />
+      <source>This remote has a configuration error. Open the zone editor for this remote and fix it.
+
+%1</source>
+      <translation>В конфигурации этого пульта есть ошибка. Откройте редактор зон для этого пульта и исправьте её.
+
+%1</translation>
+    </message>
+    <message>
       <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
       <source>This remote has a screen area</source>
       <translation>В профиле задана область экрана</translation>
@@ -8425,6 +8527,11 @@ They will not be sent to the remote either. When the device is made active again
       <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
       <source>Tile %1</source>
       <translation>Плитка %1</translation>
+    </message>
+    <message>
+      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <source>Tiles of this screen are laid out as columns × rows right away; undo restores the old layout.</source>
+      <translation>Плитки экрана сразу раскладываются сеткой «колонки × ряды»; отмена возвращает прежнюю раскладку.</translation>
     </message>
     <message>
       <location filename="../../../app/src/widgets/journalDialog.cpp" />
@@ -9184,8 +9291,8 @@ Do not disconnect the remote while writing.</source>
     </message>
     <message>
       <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
-      <source>Zones:</source>
-      <translation>Зоны:</translation>
+      <source>Zones</source>
+      <translation>Зоны</translation>
     </message>
     <message>
       <location filename="../../../app/src/widgets/deviceStatesDialog.cpp" />
