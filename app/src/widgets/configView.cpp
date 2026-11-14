@@ -1135,6 +1135,19 @@ void ConfigView::showDevice(int index) {
             commands->item(row, column)->setFont(mono);
         }
         commands->item(row, 0)->setToolTip(QString::fromStdString(command.code)); // код Logitech как в файле
+        if (command.fromDatabase) {
+            // Код не с хаба, а из базы по модели и именам: показываем это явно.
+            // Текст ячейки не меняем: по нему таблица находит команду при копировании и выборе.
+            for (int column = 0; column < commands->columnCount(); ++column) {
+                if (QTableWidgetItem* cell = commands->item(row, column)) {
+                    cell->setBackground(QColor(255, 244, 214));
+                    cell->setForeground(QColor(60, 40, 0));
+                }
+            }
+            commands->item(row, 0)->setToolTip(
+                tr("This code was picked from the IR database by the device model and command name, not read from "
+                   "the hub. The code on the hub itself may differ."));
+        }
         if (!details && commandErrorLookup_) {
             commands->item(row, 1)->setToolTip(commandErrorLookup_(device.id, command.name));
         }

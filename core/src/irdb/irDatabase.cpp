@@ -16,6 +16,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cctype>
 #include <cstdio>
 #include <cstring>
 #include <ctime>
@@ -950,6 +951,42 @@ std::uint32_t IrDatabase::formatVersion() const {
 
 const std::string& IrDatabase::buildInfo() const {
     return impl_->metadata;
+}
+
+std::vector<CandidateScore> rankByCommandNames(const IrDatabase& database,
+                                               const std::vector<std::size_t>& candidates,
+                                               const std::vector<std::string>& names) {
+    auto lower = [](std::string text) {
+        std::ranges::transform(text, text.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+        return text;
+    };
+    std::unordered_set<std::string> wanted;
+    for (const std::string& name : names) {
+        wanted.insert(lower(name));
+    }
+    std::vector<CandidateScore> scores;
+    for (const std::size_t entry : candidates) {
+        const auto record = database.device(entry);
+        if (!record) {
+            continue;
+        }
+        std::unordered_set<std::string> have;
+        for (const DbCommand& command : record->commands) {
+            have.insert(lower(command.name));
+        }
+        CandidateScore score;
+        score.entry = entry;
+        score.total = wanted.size();
+        for (const std::string& name : wanted) {
+            score.matched += have.count(name);
+        }
+        score.extra = have.size() - score.matched;
+        scores.push_back(score);
+    }
+    std::ranges::stable_sort(scores, [](const CandidateScore& a, const CandidateScore& b) {
+        return a.matched != b.matched ? a.matched > b.matched : a.extra < b.extra;
+    });
+    return scores;
 }
 
 } // namespace harmony::irdb

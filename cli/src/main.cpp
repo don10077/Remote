@@ -12,6 +12,7 @@
  */
 
 #include "harmony/core/configDiff.h"
+#include "harmony/core/formats/hubConfig.h"
 #include "transferCommands.h"
 #include "hubCommands.h"
 #include "harmony/core/configDocument.h"
@@ -29,6 +30,7 @@
 #include <csignal>
 #include <ctime>
 #include <fstream>
+#include <iterator>
 
 #include <filesystem>
 #include <iostream>
@@ -79,6 +81,12 @@ void printUsage(std::ostream& out) {
         << "                                   read devices and activities of a stock Harmony Hub over\n"
         << "                                   the local network (Elite, Ultimate, 950, Companion…);\n"
         << "                                   no rooting, no IR codes, no account data in the file\n"
+        << "  harmony-cli hub-info <file> [--commands] [--irdb <database>]\n"
+        << "                                   devices, commands and activities of a saved Hub file:\n"
+        << "                                   *.hub.json, the Hub's own DeviceList.json /\n"
+        << "                                   ActivityList.json (these carry the IR codes), or a\n"
+        << "                                   backup bundle; --irdb suggests database models for\n"
+        << "                                   devices whose commands have no codes\n"
         << "  harmony-cli info <path>          configuration summary; path is a folder,\n"
         << "                                   UserConfiguration.xml or an .EZHex file\n"
         << "  harmony-cli check <path> [--fix] what will not work on the remote; --fix repairs\n"
@@ -201,18 +209,43 @@ void catchInterrupt() {
 #endif
 }
 
+/// Печатает устройства и активности общей модели — у любого формата она одна.
+int printModel(const harmony::model::RemoteConfig& config);
+
+/**
+ * @brief Читает конфигурацию хаба, если это она.
+ * @return Модель; nullopt — файл не является конфигурацией хаба (обычный путь для 900).
+ */
+std::optional<harmony::model::RemoteConfig> openHubConfig(const std::filesystem::path& path) {
+    std::error_code ec;
+    if (!std::filesystem::is_regular_file(path, ec)) return std::nullopt;
+    const auto size = std::filesystem::file_size(path, ec);
+    if (ec || size == 0 || size > 64 * 1024 * 1024) return std::nullopt;
+    std::ifstream input(path, std::ios::binary);
+    const std::string text((std::istreambuf_iterator<char>(input)), std::istreambuf_iterator<char>());
+    auto hub = harmony::formats::parseHubConfig(text);
+    if (!hub) return std::nullopt;
+    return harmony::formats::toRemoteConfig(*hub);
+}
+
 /**
  * @brief Команда info: читает конфигурацию и печатает устройства и активности.
- * @param path Папка резервной копии или файл UserConfiguration.xml.
+ * @param path Папка, UserConfiguration.xml, .EZHex или файл конфигурации Harmony Hub.
  * @return 0 — успех, 2 — конфигурацию не удалось прочитать.
  */
 int runInfo(const std::filesystem::path& path) {
+    // Конфигурация хаба и конфигурация 900 показываются одинаково: модель общая.
+    if (const auto hub = openHubConfig(path)) return printModel(*hub);
     const auto document = harmony::ConfigDocument::open(path);
     if (!document) {
         std::cerr << "Error: " << document.error().message << "\n";
         return 2;
     }
-    const harmony::model::RemoteConfig* config = &document->model();
+    return printModel(document->model());
+}
+
+int printModel(const harmony::model::RemoteConfig& model) {
+    const harmony::model::RemoteConfig* config = &model;
 
     std::cout << "Updated: " << config->property("LastUpdated") << "\n"
               << "Devices: " << config->devices.size()
@@ -952,7 +985,7 @@ int main(int argc, char* argv[]) {
     const std::string_view command = args[1];
     if (command == "models" || command == "transfer-info" || command == "transfer-read" || command == "transfer-write")
         return runTransferCommand(args, host);
-    if (command == "hub-read")
+    if (command == "hub-read" || command == "hub-info")
         return runHubCommand(args);
     if (command == "--version" || command == "-v") {
         std::cout << harmony::kVersion << "\n";

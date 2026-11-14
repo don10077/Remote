@@ -14,6 +14,7 @@
 #include "harmony/core/ir/carrierVm.h"
 
 #include <algorithm>
+#include <cctype>
 #include <filesystem>
 #include <fstream>
 #include <gtest/gtest.h>
@@ -223,6 +224,134 @@ TEST(IrDatabase, ImportsDeviceIntoConfiguration) {
     const auto reopened = ConfigDocument::open(dir.path() / "config");
     ASSERT_TRUE(reopened) << reopened.error().message;
     EXPECT_NE(reopened->model().findDevice(report->deviceId), nullptr);
+}
+
+TEST(IrDatabase, ResolvesHubKeyCodesIntoIrData) {
+    TempDir dir;
+    const auto database = buildFixture(dir);
+    const auto samsung = database.device(entryOf(database, "samsung"));
+    ASSERT_TRUE(samsung);
+    const std::string keyCode = samsung->commands.front().keyCode;
+
+    // Хаб: у команды только KeyCode; вторая команда — с неизвестным протоколом.
+    const std::string json = R"({
+  "DeviceList.json": {"DevicesWithFeatures": [
+    {"Device": {"Id-": 1, "Name": "TV", "Manufacturer": "Samsung", "Model": "X", "DeviceType": 1},
+     "Commands": [
+       {"Name": "Zero", "KeyCode": ")" + keyCode + R"(", "TransportType": 1},
+       {"Name": "Broken", "KeyCode": "G:No Such Protocol:(0x1)()():1", "TransportType": 1}
+     ]}
+  ]},
+  "ActivityList.json": {"Activities": []}
+})";
+    const auto hub = formats::parseHubConfig(json);
+    ASSERT_TRUE(hub) << hub.error().message;
+    auto document = ConfigDocument::fromHub(*hub, "hub");
+    ASSERT_TRUE(document) << document.error().message;
+    ASSERT_TRUE(document->model().devices.at(0).commands.at(0).code.empty());
+
+    const auto before = document->snapshot();
+    const auto report = document->resolveHubCodes(database.protocols());
+    ASSERT_TRUE(report) << report.error().message;
+    EXPECT_EQ(report->asProtocol + report->asSignal, 1);
+    EXPECT_EQ(report->skipped.size(), 1U);
+
+    const auto& commands = document->model().devices.at(0).commands;
+    EXPECT_FALSE(commands.at(0).code.empty());
+    EXPECT_FALSE(commands.at(0).native.empty()); // поля хаба сохраняются
+    EXPECT_TRUE(commands.at(1).code.empty());
+
+    // Повторный запуск ничего не меняет: у команды уже есть код.
+    const auto again = document->resolveHubCodes(database.protocols());
+    ASSERT_TRUE(again);
+    EXPECT_EQ(again->asProtocol + again->asSignal, 0);
+
+    // Отмена возвращает всё.
+    ASSERT_TRUE(document->restore(before));
+    EXPECT_TRUE(document->model().devices.at(0).commands.at(0).code.empty());
+}
+
+TEST(IrDatabase, MatchesStockHubDeviceByCommandNames) {
+    TempDir dir;
+    const auto database = buildFixture(dir);
+    const auto samsung = database.device(entryOf(database, "samsung"));
+    ASSERT_TRUE(samsung);
+    const std::string known = samsung->commands.front().name; // «0»
+
+    // Стоковый хаб: только имена команд, ни KeyCode, ни кодов.
+    const std::string json = R"({
+  "DeviceList.json": {"DevicesWithFeatures": [
+    {"Device": {"Id-": 1, "Name": "TV", "Manufacturer": "Samsung", "Model": "HLN501W", "DeviceType": 1},
+     "Commands": [{"Name": ")" + known + R"("}, {"Name": "NoSuchCommand"}]}
+  ]},
+  "ActivityList.json": {"Activities": []}
+})";
+    const auto hub = formats::parseHubConfig(json);
+    ASSERT_TRUE(hub) << hub.error().message;
+    auto document = ConfigDocument::fromHub(*hub, "hub");
+    ASSERT_TRUE(document) << document.error().message;
+
+    // Без KeyCode автоматическое превращение ничего не находит.
+    const auto automatic = document->resolveHubCodes(database.protocols());
+    ASSERT_TRUE(automatic);
+    EXPECT_EQ(automatic->asProtocol + automatic->asSignal, 0);
+
+    const auto before = document->snapshot();
+    const auto report = document->matchHubDevice("1", *samsung, database.protocols());
+    ASSERT_TRUE(report) << report.error().message;
+    EXPECT_EQ(report->asProtocol + report->asSignal, 1);
+    EXPECT_EQ(report->skipped.size(), 1U);
+
+    const auto& commands = document->model().devices.at(0).commands;
+    EXPECT_FALSE(commands.at(0).code.empty());
+    EXPECT_TRUE(commands.at(1).code.empty());
+    // Подобранный код помечен как взятый из базы (и это попадает в XML); пропущенная команда — нет.
+    EXPECT_TRUE(commands.at(0).fromDatabase);
+    EXPECT_FALSE(commands.at(1).fromDatabase);
+    EXPECT_NE(document->toXml().find("<CodeSource>Database</CodeSource>"), std::string::npos);
+
+    EXPECT_EQ(document->matchHubDevice("999", *samsung, database.protocols()).error().code, ErrorCode::NotFound);
+
+    ASSERT_TRUE(document->restore(before));
+    EXPECT_TRUE(document->model().devices.at(0).commands.at(0).code.empty());
+    EXPECT_FALSE(document->model().devices.at(0).commands.at(0).fromDatabase);
+}
+
+TEST(IrDatabase, RanksCandidatesByCommandNameMatch) {
+    TempDir dir;
+    const auto database = buildFixture(dir);
+    const std::size_t samsungEntry = entryOf(database, "samsung");
+    const auto samsung = database.device(samsungEntry);
+    ASSERT_TRUE(samsung);
+
+    std::vector<std::string> names;
+    for (const auto& command : samsung->commands) {
+        names.push_back(command.name);
+    }
+    names.push_back("NoSuchCommand");
+
+    std::vector<std::size_t> candidates;
+    for (std::size_t i = 0; i < database.entries().size(); ++i) {
+        candidates.push_back(i);
+    }
+    // Самсунг стоит первым, как бы ни были упорядочены кандидаты.
+    std::ranges::reverse(candidates);
+    const auto ranked = irdb::rankByCommandNames(database, candidates, names);
+    ASSERT_EQ(ranked.size(), candidates.size());
+    EXPECT_EQ(ranked.front().entry, samsungEntry);
+    EXPECT_EQ(ranked.front().matched, samsung->commands.size());
+    EXPECT_EQ(ranked.front().total, samsung->commands.size() + 1);
+    EXPECT_EQ(ranked.front().extra, 0U);
+    for (std::size_t i = 1; i < ranked.size(); ++i) {
+        EXPECT_GE(ranked[i - 1].matched, ranked[i].matched);
+    }
+
+    // Регистр имён не важен.
+    std::string shouted = names.front();
+    std::ranges::transform(shouted, shouted.begin(), [](unsigned char c) { return static_cast<char>(std::toupper(c)); });
+    const auto single = irdb::rankByCommandNames(database, {samsungEntry}, {shouted});
+    ASSERT_EQ(single.size(), 1U);
+    EXPECT_EQ(single.front().matched, 1U);
 }
 
 TEST(IrDatabase, ImportsToggleDeviceWithRelativeInputs) {

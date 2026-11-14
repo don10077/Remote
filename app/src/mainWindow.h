@@ -29,6 +29,10 @@ class QThread;
 class QTimer;
 class QToolButton;
 
+namespace harmony::irdb {
+class IrDatabase;
+}
+
 namespace harmony::app {
 
 class JournalDialog;
@@ -135,6 +139,10 @@ private:
      * @return true, если открыта.
      */
     bool openFolder(const QString& folder);
+    /// После открытия хаба: KeyCode команд → ИК-данные по базе (одной отменяемой правкой).
+    void resolveHubCodes();
+    /// Устройства хаба без кодов (стоковый хаб): модель ищется в базе, при нескольких — выбор пользователя.
+    void matchStockHubDevices(const irdb::IrDatabase& database);
 
     /// Открывает встроенный пример (без папки: сохранить можно только «как»).
     void openDemo();

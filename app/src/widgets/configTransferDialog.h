@@ -16,6 +16,8 @@ public:
     ~ConfigTransferDialog() override;
     /// Не закрывает окно во время программирования памяти.
     void reject() override;
+    /// @return Файл *.hub.json, прочитанный с хаба (окно при этом закрывается); пусто — хаб не читали.
+    [[nodiscard]] QString hubFile() const { return hubFile_; }
 private:
     /// Обновляет доступные операции по выбранной модели.
     void refresh();
@@ -33,5 +35,6 @@ private:
     QPushButton* close_ = nullptr;
     QProgressBar* progress_ = nullptr;
     QThread* worker_ = nullptr;
+    QString hubFile_; ///< Сохранённая конфигурация хаба после успешного чтения
 };
 } // namespace harmony::app

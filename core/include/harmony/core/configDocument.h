@@ -19,12 +19,14 @@
 #include "harmony/core/activityDraft.h"
 #include "harmony/core/buttonCopy.h"
 #include "harmony/core/buttonOwner.h"
+#include "harmony/core/configBackend.h"
 #include "harmony/core/configCheck.h"
 #include "harmony/core/deviceComparison.h"
 #include "harmony/core/deviceReplacement.h"
 #include "harmony/core/deviceStates.h"
 #include "harmony/core/error.h"
 #include "harmony/core/formats/ezhex.h"
+#include "harmony/core/formats/hubConfig.h"
 #include "harmony/core/ir/irSignal.h"
 #include "harmony/core/macro.h"
 #include "harmony/core/model/remoteConfig.h"
@@ -56,6 +58,13 @@ struct DbImportReport {
     bool power = false;                      ///< Питание описано (пульт включает сам)
     bool inputs = false;                     ///< Входы описаны
     std::vector<std::string> skipped;        ///< Команды, которые не удалось перенести
+};
+
+/// Итог превращения кодов хаба в ИК-данные.
+struct HubCodesReport {
+    int asProtocol = 0;               ///< Записано протоколом (IrProto.bin)
+    int asSignal = 0;                 ///< Записано сигналом (SsIr.bin)
+    std::vector<std::string> skipped; ///< «устройство/команда: причина»
 };
 
 /// Данные нового устройства, которое создаётся с нуля (команды потом выучиваются).
@@ -103,6 +112,17 @@ public:
      */
     [[nodiscard]] static Result<ConfigDocument> fromXml(std::string_view xml, std::string name);
 
+    /**
+     * @brief Документ из конфигурации Harmony Hub.
+     *
+     * Внутри — UserConfiguration.xml, собранный из модели хаба, поэтому правки, отмена и
+     * сохранение в папку работают как у 900. На пульт такой документ не пишется:
+     * toEzHex(true) возвращает ErrorCode::Unsupported (backend()->canWriteToRemote() == false).
+     * @param hub Разобранная конфигурация хаба.
+     * @param name Имя для показа.
+     */
+    [[nodiscard]] static Result<ConfigDocument> fromHub(const formats::HubConfiguration& hub, std::string name);
+
     /// Файлы конфигурации в памяти (например, встроенный в программу пример).
     struct Files {
         std::string userConfiguration;      ///< UserConfiguration.xml (обязателен)
@@ -128,6 +148,12 @@ public:
 
     /// @return Разобранная модель.
     [[nodiscard]] const model::RemoteConfig& model() const;
+
+    /**
+     * @brief Нейтральный вид на документ (этап 2a отвязки от формата 900).
+     * @return Вид; действителен, пока жив и не перемещён этот документ.
+     */
+    [[nodiscard]] std::unique_ptr<const ConfigBackend> backend() const;
 
     /// @return Имя конфигурации (по умолчанию — имя папки).
     [[nodiscard]] const std::string& name() const;
@@ -662,6 +688,31 @@ public:
      * @return Итог; ErrorCode::Unsupported — ни одна команда не преобразовалась.
      */
     [[nodiscard]] Result<DbImportReport> importDbDevice(const irdb::DbDevice& device,
+                                                        const irdb::ProtocolLibrary& protocols);
+
+    /**
+     * @brief Превращает записи KeyCode команд хаба в ИК-данные 900 (IrProto.bin / SsIr.bin).
+     *
+     * Берутся ИК-команды, у которых есть Native (KeyCode хаба) и ещё нет кода. Протокол
+     * ищется в базе по имени из KeyCode; если команду нельзя записать протоколом —
+     * сохраняется сигналом. Остальные команды не меняются. Одна правка: отмена откатывает всё.
+     * @param protocols Протоколы базы (AllProtocols.json).
+     * @return Сколько команд превращено протоколом, сигналом и сколько пропущено (с причинами).
+     */
+    [[nodiscard]] Result<HubCodesReport> resolveHubCodes(const irdb::ProtocolLibrary& protocols);
+
+    /**
+     * @brief Берёт коды устройства хаба у такого же устройства базы — по совпадению имён команд.
+     *
+     * Для стокового хаба, который отдаёт только имена команд. Берутся команды без кода и
+     * без KeyCode (не Bluetooth, не сеть, не Home Assistant); имена сравниваются без учёта
+     * регистра. Команды, которых нет у устройства базы, остаются без кода и попадают в skipped.
+     * Одна правка: отмена откатывает всё.
+     * @param deviceId Устройство хаба.
+     * @param source Устройство базы.
+     * @return ErrorCode::NotFound — нет такого устройства.
+     */
+    [[nodiscard]] Result<HubCodesReport> matchHubDevice(const std::string& deviceId, const irdb::DbDevice& source,
                                                         const irdb::ProtocolLibrary& protocols);
 
     /**

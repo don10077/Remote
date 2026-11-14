@@ -13,6 +13,8 @@
 #include "harmony/core/irdb/irDatabase.h"
 
 #include <algorithm>
+#include <cctype>
+#include <map>
 #include <optional>
 #include <set>
 
@@ -348,6 +350,165 @@ Result<DbImportReport> ConfigDocument::importDbDevice(const irdb::DbDevice& sour
     report.hardButtons = static_cast<int>(hardButtons.size());
     report.softButtons = static_cast<int>(softButtons.size());
 
+    return report;
+}
+
+namespace {
+
+/// Команда хаба с вычисленными ИК-данными, готовая к записи.
+struct ResolvedCommand {
+    std::string deviceId;
+    std::string command;
+    std::optional<ir::NativeCommand> native; ///< Протоколом
+    formats::Bytes entry;                    ///< Сигналом (запасной путь)
+    bool fromDatabase = false;               ///< Код подобран из базы, а не прочитан с хаба
+};
+
+/**
+ * @brief Одной правкой записывает коды в команды.
+ *
+ * Протоколом в IrProto.bin; если не вышло или таблица полна — сигналом в SsIr.bin.
+ * @param impl Содержимое документа.
+ * @param resolved Команды с готовыми ИК-данными.
+ * @param report [in,out] Счётчики asProtocol и asSignal увеличиваются по ходу записи.
+ * @return ErrorCode::Format — в SsIr.bin нет места; при ошибке документ не меняется.
+ */
+Result<void> writeResolved(ConfigDocument::Impl& impl, const std::vector<ResolvedCommand>& resolved,
+                           HubCodesReport& report) {
+    return detail::mutate(impl, [&](pugi::xml_node root, detail::IrData& ir) -> Result<void> {
+        bool protocolsChanged = false;
+        for (const ResolvedCommand& item : resolved) {
+            pugi::xml_node device = detail::findById(root, "Device", item.deviceId);
+            pugi::xml_node commandNode = detail::commandWithoutData(device, item.command);
+            if (item.fromDatabase && !commandNode.child("CodeSource")) {
+                appendText(commandNode, "CodeSource", "Database");
+            }
+            pugi::xml_node data = commandNode.append_child("Data");
+            if (item.native) {
+                auto table = detail::writableTable(ir.irProto, formats::kIrProtoFileName);
+                if (table) {
+                    const std::size_t before = (*table)->entries.size();
+                    const std::size_t index = (*table)->intern(item.native->protocol);
+                    if (index <= detail::kMaxProtocolIndex && formats::fitsOffsets(**table)) {
+                        appendText(data, "Protocol", std::to_string(index));
+                        appendText(data, "Code", ir::codeText(item.native->code, static_cast<unsigned>(index)));
+                        protocolsChanged = protocolsChanged || (*table)->entries.size() != before;
+                        ++report.asProtocol;
+                        continue;
+                    }
+                    if ((*table)->entries.size() != before) {
+                        (*table)->entries.pop_back();
+                    }
+                }
+            }
+            auto raw = detail::writableTable(ir.ssIr, formats::kSsIrFileName);
+            if (!raw) {
+                return std::unexpected(std::move(raw.error()));
+            }
+            const std::size_t index = (*raw)->intern(item.entry);
+            if (index > detail::kMaxRawIndex || !formats::fitsOffsets(**raw)) {
+                return makeError(ErrorCode::Format, "no room for a new code in SsIr.bin");
+            }
+            appendText(data, "Protocol", "-1");
+            appendText(data, "Code", detail::rawCode(index));
+            ++report.asSignal;
+        }
+        if (protocolsChanged) {
+            return detail::updateProtocolHash(root, ir.irProto);
+        }
+        return {};
+    });
+}
+
+/**
+ * @brief Строка в нижнем регистре (для сравнения имён команд без учёта регистра).
+ * @param text Исходная строка.
+ * @return Строка, где ASCII-буквы приведены к нижнему регистру.
+ */
+std::string lowered(std::string text) {
+    std::ranges::transform(text, text.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+    return text;
+}
+
+} // namespace
+
+Result<HubCodesReport> ConfigDocument::matchHubDevice(const std::string& deviceId, const irdb::DbDevice& source,
+                                                      const irdb::ProtocolLibrary& protocols) {
+    HubCodesReport report;
+    const model::Device* target = impl_->model.findDevice(deviceId);
+    if (target == nullptr) {
+        return makeError(ErrorCode::NotFound, "no device %1", {deviceId});
+    }
+    std::map<std::string, const irdb::DbCommand*> byName; // первая команда с таким именем
+    for (const irdb::DbCommand& command : source.commands) {
+        byName.emplace(lowered(command.name), &command);
+    }
+    std::vector<ResolvedCommand> resolved;
+    for (const model::Command& command : target->commands) {
+        // Команды, у которых нет ни кода, ни KeyCode (стоковый хаб отдаёт только имена).
+        if (!command.code.empty() || !command.native.empty() || command.transport == model::Transport::Bluetooth ||
+            command.transport == model::Transport::HomeAssistant || command.transport == model::Transport::Network) {
+            continue;
+        }
+        const std::string where = target->displayName() + "/" + command.name;
+        const auto found = byName.find(lowered(command.name));
+        if (found == byName.end()) {
+            report.skipped.push_back(where + ": not in the database device");
+            continue;
+        }
+        auto signal = protocols.render(*found->second);
+        if (!signal) {
+            report.skipped.push_back(where + ": " + signal.error().message);
+            continue;
+        }
+        auto native = protocols.compile(*found->second);
+        resolved.push_back({deviceId, command.name, native ? std::optional(std::move(*native)) : std::nullopt,
+                            ir::encodeRawEntry(*signal), true});
+    }
+    if (resolved.empty()) {
+        return report;
+    }
+    if (auto written = writeResolved(*impl_, resolved, report); !written) {
+        return std::unexpected(std::move(written.error()));
+    }
+    return report;
+}
+
+Result<HubCodesReport> ConfigDocument::resolveHubCodes(const irdb::ProtocolLibrary& protocols) {
+    HubCodesReport report;
+
+    // Сначала всё считаем (медленно, документ не трогаем), потом одной правкой записываем.
+    std::vector<ResolvedCommand> resolved;
+    for (const model::Device& device : impl_->model.devices) {
+        for (const model::Command& command : device.commands) {
+            // Только ИК-команды хаба, у которых ещё нет кода 900.
+            if (command.transport != model::Transport::Ir || command.native.empty() ||
+                !command.code.empty()) {
+                continue;
+            }
+            const std::string where = device.displayName() + "/" + command.name;
+            irdb::DbCommand source;
+            source.name = command.name;
+            source.keyCode = command.native;
+            auto signal = protocols.render(source);
+            if (!signal) {
+                report.skipped.push_back(where + ": " + signal.error().message);
+                continue;
+            }
+            auto native = protocols.compile(source);
+            resolved.push_back({device.id, command.name,
+                                native ? std::optional(std::move(*native)) : std::nullopt,
+                                ir::encodeRawEntry(*signal)});
+        }
+    }
+    if (resolved.empty()) {
+        return report;
+    }
+
+    auto changed = writeResolved(*impl_, resolved, report);
+    if (!changed) {
+        return std::unexpected(std::move(changed.error()));
+    }
     return report;
 }
 

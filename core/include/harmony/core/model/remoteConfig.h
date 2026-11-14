@@ -16,12 +16,35 @@
 namespace harmony::model {
 
 /**
- * @brief ИК-команда устройства («PowerToggle», «VolumeUp» и т.п.).
+ * @brief Как команда доставляется устройству.
+ *
+ * У Harmony 900 всё инфракрасное; хаб умеет и остальное.
+ */
+enum class Transport {
+    Ir,            ///< Инфракрасный сигнал
+    Bluetooth,     ///< Клавиатура или пульт Bluetooth HID
+    Network,       ///< Устройство по сети (например, Android TV)
+    HomeAssistant, ///< Устройство Home Assistant
+    Unknown,       ///< Канал не указан в исходной конфигурации
+};
+
+/**
+ * @brief Команда устройства («PowerToggle», «VolumeUp» и т.п.).
+ *
+ * Поля @c protocol и @c code — представление Harmony 900: номер записи в
+ * `IrProto.bin` и ссылка в `SsIr.bin`. У других форматов они не заполняются;
+ * там команду описывают @c protocolName и @c native.
  */
 struct Command {
     std::string name; ///< Имя команды; по нему на команду ссылаются кнопки и активности
-    int protocol = 0; ///< Номер ИК-протокола (описание протоколов — в IrProto.bin)
-    std::string code; ///< Код команды в шестнадцатеричном виде, как в файле («0x...»)
+    Transport transport = Transport::Ir; ///< Канал доставки
+    int protocol = 0; ///< Harmony 900: номер ИК-протокола (описание — в IrProto.bin)
+    std::string code; ///< Harmony 900: код команды в шестнадцатеричном виде, как в файле («0x...»)
+    std::string protocolName; ///< Имя протокола текстом («Toshiba 32 Bit»); пусто — формат задаёт протокол иначе
+    std::string native;       ///< Исходная запись кода в терминах формата; пусто — нет
+    /// Код подобран из базы ИК-кодов по модели и именам команд, а не прочитан с хаба;
+    /// настоящий код на хабе может отличаться.
+    bool fromDatabase = false;
 };
 
 /**

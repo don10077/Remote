@@ -9,6 +9,7 @@ add_executable(harmony_tests
     configButtonsTest.cpp
     configCheckTest.cpp
     configDocumentTest.cpp
+    configHubDocumentTest.cpp
     buttonCopyTest.cpp
     buttonIconsTest.cpp
     deviceComparisonTest.cpp
@@ -19,7 +20,12 @@ add_executable(harmony_tests
     configEditTest.cpp
     configEzHexTest.cpp
     formats/ezhexTest.cpp
+    formats/gspmTest.cpp
+    formats/gspmFontsTest.cpp
+    formats/gspmScreensTest.cpp
+    formats/hubConfigTest.cpp
     formats/irTablesTest.cpp
+    formats/ssirSequencesTest.cpp
     formats/userConfigurationTest.cpp
     errorTest.cpp
     ir/broadlinkRecordingTest.cpp

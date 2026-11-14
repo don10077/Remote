@@ -1,6 +1,7 @@
 # Пульты и возможности / Remotes and capabilities
 
-Обновлено **9 ноября 2026** по локальным исходникам четырёх проектов и Harmony.
+Обновлено **14 ноября 2026** по локальным исходникам четырёх проектов и Harmony.
+План отвязки ядра от одного формата — [docs/core-refactoring-plan.md](docs/core-refactoring-plan.md).
 Каталог включает **63 модели и варианта**, в том числе модели без изображений и зон.
 **Запись проверена / Write tested** означает подтверждённую пользователем запись из
 Harmony и работу физического пульта после неё. Это подтверждено только для **900**.
@@ -103,8 +104,13 @@ Pro 2400, Companion, Smart Control), там же есть **Прочитать H
 в файл `*.hub.json` (без ИК-кодов, e-mail и учётной записи). Экспериментально, импорт в
 редактор пока отсутствует. Подробнее — [docs/hub-reading.md](docs/hub-reading.md).
 
+С рутованного хаба (инструменты `harmony-hub-root` и Melodious) те же данные доступны
+**вместе с ИК-кодами**: файлы `DeviceList.json` и `ActivityList.json`. Их разбирает
+`harmony-cli hub-info`.
+
 ```text
 harmony-cli hub-read 192.168.1.50 MyHub.hub.json
+harmony-cli hub-info DeviceList.json --commands
 harmony-cli models
 harmony-cli transfer-info auto
 harmony-cli transfer-read one One-backup.EZHex

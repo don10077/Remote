@@ -49,7 +49,9 @@ ConfigTransferDialog::ConfigTransferDialog(QWidget* parent) : QDialog(parent) {
     hub_ = new QPushButton(tr("Read Harmony Hub over network…"), this);
     hub_->setToolTip(tr("Elite, Ultimate, Ultimate Home, 950, Companion and other remotes paired with a Hub: "
                         "devices, commands and activities are read from the Hub on your network. "
-                        "No rooting is needed; IR codes and account data are not included."));
+                        "No rooting is needed. A stock Hub does not give out IR codes: they are picked from the "
+                        "IR database by model and command names and may differ from the codes in the Hub. "
+                        "Account data is not included."));
     close_ = new QPushButton(tr("Close"), this);
     buttons->addWidget(read_); buttons->addWidget(write_); buttons->addWidget(hub_);
     buttons->addStretch(); buttons->addWidget(close_);
@@ -176,6 +178,7 @@ void ConfigTransferDialog::readHub() {
             QDateTime::currentDateTime().toString("yyyyMMdd-HHmmss") + ".hub.json"),
         tr("Harmony Hub configuration (*.hub.json);;All files (*)"));
     if (filename.isEmpty()) return;
+    hubFile_.clear();
     setBusy(true);
     status_->setText(tr("Connecting to the Hub at %1…").arg(host));
     progress_->setRange(0, 0);
@@ -210,14 +213,16 @@ void ConfigTransferDialog::readHub() {
                            .arg(QDir::toNativeSeparators(filename));
             }
         }
-        QMetaObject::invokeMethod(this, [this, text, ok] {
+        QMetaObject::invokeMethod(this, [this, text, ok, filename] {
             progress_->setRange(0, 100); progress_->setValue(ok ? 100 : 0);
             status_->setText(text);
+            if (ok) hubFile_ = filename; // окно закроется, редактор откроет файл
         }, Qt::QueuedConnection);
     });
     connect(worker_, &QThread::finished, this, [this] {
         worker_->deleteLater(); worker_ = nullptr;
         setBusy(false);
+        if (!hubFile_.isEmpty()) accept();
     });
     worker_->start();
 }

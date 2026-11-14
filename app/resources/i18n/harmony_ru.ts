@@ -37,6 +37,11 @@ The configuration from %1 will be copied into this archive.</source>
       <translation> · обновлена %1</translation>
     </message>
     <message>
+      <location filename="../../../app/src/mainWindow.cpp" />
+      <source> — %1 of %2 commands match</source>
+      <translation> — совпало команд: %1 из %2</translation>
+    </message>
+    <message>
       <location filename="../../../app/src/modern/remoteView.cpp" />
       <source># (hash)</source>
       <translation># (решётка)</translation>
@@ -99,6 +104,11 @@ The configuration from %1 will be copied into this archive.</source>
       <location filename="../../../app/src/widgets/checkDialog.cpp" />
       <source>%1 and %2. Errors: buttons or steps that will not work on the remote. Warnings: it works, but probably not as intended.</source>
       <translation>%1 и %2. Ошибки — кнопки или шаги, которые на пульте не сработают. Предупреждения — работает, но, скорее всего, не так, как задумано.</translation>
+    </message>
+    <message>
+      <location filename="../../../app/src/mainWindow.cpp" />
+      <source>%1 commands got IR codes picked from the database by device model and command name (highlighted in the command list). The stock hub does not report its codes, so the real ones may differ.</source>
+      <translation>Для команд (%1) ИК-коды подобраны из базы по модели устройства и имени команды (выделены цветом в списке команд). Стоковый хаб не сообщает свои коды, поэтому настоящие могут отличаться.</translation>
     </message>
     <message>
       <location filename="../../../app/src/zoneEditing.cpp" />
@@ -3165,8 +3175,8 @@ Copy saved: %2</source>
     </message>
     <message>
       <location filename="../../../app/src/widgets/configTransferDialog.cpp" />
-      <source>Elite, Ultimate, Ultimate Home, 950, Companion and other remotes paired with a Hub: devices, commands and activities are read from the Hub on your network. No rooting is needed; IR codes and account data are not included.</source>
-      <translation>Elite, Ultimate, Ultimate Home, 950, Companion и другие пульты, привязанные к Hub: устройства, команды и активности читаются с Hub по локальной сети. Взлом не нужен; ИК-коды и данные учётной записи в файл не попадают.</translation>
+      <source>Elite, Ultimate, Ultimate Home, 950, Companion and other remotes paired with a Hub: devices, commands and activities are read from the Hub on your network. No rooting is needed. A stock Hub does not give out IR codes: they are picked from the IR database by model and command names and may differ from the codes in the Hub. Account data is not included.</source>
+      <translation>Elite, Ultimate, Ultimate Home, 950, Companion и другие пульты, привязанные к Hub: устройства, команды и активности читаются с Hub по локальной сети. Взлом не нужен. Стоковый Hub не выдаёт ИК-коды: они подбираются из базы ИК-кодов по модели и именам команд и могут отличаться от кодов в Hub. Данные учётной записи в файл не попадают.</translation>
     </message>
     <message>
       <location filename="../../../app/src/widgets/newConfigDialog.cpp" />
@@ -3865,6 +3875,16 @@ Copy saved: %2</source>
       <translation>Чем «%1» отличается от другой конфигурации</translation>
     </message>
     <message>
+      <location filename="../../../app/src/mainWindow.cpp" />
+      <source>Hub configuration opened without IR codes: the IR database is not available.</source>
+      <translation>Конфигурация хаба открыта без ИК-кодов: база ИК-кодов недоступна.</translation>
+    </message>
+    <message>
+      <location filename="../../../app/src/mainWindow.cpp" />
+      <source>Hub IR codes: %1 as protocol, %2 as signal, %3 skipped</source>
+      <translation>ИК-коды хаба: %1 протоколом, %2 сигналом, пропущено %3</translation>
+    </message>
+    <message>
       <location filename="../../../app/src/widgets/configTransferDialog.cpp" />
       <source>Hub “%1”, firmware %2: %3 devices, %4 activities.
 Saved: %5
@@ -4114,6 +4134,26 @@ The file contains device names and models, but no IR codes, account or e-mail. Y
       <location filename="../../../app/src/widgets/irDatabasePanel.cpp" />
       <source>IR code database (*.irdb)</source>
       <translation>База ИК-кодов (*.irdb)</translation>
+    </message>
+    <message>
+      <location filename="../../../app/src/mainWindow.cpp" />
+      <source>IR code not resolved: %1</source>
+      <translation>ИК-код не найден: %1</translation>
+    </message>
+    <message>
+      <location filename="../../../app/src/mainWindow.cpp" />
+      <source>IR codes for “%1”</source>
+      <translation>ИК-коды для «%1»</translation>
+    </message>
+    <message>
+      <location filename="../../../app/src/mainWindow.cpp" />
+      <source>IR codes from the database for “%1”</source>
+      <translation>ИК-коды из базы для «%1»</translation>
+    </message>
+    <message>
+      <location filename="../../../app/src/mainWindow.cpp" />
+      <source>IR codes from the database: %1 commands filled, %2 devices without a match. These are not the hub's own codes and may differ.</source>
+      <translation>ИК-коды из базы: заполнено команд — %1, устройств без совпадения — %2. Это не собственные коды хаба, они могут отличаться.</translation>
     </message>
     <message>
       <location filename="../../../app/src/widgets/configView.cpp" />
@@ -4808,6 +4848,7 @@ The file contains device names and models, but no IR codes, account or e-mail. Y
       <location filename="../../../core/src/configDocumentButtons.cpp" />
       <location filename="../../../core/src/configDocumentCheck.cpp" />
       <location filename="../../../core/src/configDocumentCommands.cpp" />
+      <location filename="../../../core/src/configDocumentDatabase.cpp" />
       <location filename="../../../core/src/configDocumentEdit.cpp" />
       <location filename="../../../core/src/configDocumentMacros.cpp" />
       <location filename="../../../core/src/configDocumentNotSent.cpp" />
@@ -4826,6 +4867,11 @@ The file contains device names and models, but no IR codes, account or e-mail. Y
       <location filename="../../../core/src/configDocumentCheck.cpp" />
       <source>no device has the main role (DEFAULT): keys without an assignment do nothing</source>
       <translation>ни у одного устройства нет главной роли (DEFAULT): кнопки без назначения ничего не делают</translation>
+    </message>
+    <message>
+      <location filename="../../../app/src/mainWindow.cpp" />
+      <source>No device in the IR database for “%1”</source>
+      <translation>В базе ИК-кодов нет устройства для «%1»</translation>
     </message>
     <message>
       <location filename="../../../core/src/configDocumentProperties.cpp" />
@@ -6378,6 +6424,11 @@ Their buttons and start steps in this activity, including input switching, will 
     </message>
     <message>
       <location filename="../../../app/src/mainWindow.cpp" />
+      <source>Resolve hub IR codes</source>
+      <translation>ИК-коды хаба из базы</translation>
+    </message>
+    <message>
+      <location filename="../../../app/src/mainWindow.cpp" />
       <source>Resources were not updated. The previous resources are still in use.
 
 %1</source>
@@ -6858,6 +6909,11 @@ Their buttons and start steps in this activity, including input switching, will 
       <location filename="../../../app/src/linuxUsbSetup.cpp" />
       <source>Setup failed:&lt;br&gt;&lt;code&gt;%1&lt;/code&gt;&lt;br&gt;&lt;br&gt;You can run it in a terminal:&lt;br&gt;&lt;code&gt;%2&lt;/code&gt;</source>
       <translation>Настроить не удалось:&lt;br&gt;&lt;code&gt;%1&lt;/code&gt;&lt;br&gt;&lt;br&gt;Можно выполнить в терминале:&lt;br&gt;&lt;code&gt;%2&lt;/code&gt;</translation>
+    </message>
+    <message>
+      <location filename="../../../app/src/mainWindow.cpp" />
+      <source>Several models in the IR database fit “%1”. Choose the one that matches your device:</source>
+      <translation>В базе ИК-кодов несколько моделей подходят к «%1». Выберите ту, что совпадает с вашим устройством:</translation>
     </message>
     <message>
       <location filename="../../../app/src/widgets/buttonDialog.cpp" />
@@ -7541,8 +7597,14 @@ They will not be sent to the remote either. When the device is made active again
       <translation>Harmony 900 подключается по USB и видна как сетевой адаптер. Программа сама находит пульт по адресу %1; состояние показано справа вверху. В его меню есть «Проверить связь» и другие команды пульта.</translation>
     </message>
     <message>
+      <location filename="../../../core/src/formats/hubConfig.cpp" />
       <location filename="../../../transport/src/hubConfigReader.cpp" />
       <source>the Harmony Hub configuration file has no configuration</source>
+      <translation type="unfinished" />
+    </message>
+    <message>
+      <location filename="../../../core/src/formats/hubConfig.cpp" />
+      <source>the Harmony Hub resource file has no devices or activities</source>
       <translation type="unfinished" />
     </message>
     <message>
@@ -8255,6 +8317,16 @@ They will not be sent to the remote either. When the device is made active again
       <translation>Что изменится на пульте</translation>
     </message>
     <message>
+      <location filename="../../../app/src/widgets/configView.cpp" />
+      <source>This code was picked from the IR database by the device model and command name, not read from the hub. The code on the hub itself may differ.</source>
+      <translation>Код подобран из базы ИК-кодов по модели устройства и имени команды, а не прочитан с хаба. Код на самом хабе может отличаться.</translation>
+    </message>
+    <message>
+      <location filename="../../../core/src/configDocument.cpp" />
+      <source>this configuration cannot be written to the remote</source>
+      <translation>эту конфигурацию нельзя записать на пульт</translation>
+    </message>
+    <message>
       <location filename="../../../app/src/widgets/addDeviceDialog.cpp" />
       <source>This configuration has no devices.</source>
       <translation>В этой конфигурации нет устройств.</translation>
@@ -8268,6 +8340,11 @@ They will not be sent to the remote either. When the device is made active again
       <location filename="../../../core/src/irdb/protocolLibrary.cpp" />
       <source>this is not a database protocol file (AllProtocols.json)</source>
       <translation>это не файл протоколов базы (AllProtocols.json)</translation>
+    </message>
+    <message>
+      <location filename="../../../core/src/formats/hubConfig.cpp" />
+      <source>this is not a Harmony Hub configuration file</source>
+      <translation type="unfinished" />
     </message>
     <message>
       <location filename="../../../core/src/irdb/irDatabase.cpp" />
@@ -8593,6 +8670,7 @@ They will not be sent to the remote either. When the device is made active again
       <translation>Найдены несохранённые правки</translation>
     </message>
     <message>
+      <location filename="../../../core/src/formats/hubConfig.cpp" />
       <location filename="../../../transport/src/hubConfigReader.cpp" />
       <source>unsupported Harmony Hub configuration file version %1</source>
       <translation>неподдерживаемая версия файла конфигурации Harmony Hub: %1</translation>
@@ -9128,6 +9206,11 @@ Do not disconnect the remote while writing.</source>
       <location filename="../../../app/src/widgets/replaceDeviceDialog.cpp" />
       <source>— remove</source>
       <translation>— убрать</translation>
+    </message>
+    <message>
+      <location filename="../../../app/src/mainWindow.cpp" />
+      <source>— skip this device —</source>
+      <translation>— пропустить это устройство —</translation>
     </message>
     <message>
       <location filename="../../../app/src/widgets/compareDevicesDialog.cpp" />

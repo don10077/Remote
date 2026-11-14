@@ -226,6 +226,30 @@ private:
     std::unique_ptr<Impl> impl_;
 };
 
+/// Насколько устройство базы подходит под список имён команд.
+struct CandidateScore {
+    std::size_t entry = 0;   ///< Номер в IrDatabase::entries()
+    std::size_t matched = 0; ///< Сколько из запрошенных имён есть у устройства базы
+    std::size_t total = 0;   ///< Сколько имён запрошено
+    std::size_t extra = 0;   ///< Сколько команд у устройства базы сверх запрошенных
+};
+
+/**
+ * @brief Упорядочивает модели базы по совпадению имён команд: лучшие первыми.
+ *
+ * Для стокового хаба, который отдаёт только имена команд: из нескольких моделей с
+ * одинаковым названием вероятнее та, у которой совпало больше имён. Имена сравниваются
+ * без учёта регистра. При равенстве выигрывает устройство с меньшим числом лишних
+ * команд, затем — прежний порядок. Модели, которые не удалось прочитать, пропускаются.
+ * @param database База.
+ * @param candidates Номера в entries().
+ * @param names Имена команд устройства хаба.
+ * @return Оценки в порядке убывания пригодности.
+ */
+[[nodiscard]] std::vector<CandidateScore> rankByCommandNames(const IrDatabase& database,
+                                                             const std::vector<std::size_t>& candidates,
+                                                             const std::vector<std::string>& names);
+
 /// Итог сборки базы.
 struct BuildStats {
     std::size_t devices = 0;      ///< Устройств в базе

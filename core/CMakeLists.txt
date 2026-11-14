@@ -14,6 +14,7 @@ add_library(harmony_core
     src/activityDraft.cpp
     src/buttonIcons.cpp
     src/configDocument.cpp
+    src/harmony900Backend.cpp
     src/configDocumentAdd.cpp
     src/configDocumentButtons.cpp
     src/configDocumentCheck.cpp
@@ -28,7 +29,12 @@ add_library(harmony_core
     src/configDocumentStates.cpp
     src/configDiff.cpp
     src/formats/ezhex.cpp
+    src/formats/gspm.cpp
+    src/formats/gspmFonts.cpp
+    src/formats/gspmScreens.cpp
+    src/formats/hubConfig.cpp
     src/formats/irTables.cpp
+    src/formats/ssirSequences.cpp
     src/formats/userConfiguration.cpp
     src/formats/zipArchive.cpp
     src/ir/irDecode.cpp

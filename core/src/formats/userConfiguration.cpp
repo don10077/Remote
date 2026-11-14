@@ -150,6 +150,15 @@ Result<Device> parseDevice(const pugi::xml_node& node) {
             return makeError(ErrorCode::Format, "device %1: command “%2” has an invalid protocol “%3”", {device.id, command.name, protocolText});
         }
         command.protocol = *protocol;
+        // Необязательные поля конфигураций, собранных из других форматов (хаб); у 900 их нет.
+        const std::string transport = childText(commandNode, "Transport");
+        if (transport == "Bluetooth") command.transport = model::Transport::Bluetooth;
+        else if (transport == "Network") command.transport = model::Transport::Network;
+        else if (transport == "HomeAssistant") command.transport = model::Transport::HomeAssistant;
+        else if (transport == "Unknown") command.transport = model::Transport::Unknown;
+        command.protocolName = childText(commandNode, "ProtocolName");
+        command.native = childText(commandNode, "Native");
+        command.fromDatabase = childText(commandNode, "CodeSource") == "Database";
         device.commands.push_back(std::move(command));
     }
     return device;

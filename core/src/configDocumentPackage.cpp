@@ -175,6 +175,10 @@ Result<ConfigDocument> ConfigDocument::fromEzHex(std::span<const std::uint8_t> e
 }
 
 Result<std::vector<std::uint8_t>> ConfigDocument::toEzHex(bool forRemote) const {
+    // Конфигурацию другого формата (хаб) можно сохранить в файл, но не отправить на пульт.
+    if (forRemote && impl_->format != ConfigFormat::Harmony900) {
+        return std::unexpected(detail::readOnlyError().error());
+    }
     const auto* target = remoteProfile(targetRemote());
     if (forRemote && (!target || !target->writable || identity().architecture != 15 || identity().skin != 61)) {
         return makeError(ErrorCode::Unsupported, "writing configurations for target remote %1 is not implemented; this is an experimental project profile", {targetRemote()});

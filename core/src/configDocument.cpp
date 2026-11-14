@@ -59,6 +59,10 @@ Result<void> commit(ConfigDocument::Impl& impl, const pugi::xml_document& docume
 
 } // namespace
 
+Result<void> readOnlyError() {
+    return makeError(ErrorCode::Unsupported, "this configuration cannot be written to the remote");
+}
+
 Result<void> mutate(ConfigDocument::Impl& impl, const Change& change) {
     pugi::xml_document document;
     if (auto loaded = loadDom(document, impl.xml); !loaded) {
@@ -402,6 +406,109 @@ Result<ConfigDocument::Files> currentFiles(const ConfigDocument::Impl& impl) {
 
 } // namespace detail
 
+namespace {
+
+const char* transportName(model::Transport transport) {
+    switch (transport) {
+    case model::Transport::Bluetooth: return "Bluetooth";
+    case model::Transport::Network: return "Network";
+    case model::Transport::HomeAssistant: return "HomeAssistant";
+    case model::Transport::Unknown: return "Unknown";
+    case model::Transport::Ir: break;
+    }
+    return "Ir";
+}
+
+/// Конфигурация хаба в виде UserConfiguration.xml: редактор правит её как обычную.
+std::string hubAsXml(const model::RemoteConfig& config) {
+    using detail::appendProperty;
+    using detail::appendText;
+    pugi::xml_document document;
+    pugi::xml_node root = document.append_child("Root");
+
+    pugi::xml_node properties = root.append_child("Properties");
+    appendProperty(properties, "version", "1.0");
+    for (const auto& [key, value] : config.properties) {
+        appendProperty(properties, key.c_str(), value);
+    }
+
+    for (const auto& device : config.devices) {
+        pugi::xml_node node = root.append_child("Device");
+        appendText(node, "Id", device.id);
+        appendText(node, "Type", device.type);
+        appendText(node, "Manufacturer", device.manufacturer);
+        appendText(node, "Model", device.model);
+        appendText(node.append_child("Presentation"), "Label", device.label);
+        if (!device.inputs.empty()) {
+            pugi::xml_node state = node.append_child("States").append_child("State");
+            appendText(state, "Id", "Input");
+            for (const auto& input : device.inputs) {
+                appendText(state, "Value", input);
+            }
+        }
+        pugi::xml_node commands = node.append_child("Commands");
+        for (const auto& command : device.commands) {
+            pugi::xml_node item = commands.append_child("Command");
+            appendText(item, "Name", command.name);
+            // ИК-таблиц у хаба нет: протокол 0 и пустой код, настоящая запись — в Native.
+            pugi::xml_node data = item.append_child("Data");
+            appendText(data, "Protocol", "0");
+            appendText(data, "Code", "");
+            appendText(item, "Transport", transportName(command.transport));
+            appendText(item, "ProtocolName", command.protocolName);
+            appendText(item, "Native", command.native);
+            if (command.fromDatabase) {
+                appendText(item, "CodeSource", "Database");
+            }
+        }
+    }
+
+    for (const auto& activity : config.activities) {
+        pugi::xml_node node = root.append_child("Activity");
+        appendText(node, "Id", activity.id);
+        appendText(node, "Type", activity.type);
+        pugi::xml_node presentation = node.append_child("Presentation");
+        appendText(presentation, "Label", activity.label);
+        for (const auto& group : activity.controlGroups) {
+            pugi::xml_node groupNode = presentation.append_child("ControlGroup");
+            groupNode.append_attribute("name") = group.name.c_str();
+            for (const auto& button : group.buttons) {
+                pugi::xml_node buttonNode = groupNode.append_child("Button");
+                buttonNode.append_attribute("name") = button.name.c_str();
+                appendText(buttonNode, "Label", button.label);
+                if (!button.icon.empty()) appendText(buttonNode, "Icon", button.icon);
+                appendText(buttonNode, "Position", std::to_string(button.position));
+                appendText(buttonNode, "ActionId", button.actionId);
+            }
+        }
+        for (const auto& role : activity.roles) {
+            pugi::xml_node item = node.append_child("Role");
+            appendText(item, "Name", role.name);
+            appendText(item, "DeviceId", role.deviceId);
+        }
+        pugi::xml_node enter = node.append_child("EnterActions");
+        for (const auto& [deviceId, input] : activity.inputs) {
+            detail::appendSetValue(enter, deviceId, "Input", input);
+        }
+        pugi::xml_node power = node.append_child("Power");
+        for (const auto& id : activity.powerOn) appendText(power, "On", id);
+        for (const auto& id : activity.powerOff) appendText(power, "Off", id);
+    }
+    return detail::saveDom(document);
+}
+
+} // namespace
+
+Result<ConfigDocument> ConfigDocument::fromHub(const formats::HubConfiguration& hub, std::string name) {
+    auto document = fromXml(hubAsXml(formats::toRemoteConfig(hub)), std::move(name));
+    if (!document) {
+        return document;
+    }
+    // Правится как обычная конфигурация, но на пульт не пишется: см. ConfigBackend::canWriteToRemote().
+    document->impl_->format = ConfigFormat::Hub;
+    return document;
+}
+
 Result<ConfigDocument> ConfigDocument::fromFiles(const Files& files, std::string name) {
     auto document = fromXml(files.userConfiguration, std::move(name));
     if (!document) {
@@ -439,6 +546,23 @@ Result<ConfigDocument> ConfigDocument::open(const std::filesystem::path& path) {
     const auto content = readFile(file);
     if (!content) {
         return makeError(ErrorCode::Io, "could not open the file: %1", {pathToUtf8(file)});
+    }
+
+    // Конфигурация Harmony Hub (*.hub.json, DeviceList.json, копия Melodious): правится, на пульт не пишется.
+    if (!isFolder) {
+        const auto first = content->find_first_not_of(" \t\r\n\xEF\xBB\xBF");
+        if (first != std::string::npos && (*content)[first] == '{') {
+            auto hub = formats::parseHubConfig(*content);
+            if (!hub) {
+                return wrapError(hub.error(), "%1", {pathToUtf8(file)});
+            }
+            const std::u8string stem = path.stem().u8string();
+            auto document = fromHub(*hub, std::string(stem.begin(), stem.end()));
+            if (!document) {
+                return wrapError(document.error(), "%1", {pathToUtf8(file)});
+            }
+            return document;
+        }
     }
 
     // Резервная копия с пульта: заголовок <INFORMATION>, затем ZIP.

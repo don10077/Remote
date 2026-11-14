@@ -56,6 +56,8 @@ struct Package {
  * новую копию и подменяет указатель, поэтому снимок не копирует их целиком.
  */
 struct ConfigDocument::Impl {
+    /// Формат источника. Hub — xml собран из модели хаба: правится и сохраняется как обычный, но на пульт не пишется.
+    ConfigFormat format = ConfigFormat::Harmony900;
     std::string xml;              ///< Текст UserConfiguration.xml (сохраняется как есть)
     model::RemoteConfig model;    ///< Разобранная модель
     std::string name;             ///< Имя для показа
@@ -78,6 +80,9 @@ namespace detail {
 
 /// .EZHex для пульта без помеченного «не отправлять на пульт» (configDocumentNotSent.cpp).
 [[nodiscard]] Result<std::vector<std::uint8_t>> remoteEzHex(const ConfigDocument& document);
+
+/// Ошибка «формат только для чтения» (ErrorCode::Unsupported).
+[[nodiscard]] Result<void> readOnlyError();
 
 /// Правка дерева XML и таблиц; при ошибке документ не меняется.
 using Change = std::function<Result<void>(pugi::xml_node root, IrData& ir)>;
