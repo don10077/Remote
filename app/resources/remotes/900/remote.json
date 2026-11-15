@@ -6,9 +6,8 @@
   "touch": true
  },
  "connection": {
-  "transport": "usb-net",
-  "driver": "harmony900",
-  "configFormat": "harmony900"
+  "driver": "usb-net",
+  "format": "harmony-xml"
  },
  "hardware": {
   "image": "photo.png",

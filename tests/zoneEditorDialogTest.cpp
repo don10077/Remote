@@ -134,6 +134,8 @@ TEST(ZoneEditorDialog, Harmony900HasDifferentActivityAndCommandLayers) {
 
 TEST(ZoneEditorDialog, AutoZonesFlowVisibleOnCanvas) {
     // Как при запуске приложения: рабочая папка заполняется встроенными ресурсами.
+    // Папка — та, что рядом с exe: авто-зоны берут фото оттуда (remoteResources::folder()).
+    // Устаревшие remote.json штатных пультов в ней заменяются встроенными, ошибки не будет.
     const auto error = harmony::app::remoteResources::reload();
     ASSERT_TRUE(error.isEmpty()) << error.toStdString();
     harmony::app::ZoneEditorDialog dialog("600");

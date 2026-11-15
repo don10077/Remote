@@ -620,7 +620,7 @@ void ConfigView::fillSidebar() {
 
 void ConfigView::fillOverview() {
     const auto id = config_ ? config_->property("HarmonyTargetRemote") : std::string();
-    const auto* profile = harmony::remoteProfile(id.empty() ? "900" : id);
+    const auto* profile = harmony::remoteProfile(id.empty() ? harmony::defaultRemoteId() : id);
     const QString modelName = profile ? QString::fromUtf8(profile->name.data()) : tr("Remote");
     shell_->setRemoteName(modelName);
     if (config_ == nullptr) {

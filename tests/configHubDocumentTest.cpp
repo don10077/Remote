@@ -5,6 +5,7 @@
 
 #include "harmony/core/configDocument.h"
 #include "harmony/core/formats/hubConfig.h"
+#include "harmony/core/ir/irSignal.h"
 
 #include <gtest/gtest.h>
 
@@ -228,6 +229,108 @@ TEST(ConfigHubDocument, SavesToFolderAndReopens) {
     const auto reopened = ConfigDocument::open(target);
     ASSERT_TRUE(reopened) << reopened.error().message;
     EXPECT_EQ(reopened->model().devices.at(0).displayName(), "Телевизор");
+}
+
+TEST(ConfigHubDocument, FormatSurvivesSavingToFolder) {
+    const TempDir temp;
+    auto document = hubDocument();
+    const auto target = temp.path() / "out";
+    ASSERT_TRUE(document.saveAs(target));
+
+    const auto reopened = ConfigDocument::open(target);
+    ASSERT_TRUE(reopened) << reopened.error().message;
+    EXPECT_EQ(reopened->backend()->format(), ConfigFormat::Hub);
+    EXPECT_FALSE(reopened->backend()->canWriteToRemote());
+}
+
+TEST(ConfigHubDocument, FormatSurvivesSavingToEzHex) {
+    const TempDir temp;
+    auto document = hubDocument();
+    const auto file = temp.path() / "hub.EZHex";
+    ASSERT_TRUE(document.saveAsEzHex(file));
+    EXPECT_EQ(document.backend()->format(), ConfigFormat::Hub);
+
+    auto reopened = ConfigDocument::open(file);
+    ASSERT_TRUE(reopened) << reopened.error().message;
+    EXPECT_EQ(reopened->backend()->format(), ConfigFormat::Hub);
+    EXPECT_EQ(reopened->model().devices.at(0).displayName(), "Smart TV");
+    const auto ezhex = reopened->toEzHex(true);
+    ASSERT_FALSE(ezhex);
+    EXPECT_EQ(ezhex.error().code, ErrorCode::Unsupported);
+}
+
+TEST(ConfigHubDocument, BackendIsOwnedByDocumentAndSurvivesMove) {
+    auto document = hubDocument();
+    const harmony::ConfigBackend* backend = document.backend();
+    ASSERT_NE(backend, nullptr);
+    EXPECT_EQ(document.backend(), backend);
+
+    ConfigDocument moved = std::move(document);
+    EXPECT_EQ(moved.backend(), backend);
+    EXPECT_EQ(&backend->model(), &moved.model());
+}
+
+namespace {
+
+/// Хаб без ИК-кодов: команда Bluetooth и ИК-команда стокового хаба (только имя).
+constexpr std::string_view kHubWithoutCodes = R"({
+  "DeviceList.json": {"DevicesWithFeatures": [
+    {"Device": {"Id-": 11, "Name": "Console", "Manufacturer": "Sony", "Model": "PS5"},
+     "Commands": [
+       {"Name": "Home", "KeyCode": "G:HID 16 Bit:()(07000027)():1", "TransportType": 32},
+       {"Name": "PowerOn", "TransportType": 1}
+     ]}
+  ]},
+  "ActivityList.json": {"Activities": [{"Id-": -1, "Name": "PowerOff", "ActivityOrder": 0, "Roles": []}]}
+})";
+
+/// Сигнал NEC: адрес 0x04, команда @p command.
+harmony::ir::IrSignal necSignal(std::uint8_t command) {
+    harmony::ir::IrSignal signal;
+    signal.durations = {9000, -4500};
+    const std::uint32_t frame = 0x04U | (0xFBU << 8) | (static_cast<std::uint32_t>(command) << 16) |
+                                (static_cast<std::uint32_t>(~command & 0xFF) << 24);
+    for (int bit = 0; bit < 32; ++bit) {
+        signal.durations.push_back(560);
+        signal.durations.push_back(((frame >> bit) & 1U) != 0 ? -1690 : -560);
+    }
+    signal.durations.push_back(560);
+    signal.durations.push_back(-40000);
+    return signal;
+}
+
+} // namespace
+
+TEST(ConfigHubDocument, CheckDoesNotBlameMissingTablesForCommandsWithoutCode) {
+    const auto document = ConfigDocument::fromHub(*harmony::formats::parseHubConfig(kHubWithoutCodes), "hub");
+    ASSERT_TRUE(document) << document.error().message;
+
+    std::size_t missingCode = 0;
+    for (const auto& problem : document->check()) {
+        EXPECT_EQ(problem.what.message.find("IrProto.bin"), std::string::npos) << problem.what.message;
+        EXPECT_EQ(problem.what.message.find("SsIr.bin"), std::string::npos) << problem.what.message;
+        if (problem.id == "11" && problem.what.format.find("have no IR code") != std::string::npos) {
+            ++missingCode;
+            EXPECT_EQ(problem.severity, harmony::Problem::Severity::Warning);
+            ASSERT_EQ(problem.what.args.size(), 2U);
+            EXPECT_EQ(problem.what.args[0], "1"); // только ИК-команда; Bluetooth ИК-код не нужен
+        }
+    }
+    EXPECT_EQ(missingCode, 1U);
+}
+
+TEST(ConfigHubDocument, LearningCodeTurnsCommandIntoPlainIr) {
+    auto document = ConfigDocument::fromHub(*harmony::formats::parseHubConfig(kHubWithoutCodes), "hub");
+    ASSERT_TRUE(document) << document.error().message;
+    ASSERT_EQ(document->model().devices.at(0).commands.at(0).transport, harmony::model::Transport::Bluetooth);
+
+    ASSERT_TRUE(document->learnCommand("11", "Home", necSignal(0x10)));
+
+    const auto& command = *document->model().devices.at(0).findCommand("Home");
+    EXPECT_EQ(command.transport, harmony::model::Transport::Ir);
+    EXPECT_FALSE(command.fromDatabase);
+    EXPECT_FALSE(command.code.empty());
+    EXPECT_FALSE(command.native.empty()); // исходная запись хаба остаётся
 }
 
 TEST(ConfigHubDocument, RemoteWriteIsRefused) {

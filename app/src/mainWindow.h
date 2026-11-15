@@ -6,6 +6,7 @@
  */
 
 #include "harmony/core/configDocument.h"
+#include "harmony/core/remoteProfile.h"
 #include "harmony/core/undo/undoStack.h"
 #include "harmony/transport/remoteLink.h"
 
@@ -262,7 +263,7 @@ private:
     void applyRemoteResources(bool interactive);
     /// Открыть конфигурацию при запуске: «открывать при запуске», последнюю или окно выбора.
     void openStartupConfig();
-    /// Открыть редактор зон пультов (zones.json, layouts.json).
+    /// Открыть редактор зон пультов (remote.json).
     void editRemoteZones();
     /// Выгрузить ресурсы текущей модели или все в папку для правки.
     void exportRemoteResources();
@@ -417,7 +418,7 @@ private:
     QAction* readRemoteAction_ = nullptr;
     QAction* chooseRemoteAction_ = nullptr;
     QAction* transferAction_ = nullptr;
-    QString selectedRemote_ = "900";
+    QString selectedRemote_ = QString::fromStdString(harmony::defaultRemoteId());
     QAction* writeRemoteAction_ = nullptr;
     QAction* checkConfigAction_ = nullptr;
     QAction* compareConfigsAction_ = nullptr; ///< «Сравнить с другой конфигурацией…»

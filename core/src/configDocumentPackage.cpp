@@ -176,7 +176,8 @@ Result<ConfigDocument> ConfigDocument::fromEzHex(std::span<const std::uint8_t> e
 
 Result<std::vector<std::uint8_t>> ConfigDocument::toEzHex(bool forRemote) const {
     // Конфигурацию другого формата (хаб) можно сохранить в файл, но не отправить на пульт.
-    if (forRemote && impl_->format != ConfigFormat::Harmony900) {
+    // Формат записан в XML (SourceFormat), поэтому сохранённый .EZHex откроется снова как хаб.
+    if (forRemote && !backend()->canWriteToRemote()) {
         return std::unexpected(detail::readOnlyError().error());
     }
     const auto* target = remoteProfile(targetRemote());

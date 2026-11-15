@@ -2,6 +2,7 @@
 
 #include "../icons.h"
 #include "../theme.h"
+#include "harmony/core/remoteProfile.h"
 
 #include <QApplication>
 #include <QDrag>
@@ -191,7 +192,8 @@ ModernShell::ModernShell(QWidget* parent) : QWidget(parent) {
     cardLayout->addWidget(cardIcon);
     auto* cardText = new QVBoxLayout();
     cardText->setSpacing(1);
-    auto* appTitle = new QLabel(tr("Harmony 900"), card);
+    // Название пульта по умолчанию; ConfigView заменит его названием пульта конфигурации.
+    auto* appTitle = new QLabel(QString::fromStdString(harmony::defaultRemoteProfile().name), card);
     appTitle->setObjectName("appTitle");
     cardText->addWidget(appTitle);
     documentLabel = new QLabel(tr("no configuration"), card);

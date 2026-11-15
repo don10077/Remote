@@ -4,9 +4,9 @@
   python tools/autoZones.py <папка модели|фото.png> --json
       Только JSON-массив рамок [[x, y, w, h], …] в stdout — для кнопки «Авто-зоны» приложения.
   python tools/autoZones.py <папка модели> <папка вывода>
-      Сравнение с ручным zones.json и отладочный оверлей overlay.png.
+      Сравнение с ручными зонами корпуса (remote.json: hardware.zones) и отладочный оверлей overlay.png.
 
-Рамки не пересекаются друг с другом, не заходят на прозрачный фон и на экран (profile.json: screen).
+Рамки не пересекаются друг с другом, не заходят на прозрачный фон и на экран (remote.json: display.rect).
 """
 import json
 import sys
@@ -39,11 +39,11 @@ def load(photo: Path):
     if bgr is None or bgr.ndim != 3 or bgr.shape[2] != 4:
         raise SystemExit(f"нужно PNG с прозрачным фоном: {photo}")
     screen = None
-    profile = photo.parent / "profile.json"
-    if profile.is_file():
-        prof = json.loads(profile.read_text(encoding="utf-8"))
-        if prof.get("screen"):
-            screen = tuple(int(v) for v in prof["screen"])
+    remote = photo.parent / "remote.json"
+    if remote.is_file():
+        rect = json.loads(remote.read_text(encoding="utf-8")).get("display", {}).get("rect")
+        if rect:
+            screen = tuple(int(v) for v in rect)
     return bgr, screen
 
 
@@ -189,7 +189,8 @@ def main():
         return
     out = Path(args[1])
     out.mkdir(parents=True, exist_ok=True)
-    manual = json.loads((photo.parent / "zones.json").read_text(encoding="utf-8"))
+    remote = json.loads((photo.parent / "remote.json").read_text(encoding="utf-8"))
+    manual = remote.get("hardware", {}).get("zones", [])
     print(f"найдено зон: {len(boxes)}, ручных зон: {len(manual)}")
     ov = rgb.copy()
     n_match = 0
@@ -200,7 +201,7 @@ def main():
         n_match += best >= 0.5
         print(f"  [{i:2d}] {x:3d},{y:3d} {w:3d}x{h:3d}  IoU={best:.2f} {'~' + mid if best >= 0.5 else '-'}")
     for z in manual:
-        x, y, w, h = (int(round(v)) for v in z["rect"])  # в zones.json бывают дроби
+        x, y, w, h = (int(round(v)) for v in z["rect"])  # в зонах бывают дроби
         cv2.rectangle(ov, (x, y), (x + w, y + h), (255, 80, 0), 2)
     cv2.imwrite(str(out / "overlay.png"), ov)
     print(f"совпало (IoU>=0.5): {n_match}/{len(manual)}")

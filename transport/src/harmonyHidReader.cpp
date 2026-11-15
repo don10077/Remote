@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Протокол изучен по concordance/libconcord/remote.cpp и remote_info.h
-// (Kevin Timmerman, Phil Dibowitz; GPL-3.0-or-later). См. docs/hid-reading.md.
+// (Kevin Timmerman, Phil Dibowitz; GPL-3.0-or-later). См. docs/hid-models.md.
 #include "harmony/transport/harmonyHidReader.h"
 
 #include <algorithm>

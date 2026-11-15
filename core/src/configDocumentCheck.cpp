@@ -539,8 +539,19 @@ std::vector<Problem> ConfigDocument::check() const {
         return {}; // документ открылся, значит XML разбирается; сюда не попадаем
     }
     auto problems = Checker(impl_->model, dom.child("Root")).run();
+    // Документ хаба можно править без ИК-кодов: их нет у команд Bluetooth, сети и Home Assistant,
+    // а у ИК-команд стокового хаба есть только имя. На 900 команда без кода не сработает.
+    const bool hubDocument = backend()->format() != ConfigFormat::Harmony900;
     for (const auto& device : impl_->model.devices) {
+        std::vector<std::string> withoutCode;
         for (const auto& command : device.commands) {
+            if (hubDocument && command.code.empty()) {
+                // Команду без ИК-данных нечего исполнять: таблицы IrProto/SsIr здесь ни при чём.
+                if (command.transport == model::Transport::Ir || command.transport == model::Transport::Unknown) {
+                    withoutCode.push_back(command.name);
+                }
+                continue;
+            }
             auto details = commandDetails(device.id, command.name);
             if (!details || details->signal.durations.empty()) {
                 Problem problem;
@@ -564,6 +575,17 @@ std::vector<Problem> ConfigDocument::check() const {
                                    {details->decoded->protocol});
                 problems.push_back(std::move(problem));
             }
+        }
+        if (!withoutCode.empty()) {
+            // Одно предупреждение на устройство, а не ошибка на каждую команду.
+            Problem problem;
+            problem.severity = Problem::Severity::Warning;
+            problem.where = Problem::Where::Device;
+            problem.id = device.id;
+            problem.place = say(device.displayName());
+            problem.what = say("%1 of %2 commands have no IR code yet; pick the device model in the IR database",
+                               {std::to_string(withoutCode.size()), std::to_string(device.commands.size())});
+            problems.push_back(std::move(problem));
         }
     }
     // Кнопки-макросы: шаги шлют существующие команды существующим устройствам.

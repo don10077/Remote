@@ -6,9 +6,8 @@
   "touch": true
  },
  "connection": {
-  "transport": "usb-hid",
-  "driver": "hid",
-  "configFormat": "unsupported"
+  "driver": "usb-hid",
+  "format": "gspm"
  },
  "hardware": {
   "image": "photo.png",

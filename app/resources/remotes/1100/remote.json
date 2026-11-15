@@ -6,9 +6,8 @@
   "touch": true
  },
  "connection": {
-  "transport": "usb-net",
-  "driver": "harmony900",
-  "configFormat": "unsupported"
+  "driver": "usb-net",
+  "format": "device-sequence"
  },
  "hardware": {
   "image": "photo.png",
@@ -467,7 +466,6 @@
      "kind": "ScreenLabel"
     }
    ],
-   "style": "t1100",
    "centerLastRow": true,
    "compose": true,
    "layers": [
@@ -764,7 +762,6 @@
      "kind": "ScreenLabel"
     }
    ],
-   "style": "t1100",
    "centerLastRow": true,
    "compose": true,
    "layers": [
@@ -1205,7 +1202,6 @@
      "kind": "ScreenKey"
     }
    ],
-   "style": "t1100",
    "compose": true,
    "layers": [
     {
@@ -1690,7 +1686,6 @@
      "kind": "ScreenKey"
     }
    ],
-   "style": "t1100",
    "compose": true,
    "layers": [
     {
@@ -2202,7 +2197,6 @@
      "kind": "ScreenKey"
     }
    ],
-   "style": "t1100",
    "compose": true,
    "layers": [
     {
@@ -2734,7 +2728,6 @@
      "kind": "ScreenKey"
     }
    ],
-   "style": "t1100",
    "compose": true,
    "layers": [
     {

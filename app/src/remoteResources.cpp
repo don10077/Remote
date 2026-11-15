@@ -22,12 +22,14 @@
 namespace harmony::app::remoteResources {
 namespace {
 QHash<QString, QByteArray> snapshot;
-/// Ключи снимка, достроенные из remote.json (на диске их нет, наружу не выгружаются).
-QSet<QString> synthetic;
+/// Проверенные описания пультов последнего снимка: id → remote.json с достроенными rect ячеек.
+QHash<QString, QJsonObject> remotes;
 quint64 generation = 0;
 /// Пользовательские модели, пропущенные последним reload() из-за ошибок (тексты ошибок).
 QStringList skippedModels;
 QHash<QString, QString> skippedById;
+/// remote.json в старой схеме, переведённые последним reload() на новую (пути к файлам).
+QStringList migratedFiles;
 /// Проверить конечные координаты прямоугольника и положительный размер.
 QRectF rect(const QJsonValue& value) {
     const auto a = value.toArray();
@@ -35,132 +37,128 @@ QRectF rect(const QJsonValue& value) {
     for (const auto& n : a) if (!n.isDouble() || !std::isfinite(n.toDouble())) return {};
     return {a[0].toDouble(), a[1].toDouble(), a[2].toDouble(), a[3].toDouble()};
 }
-/// Файл относится к ресурсам пультов: путь от корня папки ресурсов.
+/// Описание пульта: `remotes/<id>/remote.json`, путь от корня папки ресурсов.
+bool remoteFile(const QString& relative) {
+    static const QRegularExpression pattern(QStringLiteral("^remotes/[^/]+/remote\\.json$"));
+    return pattern.match(relative).hasMatch();
+}
+/**
+ * Файл относится к ресурсам пультов: путь от корня папки ресурсов.
+ * Из JSON читается только remote.json; оставшиеся от старых версий profile.json, zones.json,
+ * screens.json и layouts.json не читаются и не мешают загрузке.
+ */
 bool managed(const QString& relative) {
-    return (relative == "layouts.json" || relative.startsWith("remotes/") || relative.startsWith("sprites/")) &&
-           (relative.endsWith(".json") || relative.endsWith(".png") || relative.endsWith(".svg"));
+    if (relative.endsWith(".json")) return remoteFile(relative);
+    return (relative.startsWith("remotes/") || relative.startsWith("sprites/")) &&
+           (relative.endsWith(".png") || relative.endsWith(".svg"));
 }
 const QString kPrefix = ":/res/";
-
-/**
- * Достроить во внутреннем снимке документы profile/zones/screens и общую библиотеку раскладок
- * из remote.json: на диске лежит только remote.json, остальной код читает снимок.
- * remote.json главнее одноимённых старых файлов (если они остались в пользовательской папке).
- * Раскладка экрана получает id `screen.layout` либо `<модель>_<экран>`; при конфликте
- * с другой моделью (тот же id, другие ячейки) к id добавляется `_<модель>`.
- */
-void expandRemoteJson(QHash<QString, QByteArray>& candidate, QHash<QString, QString>& sources,
-                      QSet<QString>& generated) {
-    const QString layoutPath = ":/res/layouts.json";
-    QJsonArray library = QJsonDocument::fromJson(candidate.value(layoutPath)).array();
-    QHash<QString, QJsonObject> libraryById;
-    for (const auto& entry : library) libraryById.insert(entry.toObject().value("id").toString(), entry.toObject());
-    bool libraryChanged = false;
-    const auto put = [&](const QString& key, const QJsonValue& value, const QString& source) {
-        const QJsonDocument doc = value.isArray() ? QJsonDocument(value.toArray()) : QJsonDocument(value.toObject());
-        candidate.insert(key, doc.toJson(QJsonDocument::Compact));
-        sources.insert(key, source);
-        generated.insert(key);
-    };
-    QStringList keys = candidate.keys();
-    keys.sort();
-    for (const QString& key : keys) {
-        if (!key.startsWith(":/res/remotes/") || !key.endsWith("/remote.json")) continue;
-        const QString dir = key.left(key.size() - QString("/remote.json").size());
-        const QString modelId = dir.mid(QString(":/res/remotes/").size());
-        const auto remote = QJsonDocument::fromJson(candidate.value(key)).object();
-        if (remote.isEmpty()) continue;
-        const auto hardware = remote.value("hardware").toObject();
-        const auto display = remote.value("display").toObject();
-        const auto connection = remote.value("connection").toObject();
-        QJsonObject profile{{"id", remote.value("id")}, {"name", remote.value("name")},
-                            {"image", hardware.value("image")}, {"size", hardware.value("size")},
-                            {"screen", display.value("rect")},
-                            {"touch", remote.value("capabilities").toObject().value("touch")},
-                            {"driver", connection.value("driver")},
-                            {"configFormat", connection.value("configFormat")}};
-        if (display.contains("tint")) profile.insert("screenTint", display.value("tint"));
-        QJsonObject modes, spriteImages, spriteScreens;
-        for (const auto& value : remote.value("screens").toArray()) {
-            const auto screen = value.toObject();
-            const QString mode = screen.value("id").toString();
-            if (mode.isEmpty()) continue;
-            // Раскладка экрана принадлежит только этому пульту: имя всегда <модель>_<экран>.
-            // Общих именованных раскладок (list_3, soft_2x2 и т.п.) больше нет, поле "layout" не читается.
-            QString layoutId = modelId + "_" + mode;
-            QJsonArray cells = screen.value("cells").toArray();
-            const auto grid = screen.value("grid").toObject();
-            const auto refSize = screen.value("ref").toArray();
-            const int cols = grid.value("cols").toInt();
-            const int rows = grid.value("rows").toInt();
-            if (cols > 0 && rows > 0 && refSize.size() == 2) {
-                // Ячейки без rect ставятся по сетке: col/row (с нуля), colSpan/rowSpan (по умолчанию 1).
-                const qreal gap = grid.value("gap").toDouble(4);
-                const qreal cw = (refSize[0].toDouble() - gap * (cols + 1)) / cols;
-                const qreal ch = (refSize[1].toDouble() - gap * (rows + 1)) / rows;
-                for (int i = 0; i < cells.size(); ++i) {
-                    auto cellObject = cells[i].toObject();
-                    if (cellObject.contains("rect") || !cellObject.contains("col") || !cellObject.contains("row")) continue;
-                    const int col = cellObject.value("col").toInt();
-                    const int row = cellObject.value("row").toInt();
-                    const int cs = std::max(1, cellObject.value("colSpan").toInt(1));
-                    const int rs = std::max(1, cellObject.value("rowSpan").toInt(1));
-                    const auto round2 = [](qreal v) { return std::round(v * 100) / 100; };
-                    cellObject.insert("rect", QJsonArray{round2(gap + col * (cw + gap)), round2(gap + row * (ch + gap)),
-                                                         round2(cw * cs + gap * (cs - 1)), round2(ch * rs + gap * (rs - 1))});
-                    if (!cellObject.contains("kind")) cellObject.insert("kind", "ScreenSlot");
-                    cells[i] = cellObject;
-                }
-            }
-            QJsonObject layout{{"id", layoutId}, {"ref", screen.value("ref")},
-                               {"touch", screen.value("touch")}, {"zones", cells}};
-            for (const char* field : {"style", "centerLastRow", "compose", "grid", "background"})
-                if (screen.contains(field)) layout.insert(field, screen.value(field));
-            // Оформление плиток нужно любому экрану с плитками: иначе цвет из редактора не виден.
-            // Общий блок remote.json "tiles" (цвет, рамка плиток) перекрывает оформление экрана:
-            // плитки у всех экранов пульта одинаковые.
-            QJsonObject cellStyle = screen.value("cell").toObject();
-            const auto tiles = remote.value("tiles").toObject();
-            for (auto it = tiles.begin(); it != tiles.end(); ++it) cellStyle.insert(it.key(), it.value());
-            if (grid.contains("cols") || !cellStyle.isEmpty()) layout.insert("cellStyle", cellStyle);
-            const auto cell = screen.value("cell").toObject();
-            if (cell.contains("image")) layout.insert("tile", cellStyle); // со спрайтом, но и с общим цветом/рамкой
-            if (libraryById.contains(layoutId) && libraryById.value(layoutId) != layout) {
-                layoutId += "_" + modelId;
-                layout.insert("id", layoutId);
-            }
-            modes.insert(mode, layoutId);
-            if (!libraryById.contains(layoutId)) {
-                library.append(layout);
-                libraryById.insert(layoutId, layout);
-                libraryChanged = true;
-            }
-            if (!screen.contains("layers")) continue;
-            QJsonArray items;
-            for (const auto& layerValue : screen.value("layers").toArray()) {
-                auto layer = layerValue.toObject();
-                const QString file = layer.value("image").toString();
-                const QString name = QFileInfo(file).completeBaseName();
-                spriteImages.insert(name, QJsonObject{{"file", file}});
-                layer.insert("image", name);
-                items.append(layer);
-            }
-            spriteScreens.insert(mode, items);
-        }
-        profile.insert("modes", modes);
-        put(dir + "/profile.json", profile, sources.value(key));
-        put(dir + "/zones.json", hardware.value("zones").toArray(), sources.value(key));
-        if (!spriteScreens.isEmpty())
-            put(dir + "/screens.json", QJsonObject{{"images", spriteImages}, {"screens", spriteScreens}},
-                sources.value(key));
-    }
-    if (libraryChanged) put(layoutPath, library, sources.value(layoutPath));
-}
+const QString kRemotes = ":/res/remotes/";
 }
 
 QString folder() { return QDir(QCoreApplication::applicationDirPath()).filePath("resources"); }
 quint64 revision() { return generation; }
 QStringList skipped() { return skippedModels; }
+QStringList migratedByReload() { return migratedFiles; }
+
+QJsonObject normalizeScreen(QJsonObject screen) {
+    const auto grid = screen.value("grid").toObject();
+    const auto ref = screen.value("ref").toArray();
+    const int cols = grid.value("cols").toInt();
+    const int rows = grid.value("rows").toInt();
+    if (cols <= 0 || rows <= 0 || ref.size() != 2) return screen;
+    // Ячейки без rect ставятся по сетке: col/row (с нуля), colSpan/rowSpan (по умолчанию 1).
+    const qreal gap = grid.value("gap").toDouble(4);
+    const qreal cw = (ref[0].toDouble() - gap * (cols + 1)) / cols;
+    const qreal ch = (ref[1].toDouble() - gap * (rows + 1)) / rows;
+    const auto round2 = [](qreal v) { return std::round(v * 100) / 100; };
+    QJsonArray cells = screen.value("cells").toArray();
+    bool changed = false;
+    for (int i = 0; i < cells.size(); ++i) {
+        auto cell = cells[i].toObject();
+        if (cell.contains("rect") || !cell.contains("col") || !cell.contains("row")) continue;
+        const int col = cell.value("col").toInt();
+        const int row = cell.value("row").toInt();
+        const int cs = std::max(1, cell.value("colSpan").toInt(1));
+        const int rs = std::max(1, cell.value("rowSpan").toInt(1));
+        cell.insert("rect", QJsonArray{round2(gap + col * (cw + gap)), round2(gap + row * (ch + gap)),
+                                       round2(cw * cs + gap * (cs - 1)), round2(ch * rs + gap * (rs - 1))});
+        if (!cell.contains("kind")) cell.insert("kind", "ScreenSlot");
+        cells[i] = cell;
+        changed = true;
+    }
+    if (changed) screen.insert("cells", cells);
+    return screen;
+}
+
+QJsonObject normalizeRemote(QJsonObject remote) {
+    QJsonArray screens = remote.value("screens").toArray();
+    for (int i = 0; i < screens.size(); ++i) screens[i] = normalizeScreen(screens[i].toObject());
+    if (remote.contains("screens")) remote.insert("screens", screens);
+    return remote;
+}
+
+QJsonObject remote(const QString& modelId) {
+    if (generation == 0) {
+        // reload() ещё не вызывался (тесты, ранний запуск): встроенное описание пульта.
+        QFile file(kRemotes + modelId + "/remote.json");
+        if (!file.open(QIODevice::ReadOnly)) return {};
+        return normalizeRemote(QJsonDocument::fromJson(file.readAll()).object());
+    }
+    return remotes.value(modelId);
+}
+
+bool migrateRemote(QJsonObject& remote, const QString& modelId) {
+    bool changed = false;
+    // Встроенное описание того же пульта — образец новых полей; у своих пультов его нет.
+    QJsonObject builtin;
+    if (QFile file(":/res/remotes/" + modelId + "/remote.json"); file.open(QIODevice::ReadOnly))
+        builtin = QJsonDocument::fromJson(file.readAll()).object();
+
+    const auto connection = remote.value("connection").toObject();
+    const QString driver = connection.value("driver").toString();
+    if (connection.contains("configFormat") || connection.contains("transport") || driver == "hid" ||
+        driver == "harmony900") {
+        const auto fresh = builtin.value("connection").toObject();
+        const QString newDriver = driver == "harmony900" ? QStringLiteral("usb-net")
+                                  : driver == "hid"      ? QStringLiteral("usb-hid")
+                                                         : QStringLiteral("none");
+        const QString newFormat = connection.value("configFormat").toString() == "harmony900"
+                                      ? QStringLiteral("harmony-xml") : QStringLiteral("none");
+        remote.insert("connection", QJsonObject{
+            {"driver", fresh.contains("driver") ? fresh.value("driver") : QJsonValue(newDriver)},
+            {"format", fresh.contains("format") ? fresh.value("format") : QJsonValue(newFormat)}});
+        changed = true;
+    }
+
+    // Поле style экранов: вид 600-серии и цвет подписей панелей теперь заданы данными.
+    QHash<QString, QJsonObject> builtinScreens;
+    for (const auto& value : builtin.value("screens").toArray())
+        builtinScreens.insert(value.toObject().value("id").toString(), value.toObject());
+    QJsonArray screens = remote.value("screens").toArray();
+    bool screensChanged = false;
+    for (int i = 0; i < screens.size(); ++i) {
+        QJsonObject screen = screens[i].toObject();
+        if (!screen.contains("style")) continue;
+        const QString style = screen.take("style").toString();
+        const QJsonObject fresh = builtinScreens.value(screen.value("id").toString());
+        if (style == "h600") {
+            screen.insert("compact", true);
+            QJsonObject background = screen.value("background").toObject();
+            const auto freshImage = fresh.value("background").toObject().value("image");
+            if (!background.contains("image") && freshImage.isString()) background.insert("image", freshImage);
+            screen.insert("background", background);
+        }
+        if (fresh.contains("panel") && !screen.contains("panel")) screen.insert("panel", fresh.value("panel"));
+        screens[i] = screen;
+        screensChanged = true;
+    }
+    if (screensChanged) {
+        remote.insert("screens", screens);
+        changed = true;
+    }
+    return changed;
+}
 QString modelError(const QString& id) { return skippedById.value(id); }
 QStringList skippedIds() {
     auto ids = skippedById.keys();
@@ -192,23 +190,36 @@ QString reload(const QString& root) {
             sources.insert(key, file);
         }
     }
-    QSet<QString> generated;
-    expandRemoteJson(candidate, sources, generated);
-    QHash<QString, QJsonDocument> json;
+    // remote.json прошлой версии программы (старые connection и style) переводится на новую схему
+    // в памяти; правки пользователя (зоны, цвета, экраны) сохраняются. Файл на диске не меняется,
+    // редактор зон запишет его в новой схеме при следующем сохранении.
+    QStringList migrated;
+    for (auto it = candidate.begin(); it != candidate.end(); ++it) {
+        const QString& key = it.key();
+        if (!key.endsWith("/remote.json")) continue;
+        QJsonParseError parseError;
+        const auto document = QJsonDocument::fromJson(it.value(), &parseError);
+        if (parseError.error != QJsonParseError::NoError || !document.isObject()) continue; // ошибка — ниже
+        QJsonObject remote = document.object();
+        const QString modelId = key.mid(kRemotes.size()).section('/', 0, 0);
+        if (!migrateRemote(remote, modelId)) continue;
+        it.value() = QJsonDocument(remote).toJson(QJsonDocument::Compact);
+        migrated.append(sources.value(key));
+    }
+    QHash<QString, QJsonObject> parsed; // id пульта → remote.json
     // Ошибки пультов, которые не входят в штатный набор: пульт пропускается, остальные работают.
     QHash<QString, QString> failed;
     QString fatal;
-    const auto customModel = [](const QString& key) -> QString {
-        static const QString prefix = ":/res/remotes/";
-        if (!key.startsWith(prefix)) return {};
-        const QString id = key.mid(prefix.size()).section('/', 0, 0);
-        for (const auto& item : harmony::bundledRemoteProfiles)
-            if (item.id == id.toStdString()) return {};
-        return id;
+    const auto isBundled = [](const QString& id) {
+        return std::ranges::any_of(harmony::bundledRemoteProfiles,
+                                   [&](const auto& item) { return item.id == id.toStdString(); });
+    };
+    const auto modelOf = [](const QString& key) -> QString {
+        return key.startsWith(kRemotes) ? key.mid(kRemotes.size()).section('/', 0, 0) : QString();
     };
     const auto reject = [&](const QString& key, const QString& message) {
-        const QString id = customModel(key);
-        if (id.isEmpty()) {
+        const QString id = modelOf(key);
+        if (id.isEmpty() || isBundled(id)) {
             if (fatal.isEmpty()) fatal = message;
         } else if (!failed.contains(id)) {
             failed.insert(id, message);
@@ -220,127 +231,121 @@ QString reload(const QString& root) {
             const auto doc = QJsonDocument::fromJson(it.value(), &error);
             if (error.error != QJsonParseError::NoError) {
                 reject(it.key(), sources[it.key()] + ": " + error.errorString());
-                continue;
-            }
-            const bool array = it.key().endsWith("/zones.json") || it.key().endsWith("/layouts.json");
-            if (array ? !doc.isArray() : !doc.isObject()) {
+            } else if (!doc.isObject()) {
                 reject(it.key(), sources[it.key()] + ": invalid JSON structure");
-                continue;
+            } else {
+                parsed.insert(modelOf(it.key()), normalizeRemote(doc.object()));
             }
-            json.insert(it.key(), doc);
         } else if (it.key().endsWith(".png")) {
             if (QImage::fromData(it.value()).isNull()) reject(it.key(), sources[it.key()] + ": invalid image");
         } else if (!QSvgRenderer(it.value()).isValid()) reject(it.key(), sources[it.key()] + ": invalid SVG");
     }
     if (!fatal.isEmpty()) return fatal;
-    // Файлы пропущенных пультов не попадают в снимок.
-    for (auto bad = failed.cbegin(); bad != failed.cend(); ++bad) {
-        const QString prefix = ":/res/remotes/" + bad.key() + "/";
-        for (auto it = candidate.begin(); it != candidate.end();)
-            it = it.key().startsWith(prefix) ? candidate.erase(it) : std::next(it);
-        for (auto it = json.begin(); it != json.end();)
-            it = it.key().startsWith(prefix) ? json.erase(it) : std::next(it);
-    }
-    const QString layoutPath = ":/res/layouts.json";
-    QSet<QString> layouts;
-    for (const auto& entry : json[layoutPath].array()) {
-        const auto layout = entry.toObject();
-        const auto id = layout.value("id").toString();
-        const auto ref = layout.value("ref").toArray();
-        if (id.isEmpty() || layouts.contains(id) || ref.size() != 2 ||
-            ref[0].toDouble() <= 0 || ref[1].toDouble() <= 0 || !layout.value("zones").isArray())
-            return sources[layoutPath] + ": invalid layout " + id;
-        layouts.insert(id);
-        for (const auto& z : layout.value("zones").toArray())
-            if (!rect(z.toObject().value("rect")).isValid()) return sources[layoutPath] + ": invalid zone in " + id;
-        const auto tile = layout.value("tile").toObject().value("image").toString();
-        if (!tile.isEmpty() && !candidate.contains(":/res/" + tile)) return sources[layoutPath] + ": missing " + tile;
-    }
+
     std::vector<harmony::RemoteProfile> models;
-    auto paths = json.keys();
-    paths.sort();
-    // Проверить одну модель; при ошибке вернуть текст (модель в список не попадает).
-    const auto checkModel = [&](const QString& path) -> QString {
-        if (!path.startsWith(":/res/remotes/") || !path.endsWith("/profile.json")) return {};
-        const QString dir = path.left(path.size() - QString("/profile.json").size());
-        const QString modelId = dir.mid(QString(":/res/remotes/").size());
+    // Проверить один пульт; при ошибке вернуть текст (пульт в каталог не попадает).
+    const auto checkModel = [&](const QString& modelId, const QJsonObject& remote) -> QString {
+        const QString dir = kRemotes + modelId;
+        const QString source = sources.value(dir + "/remote.json");
         static const QRegularExpression validId("^[a-z0-9][a-z0-9_-]*$");
-        if (!validId.match(modelId).hasMatch()) return sources[path] + ": invalid model id";
-        const auto profile = json[dir + "/profile.json"].object();
-        const QString name = profile.value("name").toString().trimmed();
-        if (name.isEmpty() || !candidate.contains(dir + "/zones.json"))
-            return sources[path] + ": name and zones.json are required";
+        if (!validId.match(modelId).hasMatch()) return source + ": invalid model id";
+        const QString name = remote.value("name").toString().trimmed();
+        const auto hardware = remote.value("hardware").toObject();
+        // Как и раньше, без зон корпуса пульт не загружается (пустой массив допустим).
+        if (name.isEmpty() || !hardware.value("zones").isArray())
+            return source + ": name and hardware.zones are required";
         const harmony::RemoteProfile* bundled = nullptr;
         for (const auto& item : harmony::bundledRemoteProfiles)
             if (item.id == modelId.toStdString()) bundled = &item;
-        for (const auto* field : {"driver", "configFormat"})
-            if (profile.contains(field) && !profile.value(field).isString())
-                return sources[path] + ": invalid " + field;
-        const QString driver = profile.value("driver").toString(bundled ? QString::fromStdString(bundled->driver) : "none");
-        const QString format = profile.value("configFormat").toString(bundled ? QString::fromStdString(bundled->configFormat) : "unsupported");
-        if (!QSet<QString>{"none", "hid", "harmony900"}.contains(driver) ||
-            !QSet<QString>{"unsupported", "harmony900"}.contains(format))
-            return sources[path] + ": unknown driver or configFormat";
-        const bool writable = driver == "harmony900" && format == "harmony900";
-        models.push_back({modelId.toStdString(), name.toStdString(), (dir + "/photo.png").toStdString(),
-                          writable, driver.toStdString(), format.toStdString()});
-        const auto size = profile.value("size").toArray();
-        const auto image = QImage::fromData(candidate[dir + "/photo.png"]);
+        const auto connection = remote.value("connection").toObject();
+        for (const auto* field : {"driver", "format"})
+            if (connection.contains(field) && !connection.value(field).isString())
+                return source + ": invalid connection." + field;
+        const QString driver = connection.value("driver").toString(
+            bundled ? QString::fromStdString(bundled->driver)
+                    : QString::fromLatin1(harmony::driver::kNone.data(), harmony::driver::kNone.size()));
+        const QString format = connection.value("format").toString(
+            bundled ? QString::fromStdString(bundled->format)
+                    : QString::fromLatin1(harmony::configFormat::kNone.data(), harmony::configFormat::kNone.size()));
+        const auto known = [](const auto& list, const QString& value) {
+            return std::ranges::any_of(list, [&](std::string_view item) {
+                return value == QLatin1String(item.data(), static_cast<qsizetype>(item.size()));
+            });
+        };
+        if (!known(harmony::driver::kAll, driver) || !known(harmony::configFormat::kAll, format))
+            return source + ": unknown connection driver or format";
+
+        const auto size = hardware.value("size").toArray();
+        const auto image = QImage::fromData(candidate.value(dir + "/photo.png"));
         if (size.size() != 2 || QSize(size[0].toInt(), size[1].toInt()) != image.size() || image.isNull() ||
-            profile.value("id").toString() != modelId || profile.value("image") != "photo.png")
-            return sources[dir + "/profile.json"] + ": profile/photo mismatch";
+            remote.value("id").toString() != modelId || hardware.value("image") != "photo.png")
+            return source + ": id, hardware.image or hardware.size mismatch";
         const QRectF bounds(image.rect());
-        const auto screen = profile.value("screen");
+        const auto screen = remote.value("display").toObject().value("rect");
         if (!screen.isNull() && !screen.isUndefined() && (!rect(screen).isValid() || !bounds.contains(rect(screen))))
-            return sources[dir + "/profile.json"] + ": invalid screen rectangle";
-        const auto modes = profile.value("modes").toObject();
-        for (const auto& mode : modes) if (!layouts.contains(mode.toString()))
-            return sources[dir + "/profile.json"] + ": unknown layout " + mode.toString();
+            return source + ": invalid display.rect";
+
         QSet<QString> ids;
         const QSet<QString> kinds{"Key", "System", "PagePrev", "PageNext", "ScreenActs", "ScreenSoft"};
-        for (const auto& entry : json[dir + "/zones.json"].array()) {
+        for (const auto& entry : hardware.value("zones").toArray()) {
             const auto zone = entry.toObject();
             const auto id = zone.value("id").toString();
             const auto r = rect(zone.value("rect"));
             if (id.isEmpty() || ids.contains(id) || !r.isValid() || !bounds.contains(r) ||
                 !zone.value("radius").isDouble() || !kinds.contains(zone.value("kind").toString()))
-                return sources[dir + "/zones.json"] + ": invalid zone " + id;
+                return source + ": invalid zone " + id;
             ids.insert(id);
         }
-        const auto screens = json.value(dir + "/screens.json").object();
-        const auto images = screens.value("images").toObject();
-        for (const auto& imageDef : images) {
-            const auto file = imageDef.toObject().value("file").toString();
-            if (file.isEmpty() || !candidate.contains(":/res/" + file))
-                return sources[dir + "/screens.json"] + ": missing image " + file;
-        }
-        const auto modesImages = screens.value("screens").toObject();
-        for (const auto& mode : modesImages) {
-            if (!mode.isArray()) return sources[dir + "/screens.json"] + ": invalid screen";
-            for (const auto& entry : mode.toArray()) {
-                const auto item = entry.toObject();
-                if (!rect(item.value("rect")).isValid() || !images.contains(item.value("image").toString()))
-                    return sources[dir + "/screens.json"] + ": invalid image placement";
+
+        // Экраны: id, единицы ref, ячейки с rect (после сетки), картинки есть в ресурсах.
+        const auto exists = [&](const QString& file) { return candidate.contains(kPrefix + file); };
+        QSet<QString> screenIds;
+        for (const auto& value : remote.value("screens").toArray()) {
+            const auto screenObject = value.toObject();
+            const QString id = screenObject.value("id").toString();
+            const auto ref = screenObject.value("ref").toArray();
+            if (id.isEmpty() || screenIds.contains(id) || ref.size() != 2 || ref[0].toDouble() <= 0 ||
+                ref[1].toDouble() <= 0 || !screenObject.value("cells").isArray())
+                return source + ": invalid screen " + id;
+            screenIds.insert(id);
+            for (const auto& cell : screenObject.value("cells").toArray())
+                if (!rect(cell.toObject().value("rect")).isValid()) return source + ": invalid cell in screen " + id;
+            // Плитка-картинка обязательна (без неё плитки не рисуются); фон без картинки
+            // заливается цветом, поэтому его картинку не проверяем.
+            const QString tile = screenObject.value("cell").toObject().value("image").toString();
+            if (!tile.isEmpty() && !exists(tile)) return source + ": missing image " + tile;
+            for (const auto& entry : screenObject.value("layers").toArray()) {
+                const auto layer = entry.toObject();
+                const QString file = layer.value("image").toString();
+                if (file.isEmpty() || !exists(file)) return source + ": missing image " + file;
+                if (!rect(layer.value("rect")).isValid()) return source + ": invalid layer in screen " + id;
             }
         }
+        const bool writable = harmony::writableCombination(driver.toStdString(), format.toStdString());
+        models.push_back({modelId.toStdString(), name.toStdString(), (dir + "/photo.png").toStdString(), writable,
+                          driver.toStdString(), format.toStdString()});
         return {};
     };
-    for (const auto& path : paths) {
-        const auto before = models.size();
-        const QString error = checkModel(path);
+    QStringList ids = parsed.keys();
+    ids.sort();
+    for (const QString& modelId : ids) {
+        if (failed.contains(modelId)) continue;
+        const QString error = checkModel(modelId, parsed.value(modelId));
         if (error.isEmpty()) continue;
-        models.erase(models.begin() + static_cast<std::ptrdiff_t>(before), models.end()); // модель могла быть добавлена до ошибки
-        const QString dir = path.left(path.size() - QString("/profile.json").size());
-        const QString modelId = dir.mid(QString(":/res/remotes/").size());
-        bool bundled = false;
-        for (const auto& item : harmony::bundledRemoteProfiles)
-            if (item.id == modelId.toStdString()) bundled = true;
-        // Ошибка в штатной модели останавливает загрузку; чужая модель просто пропускается.
-        if (bundled) return error;
-        if (!failed.contains(modelId)) failed.insert(modelId, error);
+        // Ошибка в штатном пульте останавливает загрузку; чужой пульт просто пропускается.
+        if (isBundled(modelId)) return error;
+        failed.insert(modelId, error);
+    }
+    // Файлы пропущенных пультов не попадают в снимок.
+    for (auto bad = failed.cbegin(); bad != failed.cend(); ++bad) {
+        const QString prefix = kRemotes + bad.key() + "/";
+        for (auto it = candidate.begin(); it != candidate.end();)
+            it = it.key().startsWith(prefix) ? candidate.erase(it) : std::next(it);
+        parsed.remove(bad.key());
     }
     skippedModels = failed.values();
     skippedById = failed;
+    migratedFiles = migrated;
     // Сначала штатные модели в привычном порядке, затем новые по id.
     std::stable_sort(models.begin(), models.end(), [](const auto& a, const auto& b) {
         const auto rank = [](const auto& id) {
@@ -351,7 +356,7 @@ QString reload(const QString& root) {
         return rank(a.id) < rank(b.id);
     });
     snapshot.swap(candidate);
-    synthetic.swap(generated);
+    remotes.swap(parsed);
     harmony::remoteProfiles.swap(models);
     ++generation;
     return {};
@@ -362,8 +367,7 @@ QStringList modelIds(const QString& root) {
     for (const auto& profile : harmony::remoteProfiles) result.append(QString::fromStdString(profile.id));
     const QDir remotes(QDir(root).filePath(QStringLiteral("remotes")));
     for (const QString& id : remotes.entryList(QDir::Dirs | QDir::NoDotAndDotDot, QDir::Name)) {
-        if (!result.contains(id) && (QFileInfo::exists(remotes.filePath(id + QStringLiteral("/remote.json"))) ||
-                                     QFileInfo::exists(remotes.filePath(id + QStringLiteral("/profile.json")))))
+        if (!result.contains(id) && QFileInfo::exists(remotes.filePath(id + QStringLiteral("/remote.json"))))
             result.append(id);
     }
     return result;
@@ -373,7 +377,6 @@ QStringList exportFiles(const QString& modelId) {
     const QString model = kPrefix + "remotes/" + modelId + "/";
     QStringList files;
     for (auto it = snapshot.cbegin(); it != snapshot.cend(); ++it) {
-        if (synthetic.contains(it.key())) continue; // достроено из remote.json, на диск не выгружается
         if (modelId.isEmpty() || it.key().startsWith(model)) files.append(it.key().mid(kPrefix.size()));
     }
     files.sort();

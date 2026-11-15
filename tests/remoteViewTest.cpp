@@ -12,10 +12,12 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QMap>
 #include <QMouseEvent>
 #include <QSet>
 #include <QTemporaryDir>
 #include <algorithm>
+#include <utility>
 #include <gtest/gtest.h>
 
 namespace {
@@ -43,8 +45,8 @@ QPointF widgetPoint(const harmony::app::RemoteView& view, const QPointF& photoPo
 }
 
 /**
- * Один раз загрузить ресурсы так же, как приложение: remote.json достраивается до
- * profile/zones/screens. Читать файлы модели нужно через modelFile, а не напрямую из :/res.
+ * Один раз загрузить ресурсы так же, как приложение: описание пульта читается из снимка
+ * (remoteOf), а не напрямую из :/res — так у ячеек экранов уже есть rect.
  */
 void ensureResourcesLoaded() {
     static QTemporaryDir folder;
@@ -56,31 +58,22 @@ void ensureResourcesLoaded() {
     ASSERT_TRUE(loaded);
 }
 
-/** Содержимое файла модели (profile.json, zones.json, screens.json); пусто, если файла нет. */
-QByteArray modelFile(const QString& directory, const QString& name) {
+/** remote.json пульта из снимка ресурсов; пустой объект, если пульта нет. */
+QJsonObject remoteOf(const QString& id) {
     ensureResourcesLoaded();
-    return harmony::app::remoteResources::data(directory + "/" + name);
+    return harmony::app::remoteResources::remote(id);
 }
 
-/** Папка профиля модели. */
-QString profileDirectory(const QString& id) {
-    const auto* profile = harmony::remoteProfile(id.toStdString());
-    EXPECT_NE(profile, nullptr);
-    return profile != nullptr ? QFileInfo(QString::fromUtf8(profile->image.data())).path() : QString();
-}
-
-/** Размер фото из profile.json: тесты не должны дублировать данные ресурсов. */
+/** Размер фото из remote.json: тесты не должны дублировать данные ресурсов. */
 QSize profilePhotoSize(const QString& id) {
-    const auto size = QJsonDocument::fromJson(modelFile(profileDirectory(id), "profile.json"))
-                          .object().value("size").toArray();
+    const auto size = remoteOf(id).value("hardware").toObject().value("size").toArray();
     EXPECT_EQ(size.size(), 2);
     return {size[0].toInt(), size[1].toInt()};
 }
 
-/** Рамка дисплея из profile.json, в пикселях фото. */
+/** Рамка дисплея из remote.json, в пикселях фото. */
 QRectF profileScreen(const QString& id) {
-    const auto rect = QJsonDocument::fromJson(modelFile(profileDirectory(id), "profile.json"))
-                          .object().value("screen").toArray();
+    const auto rect = remoteOf(id).value("display").toObject().value("rect").toArray();
     EXPECT_EQ(rect.size(), 4);
     return {rect[0].toDouble(), rect[1].toDouble(),
             rect[2].toDouble(), rect[3].toDouble()};
@@ -94,21 +87,18 @@ TEST(RemoteView, BundledProfilesMatchPhotosAndHaveExplicitZones) {
         const QString image = QString::fromUtf8(profile.image.data());
         const QPixmap photo(image);
         ASSERT_FALSE(photo.isNull());
-        const auto metadata = modelFile(QFileInfo(image).path(), "profile.json");
-        ASSERT_FALSE(metadata.isEmpty());
-        const auto object = QJsonDocument::fromJson(metadata).object();
-        const auto size = object.value("size").toArray();
+        const auto object = remoteOf(QString::fromStdString(profile.id));
+        ASSERT_FALSE(object.isEmpty());
+        const auto hardware = object.value("hardware").toObject();
+        const auto size = hardware.value("size").toArray();
         ASSERT_EQ(size.size(), 2);
         EXPECT_EQ(photo.size(), QSize(size[0].toInt(), size[1].toInt()));
         EXPECT_EQ(object.value("id").toString().toStdString(), profile.id);
-        const auto zonesData = modelFile(QFileInfo(image).path(), "zones.json");
-        ASSERT_FALSE(zonesData.isEmpty());
-        const auto document = QJsonDocument::fromJson(zonesData);
-        ASSERT_TRUE(document.isArray());
+        ASSERT_TRUE(hardware.value("zones").isArray());
         QStringList commandKeys;
         QSet<QString> ids;
         const QSet<QString> kinds{"Key", "System", "ScreenActs", "ScreenSoft", "PagePrev", "PageNext"};
-        for (const auto& entry : document.array()) {
+        for (const auto& entry : hardware.value("zones").toArray()) {
             ASSERT_TRUE(entry.isObject());
             const auto zone = entry.toObject();
             const QString id = zone.value("id").toString();
@@ -125,19 +115,17 @@ TEST(RemoteView, BundledProfilesMatchPhotosAndHaveExplicitZones) {
             EXPECT_TRUE(kinds.contains(zone.value("kind").toString()));
             if (zone.value("kind").toString() == "Key") commandKeys.append(id);
         }
-        // Назначаемые кнопки экранов модели ("key" в layouts.json) идут после физических,
-        // в порядке режимов профиля и зон раскладки.
-        const auto layouts = QJsonDocument::fromJson(
-            harmony::app::remoteResources::data(":/res/layouts.json")).array();
-        ASSERT_FALSE(layouts.isEmpty());
-        for (const auto& layoutId : object.value("modes").toObject()) {
-            for (const auto& item : layouts) {
-                const auto layout = item.toObject();
-                if (layout.value("id") != layoutId) continue;
-                for (const auto& entry : layout.value("zones").toArray()) {
-                    const QString key = entry.toObject().value("key").toString();
-                    if (!key.isEmpty() && !commandKeys.contains(key)) commandKeys.append(key);
-                }
+        // Назначаемые кнопки экранов модели ("key" ячеек) идут после физических:
+        // экраны по алфавиту id, ячейки в порядке remote.json.
+        const auto screens = object.value("screens").toArray();
+        ASSERT_FALSE(screens.isEmpty());
+        QMap<QString, QJsonArray> cellsByScreen;
+        for (const auto& screen : screens)
+            cellsByScreen.insert(screen.toObject().value("id").toString(), screen.toObject().value("cells").toArray());
+        for (const auto& cells : std::as_const(cellsByScreen)) {
+            for (const auto& entry : cells) {
+                const QString key = entry.toObject().value("key").toString();
+                if (!key.isEmpty() && !commandKeys.contains(key)) commandKeys.append(key);
             }
         }
         EXPECT_EQ(harmony::app::RemoteView::hardKeyIds(QString::fromUtf8(profile.id.data())), commandKeys);
@@ -163,11 +151,10 @@ TEST(RemoteView, SwitchModelsClearsOldTargetsAndPreservesAspectRatio) {
         if (landscape) {
             EXPECT_LT(view.minimumSizeHint().height(), 200);
         }
-        const auto* profile = harmony::remoteProfile(id);
-        ASSERT_NE(profile, nullptr);
-        const auto zonesData = modelFile(QFileInfo(QString::fromUtf8(profile->image.data())).path(), "zones.json");
-        ASSERT_FALSE(zonesData.isEmpty());
-        const auto definitions = QJsonDocument::fromJson(zonesData).array();
+        ASSERT_NE(harmony::remoteProfile(id), nullptr);
+        const auto definitions =
+            remoteOf(QString::fromLatin1(id)).value("hardware").toObject().value("zones").toArray();
+        ASSERT_FALSE(definitions.isEmpty());
         view.resize(view.sizeHint());
         for (const auto& entry : definitions) {
             const auto zone = entry.toObject();
@@ -300,46 +287,27 @@ TEST(RemoteView, ScreenKeysSwitchScreensAndAreAssignable) {
 }
 
 TEST(RemoteView, ComposedScreensReferenceExistingSprites) {
-    // Каждый "sprite" собранных экранов модели описан в её screens.json, а источники есть в ресурсах.
+    // Картинки экранов (layers, плитки, фон) — отдельные файлы из resources/sprites, встроенные
+    // в ресурсы; у каждого экрана с "compose" есть слои.
     ensureResourcesLoaded();
-    const auto library = harmony::app::remoteResources::data(":/res/layouts.json");
-    ASSERT_FALSE(library.isEmpty());
-    QHash<QString, QJsonObject> layouts;
-    for (const auto& item : QJsonDocument::fromJson(library).array())
-        layouts.insert(item.toObject().value("id").toString(), item.toObject());
-    // плитка-картинка раскладки (избранное 1000/1100) встроена в ресурсы
-    for (auto it = layouts.cbegin(); it != layouts.cend(); ++it) {
-        const QString image = it.value().value("tile").toObject().value("image").toString();
-        if (!image.isEmpty()) { EXPECT_TRUE(QFile::exists(":/res/" + image)) << image.toStdString(); }
-    }
     for (const auto& profile : harmony::remoteProfiles) {
         SCOPED_TRACE(std::string(profile.id));
-        const QString directory = QFileInfo(QString::fromUtf8(profile.image.data())).path();
-        const auto metadata = modelFile(directory, "profile.json");
-        ASSERT_FALSE(metadata.isEmpty());
-        const auto modes = QJsonDocument::fromJson(metadata).object().value("modes").toObject();
-        QJsonObject images, screens;
-        const auto screenData = modelFile(directory, "screens.json");
-        if (!screenData.isEmpty()) {
-            const auto document = QJsonDocument::fromJson(screenData).object();
-            images = document.value("images").toObject();
-            screens = document.value("screens").toObject();
-        }
-        // каждая картинка — отдельный файл из resources/sprites, не фото готового экрана
-        for (auto it = images.begin(); it != images.end(); ++it) {
-            const QString file = it.value().toObject().value("file").toString();
-            EXPECT_TRUE(file.startsWith("sprites/")) << it.key().toStdString();
-            EXPECT_TRUE(QFile::exists(":/res/" + file)) << file.toStdString();
-        }
-        for (auto it = screens.begin(); it != screens.end(); ++it) {
-            for (const auto& item : it.value().toArray()) {
-                const QString name = item.toObject().value("image").toString();
-                EXPECT_TRUE(images.contains(name)) << it.key().toStdString() << ": " << name.toStdString();
+        const auto screens = remoteOf(QString::fromStdString(profile.id)).value("screens").toArray();
+        ASSERT_FALSE(screens.isEmpty());
+        for (const auto& value : screens) {
+            const auto screen = value.toObject();
+            const std::string id = screen.value("id").toString().toStdString();
+            for (const char* field : {"background", "cell"}) {
+                const QString image = screen.value(field).toObject().value("image").toString();
+                if (!image.isEmpty()) { EXPECT_TRUE(QFile::exists(":/res/" + image)) << image.toStdString(); }
             }
-        }
-        for (auto it = modes.begin(); it != modes.end(); ++it) {
-            if (!layouts.value(it.value().toString()).value("compose").toBool()) continue;
-            EXPECT_TRUE(screens.contains(it.key())) << "no screen in screens.json: " << it.key().toStdString();
+            const auto layers = screen.value("layers").toArray();
+            for (const auto& layer : layers) {
+                const QString file = layer.toObject().value("image").toString();
+                EXPECT_TRUE(file.startsWith("sprites/")) << id << ": " << file.toStdString();
+                EXPECT_TRUE(QFile::exists(":/res/" + file)) << file.toStdString();
+            }
+            if (screen.value("compose").toBool()) { EXPECT_FALSE(layers.isEmpty()) << "no layers: " << id; }
         }
     }
     // собранный экран рисуется и угол текущего экрана открывает себя же без ошибок

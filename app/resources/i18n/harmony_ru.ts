@@ -162,6 +162,11 @@ The configuration from %1 will be copied into this archive.</source>
       <translation>%1 из %2</translation>
     </message>
     <message>
+      <location filename="../../../core/src/configDocumentCheck.cpp" />
+      <source>%1 of %2 commands have no IR code yet; pick the device model in the IR database</source>
+      <translation>У %1 из %2 команд ещё нет ИК-кода: выберите модель устройства в базе ИК-кодов</translation>
+    </message>
+    <message>
       <location filename="../../../core/src/configDocumentAdd.cpp" />
       <source>%1 of the source is not readable</source>
       <translation>%1 источника не разобран</translation>
@@ -3621,11 +3626,6 @@ Copy saved: %2</source>
       <translation>Harmony 600, 650, 665 и 700 — экспериментальные: программа умеет только читать их по USB и сохранять данные для анализа. Запись на эти модели заблокирована.</translation>
     </message>
     <message>
-      <location filename="../../../app/src/modern/modernShell.cpp" />
-      <source>Harmony 900</source>
-      <translation>Harmony 900</translation>
-    </message>
-    <message>
       <location filename="../../../app/src/widgets/aboutDialog.cpp" />
       <source>Harmony 900 editor</source>
       <translation>редактор Harmony 900</translation>
@@ -6178,6 +6178,11 @@ The file contains device names and models, but no IR codes, account or e-mail. Y
       <location filename="../../../app/src/remoteSession.cpp" />
       <source>Remote connected: %1</source>
       <translation>Пульт подключён: %1</translation>
+    </message>
+    <message>
+      <location filename="../../../app/src/mainWindow.cpp" />
+      <source>Remote description %1 is in an old format and was converted on load. It is updated on disk the next time it is saved in the zone editor.</source>
+      <translation>Описание пульта %1 в старом формате и переведено на новый при загрузке. Файл на диске обновится при следующем сохранении в редакторе зон.</translation>
     </message>
     <message>
       <location filename="../../../app/src/remoteSession.cpp" />

@@ -6,9 +6,8 @@
   "touch": true
  },
  "connection": {
-  "transport": "none",
-  "driver": "none",
-  "configFormat": "unsupported"
+  "driver": "usb-net",
+  "format": "device-sequence"
  },
  "hardware": {
   "image": "photo.png",
@@ -344,7 +343,6 @@
      "kind": "ScreenLabel"
     }
    ],
-   "style": "t1000",
    "centerLastRow": true,
    "compose": true,
    "layers": [
@@ -376,7 +374,10 @@
      ],
      "tint": "#8BAD2D"
     }
-   ]
+   ],
+   "panel": {
+    "text": "#2a2d30"
+   }
   },
   {
    "id": "activities",
@@ -525,7 +526,6 @@
      "kind": "ScreenLabel"
     }
    ],
-   "style": "t1000",
    "centerLastRow": true,
    "compose": true,
    "layers": [
@@ -557,7 +557,10 @@
      ],
      "tint": "#8BAD2D"
     }
-   ]
+   ],
+   "panel": {
+    "text": "#2a2d30"
+   }
   },
   {
    "id": "command",
@@ -813,7 +816,6 @@
      "kind": "ScreenKey"
     }
    ],
-   "style": "t1000",
    "compose": true,
    "layers": [
     {
@@ -898,7 +900,10 @@
      ],
      "tint": "#8BAD2D"
     }
-   ]
+   ],
+   "panel": {
+    "text": "#2a2d30"
+   }
   },
   {
    "id": "favorites",
@@ -1154,7 +1159,6 @@
      "kind": "ScreenKey"
     }
    ],
-   "style": "t1000",
    "compose": true,
    "layers": [
     {
@@ -1239,7 +1243,10 @@
       15.33
      ]
     }
-   ]
+   ],
+   "panel": {
+    "text": "#2a2d30"
+   }
   },
   {
    "id": "transport",
@@ -1526,7 +1533,6 @@
      "kind": "ScreenKey"
     }
    ],
-   "style": "t1000",
    "compose": true,
    "layers": [
     {
@@ -1611,7 +1617,10 @@
       15.33
      ]
     }
-   ]
+   ],
+   "panel": {
+    "text": "#2a2d30"
+   }
   },
   {
    "id": "keypad",
@@ -1934,7 +1943,6 @@
      "kind": "ScreenKey"
     }
    ],
-   "style": "t1000",
    "compose": true,
    "layers": [
     {
@@ -2019,7 +2027,10 @@
       15.33
      ]
     }
-   ]
+   ],
+   "panel": {
+    "text": "#2a2d30"
+   }
   }
  ]
 }

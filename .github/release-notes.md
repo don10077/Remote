@@ -18,7 +18,7 @@
 
 Запись проверена только на **Harmony 900**. Остальные модели — экспериментальные:
 код переноса подключён, но на настоящих пультах из этой программы не проверен.
-Полная таблица — [remote.md](https://github.com/don10077/Remote/blob/master/remote.md).
+Полная таблица — [docs/models.md](https://github.com/don10077/Remote/blob/master/docs/models.md).
 
 ### Файлы
 

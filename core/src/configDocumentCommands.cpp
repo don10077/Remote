@@ -615,12 +615,18 @@ Result<int> ConfigDocument::copyCommands(const std::string& fromId, const std::s
         bool power = false;
         for (const auto& name : names) {
             pugi::xml_node data;
+            pugi::xml_node codeSource;
             for (pugi::xml_node node : source.child("Commands").children("Command")) {
                 if (detail::textOf(node.child("Name")) == name) {
                     data = node.child("Data");
+                    codeSource = node.child("CodeSource");
                 }
             }
-            detail::commandWithoutData(target, name).append_copy(data);
+            pugi::xml_node copy = detail::commandWithoutData(target, name);
+            if (codeSource) {
+                copy.append_copy(codeSource); // код по-прежнему подобран из базы
+            }
+            copy.append_copy(data);
             ++copied;
             power = power || name == "PowerOn" || name == "PowerOff" || name == "PowerToggle";
         }
@@ -758,6 +764,10 @@ pugi::xml_node commandWithoutData(pugi::xml_node device, const std::string& name
     }
     if (command) {
         command.remove_child("Data");
+        // Новый ИК-код делает команду обычной ИК-командой: канал хаба (Bluetooth, сеть) и
+        // пометка «код из базы» к нему уже не относятся. Native остаётся как исходная запись хаба.
+        command.remove_child("Transport");
+        command.remove_child("CodeSource");
     } else {
         command = commands.append_child("Command");
         appendText(command, "Name", name);

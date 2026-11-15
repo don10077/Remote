@@ -33,9 +33,8 @@ def convert(model_dir: Path, layouts: dict) -> dict:
         "id": profile["id"],
         "name": profile["name"],
         "capabilities": {"touch": profile.get("touch", False)},
-        "connection": {"transport": {"harmony900": "usb-net", "hid": "usb-hid"}.get(profile.get("driver"), "none"),
-                       "driver": profile.get("driver", "none"),
-                       "configFormat": profile.get("configFormat", "unsupported")},
+        "connection": {"driver": {"harmony900": "usb-net", "hid": "usb-hid"}.get(profile.get("driver"), "none"),
+                       "format": {"harmony900": "harmony-xml"}.get(profile.get("configFormat"), "none")},
         "hardware": {"image": profile["image"], "size": profile["size"], "zones": zones},
         "display": {"rect": profile.get("screen"), "tint": profile.get("screenTint")},
         "screens": [],
@@ -55,7 +54,7 @@ def convert(model_dir: Path, layouts: dict) -> dict:
             "cell": {"color": DEFAULT_CELL, "border": DEFAULT_BORDER},
             "cells": layout["zones"],                  # у каждой ячейки явный rect в единицах ref
         }
-        for key in ("style", "centerLastRow", "compose"):
+        for key in ("compact", "panel", "centerLastRow", "compose"):
             if key in layout:
                 screen[key] = layout[key]
         if "tile" in layout:

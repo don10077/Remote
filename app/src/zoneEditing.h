@@ -74,8 +74,8 @@ QJsonArray autoZones(const QJsonArray& boxes, const QJsonArray& existing, const 
 /**
  * @brief Проверить зоны корпуса. Ошибки — то, из-за чего программа отвергнет ресурсы
  *        при загрузке; предупреждения — подозрительная, но допустимая разметка.
- * @param zones Содержимое zones.json.
- * @param photo Размер фото (profile.json: size).
+ * @param zones Зоны корпуса (`hardware.zones` в remote.json).
+ * @param photo Размер фото (`hardware.size`).
  * @param screen Рамка экрана; nullopt — экран не размечен.
  */
 QList<Issue> checkBody(const QJsonArray& zones, const QSizeF& photo, const std::optional<QRectF>& screen);

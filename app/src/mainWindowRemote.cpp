@@ -117,9 +117,9 @@ void MainWindow::readFromRemote() {
         return;
     }
     const auto* profile = remoteProfile(selectedRemote_.toStdString());
-    if (!profile || profile->driver == "none") return;
+    if (!profile || profile->driver == driver::kNone) return;
     startRemoteProgress(tr("Read from remote"), tr("Reading from the remote failed"));
-    if (usesHarmony900(selectedRemote_.toStdString())) remote_->readConfig();
+    if (usesUsbNet(selectedRemote_.toStdString())) remote_->readConfig();
     else remote_->readHidConfig();
 }
 
@@ -138,7 +138,7 @@ void MainWindow::chooseRemote() {
     selectedRemote_ = QString::fromStdString(selected);
     configView_->refresh();
     updateTitle();
-    if (usesHarmony900(selectedRemote_.toStdString())) {
+    if (usesUsbNet(selectedRemote_.toStdString())) {
         remote_->probe(); // иначе в шапке до следующей проверки (10 с) — надпись про USB HID
     }
 }

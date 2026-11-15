@@ -6,9 +6,8 @@
   "touch": false
  },
  "connection": {
-  "transport": "usb-hid",
-  "driver": "hid",
-  "configFormat": "unsupported"
+  "driver": "usb-hid",
+  "format": "arch14"
  },
  "hardware": {
   "image": "photo.png",
@@ -640,7 +639,8 @@
    },
    "touch": false,
    "background": {
-    "color": "#0b3442"
+    "color": "#0b3442",
+    "image": "sprites/background_600.png"
    },
    "cells": [
     {
@@ -726,7 +726,7 @@
      "button": "Devices"
     }
    ],
-   "style": "h600"
+   "compact": true
   },
   {
    "id": "activities",
@@ -741,7 +741,8 @@
    },
    "touch": false,
    "background": {
-    "color": "#0b3442"
+    "color": "#0b3442",
+    "image": "sprites/background_600.png"
    },
    "cells": [
     {
@@ -827,7 +828,7 @@
      "button": "Devices"
     }
    ],
-   "style": "h600"
+   "compact": true
   },
   {
    "id": "command",
@@ -842,7 +843,8 @@
    },
    "touch": false,
    "background": {
-    "color": "#0b3442"
+    "color": "#0b3442",
+    "image": "sprites/background_600.png"
    },
    "cells": [
     {
@@ -928,7 +930,7 @@
      "button": "Devices"
     }
    ],
-   "style": "h600"
+   "compact": true
   }
  ]
 }

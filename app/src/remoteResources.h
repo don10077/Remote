@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QByteArray>
+#include <QJsonObject>
 #include <QString>
 #include <QStringList>
 
@@ -21,8 +22,8 @@ QString reload(const QString& root = folder());
  * @brief Модели для редактора зон: проверенный каталог и папки внешних ресурсов.
  *
  * В отличие от harmony::remoteProfiles включает новые папки `remotes/<id>/`
- * даже тогда, когда reload() отклонил их profile.json: зоны такой модели
- * всё равно нужно уметь открыть и исправить. Папка без profile.json не
+ * даже тогда, когда reload() отклонил их remote.json: зоны такой модели
+ * всё равно нужно уметь открыть и исправить. Папка без remote.json не
  * считается моделью.
  * @param root Корень папки ресурсов; явный путь используется в тестах.
  */
@@ -30,10 +31,40 @@ QStringList modelIds(const QString& root = folder());
 
 /// Прочитать ресурс по штатному пути :/res/... из последнего корректного снимка.
 QByteArray data(const QString& path);
+/**
+ * @brief Описание пульта из последнего корректного снимка.
+ *
+ * Это remote.json пульта после перевода старой схемы (migrateRemote) и normalizeRemote():
+ * у всех ячеек экранов есть `rect`. Других файлов описания пульта нет.
+ * @param modelId id пульта (папка `remotes/<id>/`).
+ * @return Пустой объект — пульта нет в снимке или он пропущен из-за ошибок.
+ */
+QJsonObject remote(const QString& modelId);
+/**
+ * @brief Поставить ячейки экрана по сетке.
+ *
+ * Ячейкам без `rect`, но с `col`/`row`, вычисляется `rect` в единицах `ref` по `grid`
+ * (`cols`, `rows`, `gap`, по умолчанию 4; `colSpan`/`rowSpan` — по умолчанию 1);
+ * без `kind` они становятся `ScreenSlot`. Остальное не меняется.
+ * @param screen Экран из `screens` remote.json.
+ * @return Экран с достроенными `rect`; без сетки — как есть.
+ */
+QJsonObject normalizeScreen(QJsonObject screen);
+/// normalizeScreen() для всех экранов пульта.
+QJsonObject normalizeRemote(QJsonObject remote);
 /// Версия снимка для сброса кэшей изображений и геометрии.
 quint64 revision();
 /// Пользовательские модели, пропущенные последним reload() из-за ошибок: сами ошибки не мешают остальным пультам.
 QStringList skipped();
+/// Файлы remote.json в старой схеме, которые последний reload() перевёл на новую в памяти.
+QStringList migratedByReload();
+/**
+ * Переводит описание пульта прошлой версии программы на текущую схему: connection
+ * (driver/configFormat/transport → driver/format) и поле style экранов (→ compact, panel).
+ * Недостающие значения берутся у встроенного описания того же пульта. Остальное не меняется.
+ * @return true, если что-то изменилось.
+ */
+bool migrateRemote(QJsonObject& remote, const QString& modelId);
 /// Ошибка конфигурации пульта, пропущенного последним reload(); пустая строка — ошибок нет.
 QString modelError(const QString& id);
 /// Идентификаторы пультов, пропущенных последним reload() из-за ошибок конфигурации.
@@ -41,9 +72,8 @@ QStringList skippedIds();
 
 /**
  * @brief Файлы текущего снимка для выгрузки, пути относительно корня папки ресурсов.
- * @param modelId Модель (`remotes/<id>/…`); пустая строка — все ресурсы,
- *                включая общие `layouts.json` и `sprites/`.
- * @return Отсортированный список вида `remotes/900/zones.json`; пустой — модели нет в снимке.
+ * @param modelId Модель (`remotes/<id>/…`); пустая строка — все ресурсы, включая общие `sprites/`.
+ * @return Отсортированный список вида `remotes/900/remote.json`; пустой — модели нет в снимке.
  */
 QStringList exportFiles(const QString& modelId);
 

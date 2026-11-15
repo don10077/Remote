@@ -56,8 +56,6 @@ struct Package {
  * новую копию и подменяет указатель, поэтому снимок не копирует их целиком.
  */
 struct ConfigDocument::Impl {
-    /// Формат источника. Hub — xml собран из модели хаба: правится и сохраняется как обычный, но на пульт не пишется.
-    ConfigFormat format = ConfigFormat::Harmony900;
     std::string xml;              ///< Текст UserConfiguration.xml (сохраняется как есть)
     model::RemoteConfig model;    ///< Разобранная модель
     std::string name;             ///< Имя для показа
@@ -67,6 +65,8 @@ struct ConfigDocument::Impl {
     /// IrProto.bin и SsIr.bin; не nullptr
     std::shared_ptr<const detail::IrData> ir = std::make_shared<const detail::IrData>();
     std::shared_ptr<const detail::Package> package; ///< Если открыт из .EZHex; nullptr — нет
+    /// Вид ConfigBackend на этот Impl; создаётся вместе с документом, адрес Impl не меняется.
+    std::unique_ptr<const ConfigBackend> backend;
 };
 
 struct ConfigDocument::Snapshot::Data {
@@ -77,6 +77,22 @@ struct ConfigDocument::Snapshot::Data {
 };
 
 namespace detail {
+
+/// Свойство UserConfiguration.xml с форматом источника; нет свойства — Harmony 900.
+inline constexpr const char* kSourceFormatProperty = "SourceFormat";
+/// Значение kSourceFormatProperty у конфигурации, собранной из файлов Harmony Hub.
+inline constexpr std::string_view kHubSourceFormat = "Hub";
+
+/**
+ * @brief Формат источника по модели.
+ *
+ * Признак хранится в самом XML, поэтому переживает сохранение в папку или .EZHex,
+ * отмену и replaceContent() без отдельного состояния.
+ */
+[[nodiscard]] ConfigFormat sourceFormat(const model::RemoteConfig& model);
+
+/// Вид ConfigBackend на документ (harmony900Backend.cpp).
+[[nodiscard]] std::unique_ptr<const ConfigBackend> makeBackend(const ConfigDocument::Impl& impl);
 
 /// .EZHex для пульта без помеченного «не отправлять на пульт» (configDocumentNotSent.cpp).
 [[nodiscard]] Result<std::vector<std::uint8_t>> remoteEzHex(const ConfigDocument& document);
@@ -138,8 +154,9 @@ inline constexpr std::size_t kMaxProtocolIndex = 0xFF;
 /**
  * @brief <Command> с именем @p name в <Commands> устройства, без <Data>.
  *
- * Есть такая команда — у неё убирается <Data> (сигнал заменяется), нет — добавляется
- * в конец <Commands> (создаётся и он). <Data> добавляет вызывающий.
+ * Есть такая команда — у неё убирается <Data> (сигнал заменяется), а с ним <Transport> и
+ * <CodeSource>: с новым кодом это обычная ИК-команда; <Native> остаётся. Нет команды —
+ * добавляется в конец <Commands> (создаётся и он). <Data> добавляет вызывающий.
  */
 pugi::xml_node commandWithoutData(pugi::xml_node device, const std::string& name);
 

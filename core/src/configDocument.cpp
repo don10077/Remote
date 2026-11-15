@@ -361,7 +361,12 @@ Result<void> ConfigDocument::replaceContent(const ConfigDocument& source) {
 
 // --- Открытие и создание ------------------------------------------------------
 
-ConfigDocument::ConfigDocument(std::unique_ptr<Impl> impl) : impl_(std::move(impl)) {}
+ConfigDocument::ConfigDocument(std::unique_ptr<Impl> impl) : impl_(std::move(impl)) {
+    // Вид живёт в Impl: адрес Impl не меняется при перемещении документа, поэтому указатель остаётся верным.
+    if (!impl_->backend) {
+        impl_->backend = detail::makeBackend(*impl_);
+    }
+}
 ConfigDocument::ConfigDocument(ConfigDocument&&) noexcept = default;
 ConfigDocument& ConfigDocument::operator=(ConfigDocument&&) noexcept = default;
 ConfigDocument::~ConfigDocument() = default;
@@ -428,7 +433,12 @@ std::string hubAsXml(const model::RemoteConfig& config) {
 
     pugi::xml_node properties = root.append_child("Properties");
     appendProperty(properties, "version", "1.0");
+    // Признак формата — в самом файле: переживает сохранение, повторное открытие и отмену.
+    appendProperty(properties, detail::kSourceFormatProperty, detail::kHubSourceFormat);
     for (const auto& [key, value] : config.properties) {
+        if (key == "version" || key == detail::kSourceFormatProperty) {
+            continue;
+        }
         appendProperty(properties, key.c_str(), value);
     }
 
@@ -500,13 +510,9 @@ std::string hubAsXml(const model::RemoteConfig& config) {
 } // namespace
 
 Result<ConfigDocument> ConfigDocument::fromHub(const formats::HubConfiguration& hub, std::string name) {
-    auto document = fromXml(hubAsXml(formats::toRemoteConfig(hub)), std::move(name));
-    if (!document) {
-        return document;
-    }
-    // Правится как обычная конфигурация, но на пульт не пишется: см. ConfigBackend::canWriteToRemote().
-    document->impl_->format = ConfigFormat::Hub;
-    return document;
+    // Правится как обычная конфигурация, но на пульт не пишется: формат — свойство SourceFormat
+    // в XML, см. ConfigBackend::canWriteToRemote().
+    return fromXml(hubAsXml(formats::toRemoteConfig(hub)), std::move(name));
 }
 
 Result<ConfigDocument> ConfigDocument::fromFiles(const Files& files, std::string name) {

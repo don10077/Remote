@@ -367,7 +367,7 @@ QList<Issue> checkScreen(const QJsonArray& zones, const QSizeF& ref, const QSet<
         if (id.isEmpty()) warning(i, tr("%1: id is empty").arg(name));
         else if (seen.contains(id)) warning(i, tr("%1: the id is used twice").arg(name));
         seen.insert(id);
-        // Так же проверяет загрузка ресурсов: без корректного rect весь layouts.json отвергается.
+        // Так же проверяет загрузка ресурсов: без корректного rect весь remote.json отвергается.
         if (!r.isValid()) error(i, tr("%1: width and height must be positive").arg(name));
         else if (!bounds.contains(r) && !(kind == "ScreenPanel" && zone.value("role") == "band"))
             warning(i, tr("%1 goes beyond the screen").arg(name));

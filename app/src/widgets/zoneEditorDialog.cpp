@@ -1,6 +1,6 @@
 /**
  * @file zoneEditorDialog.cpp
- * @brief Редактор зон пультов: zones.json корпуса и раскладки экранов в layouts.json.
+ * @brief Редактор зон пультов в remote.json: зоны корпуса и ячейки экранов.
  */
 
 #include "zoneEditorDialog.h"
@@ -1611,6 +1611,8 @@ bool ZoneEditorDialog::readRemoteJson(QJsonObject& remote, QByteArray& text) {
     if (in.open(QIODevice::ReadOnly)) {
         text = in.readAll();
         remote = QJsonDocument::fromJson(text).object();
+        // Файл прошлой версии: при сохранении он сразу запишется в текущей схеме.
+        if (!remote.isEmpty()) remoteResources::migrateRemote(remote, model_);
     }
     if (remote.isEmpty()) {
         QMessageBox::warning(this, windowTitle(), tr("Could not read %1.").arg(remotePath));

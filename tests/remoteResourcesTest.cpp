@@ -44,15 +44,18 @@ QJsonObject remoteOf(const QString& model) {
     return QJsonDocument::fromJson(resources::data(":/res/remotes/" + model + "/remote.json")).object();
 }
 QByteArray toBytes(const QJsonObject& object) { return QJsonDocument(object).toJson(); }
+/// Зоны корпуса пульта из снимка ресурсов.
+QJsonArray zonesOf(const QString& model) {
+    return resources::remote(model).value("hardware").toObject().value("zones").toArray();
+}
 
 TEST_F(RemoteResourcesTest, OverrideReloadRemovalAndInvalidRollback) {
-    const QString path = ":/res/remotes/900/zones.json";
-    const auto original = resources::data(path);
+    const auto original = zonesOf("900");
     auto remote = remoteOf("900");
     const auto originalPhoto = resources::data(":/res/remotes/900/photo.png");
     harmony::app::RemoteView view;
     view.setRemoteProfile("900");
-    auto zones = QJsonDocument::fromJson(original).array();
+    auto zones = original;
     auto zone = zones[0].toObject();
     zone["id"] = "CustomKey";
     zone["kind"] = "Key";
@@ -62,7 +65,7 @@ TEST_F(RemoteResourcesTest, OverrideReloadRemovalAndInvalidRollback) {
     hardware["zones"] = zones;
     remote["hardware"] = hardware;
     write("remotes/900/remote.json", toBytes(remote));
-    const auto modified = QJsonDocument(zones).toJson(QJsonDocument::Compact);
+    const auto modified = zones;
     root = dir.path();
     ASSERT_TRUE(resources::reload(root).isEmpty());
     view.setRemoteProfile("900");
@@ -81,18 +84,18 @@ TEST_F(RemoteResourcesTest, OverrideReloadRemovalAndInvalidRollback) {
     write("remotes/900/remote.json", "{broken");
     EXPECT_TRUE(resources::reload(root).contains("remote.json"));
     EXPECT_EQ(resources::revision(), version);
-    EXPECT_EQ(resources::data(path), modified);
+    EXPECT_EQ(zonesOf("900"), modified);
     zone["rect"] = QJsonArray{0, 0, 9999, 9999};
     zones[0] = zone;
     hardware["zones"] = zones;
     remote["hardware"] = hardware;
     write("remotes/900/remote.json", toBytes(remote));
     EXPECT_TRUE(resources::reload(root).contains("CustomKey"));
-    EXPECT_EQ(resources::data(path), modified);
+    EXPECT_EQ(zonesOf("900"), modified);
     ASSERT_TRUE(QFile::remove(dir.path() + "/remotes/900/remote.json"));
     ASSERT_TRUE(resources::reload(root).isEmpty());
     view.setRemoteProfile("900");
-    EXPECT_EQ(resources::data(path), original);
+    EXPECT_EQ(zonesOf("900"), original);
     EXPECT_FALSE(harmony::app::RemoteView::hardKeyIds("900").contains("CustomKey"));
     clicked.clear();
     QApplication::sendEvent(&view, &event);
@@ -118,14 +121,47 @@ TEST_F(RemoteResourcesTest, PhotoChangesAndInvalidPhotoRollback) {
     EXPECT_FALSE(resources::reload(root).isEmpty());
     EXPECT_EQ(resources::data(path), previousImage);
 }
+TEST_F(RemoteResourcesTest, OldSchemaIsMigratedKeepingUserEdits) {
+    // remote.json от прошлой версии программы: старые connection и style, но со своим цветом плиток.
+    ASSERT_TRUE(QDir().mkpath(dir.path() + "/remotes/600"));
+    auto remote = remoteOf("600");
+    remote["connection"] = QJsonObject{{"transport", "usb-hid"}, {"driver", "hid"}, {"configFormat", "unsupported"}};
+    auto screens = remote["screens"].toArray();
+    auto screen = screens[0].toObject();
+    screen.remove("compact");
+    screen["style"] = "h600";
+    screen["background"] = QJsonObject{{"color", "#0b3442"}};
+    screens[0] = screen;
+    remote["screens"] = screens;
+    remote["tiles"] = QJsonObject{{"color", "#aa0000"}, {"border", "#ffffff"}};
+    write("remotes/600/remote.json", toBytes(remote));
+    root = dir.path();
+    ASSERT_TRUE(resources::reload(root).isEmpty());
+    ASSERT_EQ(resources::migratedByReload().size(), 1);
+    const auto* profile = harmony::remoteProfile("600");
+    ASSERT_NE(profile, nullptr);
+    EXPECT_EQ(profile->driver, "usb-hid");
+    EXPECT_EQ(profile->format, "arch14");
+
+    // Правка пользователя сохранилась, style стал данными.
+    auto migrated = remote;
+    ASSERT_TRUE(resources::migrateRemote(migrated, "600"));
+    EXPECT_EQ(migrated["tiles"].toObject().value("color").toString(), "#aa0000");
+    const auto first = migrated["screens"].toArray()[0].toObject();
+    EXPECT_FALSE(first.contains("style"));
+    EXPECT_TRUE(first.value("compact").toBool());
+    EXPECT_EQ(first.value("background").toObject().value("image").toString(), "sprites/background_600.png");
+    EXPECT_FALSE(resources::migrateRemote(migrated, "600")); // второй раз менять нечего
+}
+
 TEST_F(RemoteResourcesTest, DiscoverNewModelAndPersistProject) {
     ASSERT_TRUE(QDir().mkpath(dir.path() + "/remotes/custom-600"));
     auto remote = remoteOf("600");
     remote["id"] = "custom-600";
     remote["name"] = "Custom 600";
     auto connection = remote["connection"].toObject();
-    connection["driver"] = "hid";
-    connection["configFormat"] = "unsupported";
+    connection["driver"] = "usb-hid";
+    connection["format"] = "arch14";
     remote["connection"] = connection;
     write("remotes/custom-600/remote.json", toBytes(remote));
     write("remotes/custom-600/photo.png", resources::data(":/res/remotes/600/photo.png"));
@@ -133,7 +169,8 @@ TEST_F(RemoteResourcesTest, DiscoverNewModelAndPersistProject) {
     ASSERT_TRUE(resources::reload(root).isEmpty());
     const auto* added = harmony::remoteProfile("custom-600");
     ASSERT_NE(added, nullptr);
-    EXPECT_EQ(added->driver, "hid");
+    EXPECT_EQ(added->driver, "usb-hid");
+    EXPECT_EQ(added->format, "arch14");
     EXPECT_FALSE(added->writable);
     harmony::app::RemoteView view;
     view.setRemoteProfile("custom-600");
@@ -177,18 +214,32 @@ TEST_F(RemoteResourcesTest, GridScreenCellsGetRectsFromColRowAndSpans) {
     write("remotes/gridmodel/photo.png", resources::data(":/res/remotes/600/photo.png"));
     root = dir.path();
     ASSERT_TRUE(resources::reload(root).isEmpty());
-    const auto library = QJsonDocument::fromJson(resources::data(":/res/layouts.json")).array();
-    bool found = false;
-    for (const auto& entry : library) {
-        const auto layout = entry.toObject();
-        if (layout["id"].toString() != "gridmodel_Menu") continue;
-        found = true;
-        const auto cells = layout["zones"].toArray();
-        ASSERT_EQ(cells.size(), 2);
-        EXPECT_EQ(cells[0].toObject()["rect"].toArray(), (QJsonArray{0, 0, 100, 50}));
-        EXPECT_EQ(cells[1].toObject()["rect"].toArray(), (QJsonArray{50, 50, 50, 50}));
-    }
-    EXPECT_TRUE(found);
+    const auto screens = resources::remote("gridmodel").value("screens").toArray();
+    ASSERT_EQ(screens.size(), 1);
+    const auto cells = screens[0].toObject()["cells"].toArray();
+    ASSERT_EQ(cells.size(), 2);
+    EXPECT_EQ(cells[0].toObject()["rect"].toArray(), (QJsonArray{0, 0, 100, 50}));
+    EXPECT_EQ(cells[1].toObject()["rect"].toArray(), (QJsonArray{50, 50, 50, 50}));
+    EXPECT_EQ(cells[1].toObject()["kind"].toString(), "ScreenSlot");
+    // На диске файл не меняется: rect достраивается только в памяти.
+    const auto onDisk = QJsonDocument::fromJson(resources::data(":/res/remotes/gridmodel/remote.json")).object();
+    EXPECT_FALSE(onDisk.value("screens").toArray()[0].toObject().value("cells").toArray()[0].toObject()
+                     .contains("rect"));
+}
+
+TEST_F(RemoteResourcesTest, LeftoverFilesOfOldSchemaAreIgnored) {
+    // Файлы прошлых версий (profile.json, zones.json, screens.json, layouts.json) не читаются:
+    // даже испорченные, они не мешают загрузке и не попадают в выгрузку.
+    write("layouts.json", "{broken");
+    write("remotes/900/profile.json", "{broken");
+    write("remotes/900/zones.json", "[]");
+    write("remotes/900/screens.json", "{}");
+    root = dir.path();
+    ASSERT_TRUE(resources::reload(root).isEmpty());
+    EXPECT_FALSE(zonesOf("900").isEmpty());
+    EXPECT_TRUE(resources::data(":/res/remotes/900/zones.json").isEmpty());
+    for (const auto& file : resources::exportFiles({}))
+        if (file.endsWith(".json")) { EXPECT_TRUE(file.endsWith("/remote.json")) << file.toStdString(); }
 }
 
 TEST_F(RemoteResourcesTest, ZoneEditorListsRejectedModelFolders) {
@@ -210,7 +261,7 @@ TEST_F(RemoteResourcesTest, ZoneEditorListsRejectedModelFolders) {
 TEST_F(RemoteResourcesTest, ExportModelAndAllRoundTrip) {
     const auto model = resources::exportFiles("900");
     EXPECT_TRUE(model.contains("remotes/900/remote.json"));
-    EXPECT_FALSE(model.contains("remotes/900/zones.json")); // достраивается из remote.json
+    EXPECT_EQ(std::count_if(model.cbegin(), model.cend(), [](const QString& f) { return f.endsWith(".json"); }), 1);
     EXPECT_TRUE(model.contains("remotes/900/photo.png"));
     for (const auto& file : model) EXPECT_TRUE(file.startsWith("remotes/900/")) << file.toStdString();
     EXPECT_TRUE(resources::exportFiles("no-such-model").isEmpty());
@@ -229,10 +280,10 @@ TEST_F(RemoteResourcesTest, ExportModelAndAllRoundTrip) {
     }
     EXPECT_FALSE(resources::exportTo(target, {"remotes/900/missing.json"}).isEmpty());
     // Выгруженная папка без правок читается как папка ресурсов и ничего не меняет.
-    const auto zones = resources::data(":/res/remotes/900/zones.json");
+    const auto zones = zonesOf("900");
     root = target;
     ASSERT_TRUE(resources::reload(root).isEmpty());
-    EXPECT_EQ(resources::data(":/res/remotes/900/zones.json"), zones);
+    EXPECT_EQ(zonesOf("900"), zones);
     ASSERT_TRUE(resources::exportTo(target, all).isEmpty());
     ASSERT_TRUE(resources::reload(root).isEmpty());
     EXPECT_EQ(resources::exportFiles({}), all);

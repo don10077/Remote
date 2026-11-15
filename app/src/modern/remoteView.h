@@ -26,7 +26,7 @@ namespace harmony::app {
  *   or the colour of the device a key belongs to inside an activity).
  *
  * All key geometry is stored in pixel coordinates of the source photo
- * (profile.json: size) and scaled on paint, so the widget can be any
+ * (remote.json: hardware.size) and scaled on paint, so the widget can be any
  * size. Key ids are the names of document::data::HardButtons ("VolumeUp",
  * "Number1", ...), which is also what item::Button::name holds.
  */
@@ -65,16 +65,16 @@ public:
     };
 
     explicit RemoteView(QWidget* parent = nullptr);
-    /** Загрузить фото и геометрию модели; пустой id означает 900. */
+    /** Загрузить фото и геометрию модели из remote.json; пустой id — пульт по умолчанию (первый в каталоге). */
     void setRemoteProfile(const QString& id);
     /// Снимок текущего экрана без корпуса для редактора зон; пустой при отсутствии экрана.
     QPixmap screenPreview(const QSize& size);
     /**
-     * @brief Подменить раскладку несохранёнными правками редактора зон; новую раскладку создаёт.
-     * @param mode Режим экрана профиля (его раскладка подменяется) либо новый id экрана.
-     * @param ref Единицы раскладки.
-     * @param zones Зоны вместо записанных в ресурсах.
-     * @param cellColor Цвет плиток; пусто — как у экранов пульта. Фон не меняется.
+     * @brief Подменить экран несохранёнными правками редактора зон; новый экран создаёт.
+     * @param mode id экрана пульта (его ячейки подменяются) либо новый id экрана.
+     * @param ref Единицы экрана.
+     * @param zones Ячейки вместо записанных в remote.json.
+     * @param cellColor Цвет плиток пульта (`tiles.color`); пусто — как в remote.json. Фон не меняется.
      * @param title Заголовок экрана в шапке; пусто — как у готовых экранов.
      * @note Вызывать после setRemoteProfile().
      */
@@ -140,7 +140,7 @@ public:
 
     /** translated, human readable name of a key id (for tooltips / lists) */
     static QString keyName(const QString& id);
-    /** Командные кнопки из зон модели; пустой id означает 900, без зон — пустой список. */
+    /** Командные кнопки из зон модели; пустой id — пульт по умолчанию, без зон — пустой список. */
     static QStringList hardKeyIds(const QString& remoteId = {});
     /** Переведённое название режима экрана ("transport" → «Мультимедиа»); неизвестный — как есть. */
     static QString screenModeName(const QString& mode);
@@ -212,7 +212,7 @@ private:
 
     /** физические кнопки модели и кнопки текущего экрана (с "key"/"goto"/"page"/"system") */
     const QList<Zone>& zones() const { return allZones; }
-    /** Пересобрать кнопки текущего экрана из layouts.json; вызывается при смене режима. */
+    /** Пересобрать кнопки текущего экрана из его ячеек; вызывается при смене экрана. */
     void rebuildScreenZones();
     /** LCD rectangle in photo coordinates */
     QRectF screenRect() const { return modelScreen; }
@@ -234,8 +234,8 @@ private:
      */
     void paintModernScreen(QPainter& p);
     /**
-     * Экран из картинок remotes/<id>/screens.json (раскладка с "compose"): фон, углы и кнопки —
-     * картинки, сверху рисуются плитки и подписи из конфигурации. false — раскладка не собирается.
+     * Экран из картинок `layers` (экран с "compose"): фон, углы и кнопки — картинки, сверху
+     * рисуются плитки и подписи из конфигурации. false — экран не собирается.
      */
     bool paintComposedScreen(QPainter& p, const QJsonObject& layout);
     /** Плитки (спрайт или paintPill цветом "tiles") и служебные зоны поверх фона экрана. */
@@ -258,15 +258,15 @@ private:
     QPixmap scaledPhoto; ///< cache for the current widget size
     QSize photoSize{PHOTO_WIDTH, PHOTO_HEIGHT};
     QRectF modelScreen;
-    /** основной цвет фона LCD из profile.json (screenTint), может быть невалидным */
+    /** основной цвет фона LCD (display.tint в remote.json), может быть невалидным */
     QColor screenTint;
     QList<Zone> modelZones;
     QList<Zone> allZones; ///< modelZones + кнопки текущего экрана
     quint64 resourceRevision = 0; ///< Версия снимка ресурсов.
     QString profileId;
-    QString profileDirectory; ///< папка ресурсов модели (profile.json, screens.json)
+    /// Экраны пульта: id → экран из remote.json (ячейки с rect); "devices" может ссылаться на экран активностей.
     QJsonObject modes;
-    QHash<QString, QJsonObject> layouts;
+    QJsonObject tiles; ///< общее оформление плиток пульта (блок "tiles" remote.json)
     QString activeMode;
     QList<ActivityItem> deviceItems;
     int otherPage = 0;

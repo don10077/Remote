@@ -241,7 +241,7 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
     probeTimer->setInterval(10'000);
     connect(probeTimer, &QTimer::timeout, this, [this] {
         // Проверку можно выключить в настройках (например, пульт подключают редко).
-          if (usesHarmony900(selectedRemote_.toStdString()) && settings::autoProbe() && isActiveWindow() && !remote_->busy()) {
+          if (usesUsbNet(selectedRemote_.toStdString()) && settings::autoProbe() && isActiveWindow() && !remote_->busy()) {
             remote_->probe();
         }
     });
@@ -252,7 +252,7 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
     connect(autosaveTimer, &QTimer::timeout, this, &MainWindow::autosave);
     autosaveTimer->start();
     QTimer::singleShot(500, this, [this] {
-        if (usesHarmony900(selectedRemote_.toStdString()) && settings::autoProbe()) {
+        if (usesUsbNet(selectedRemote_.toStdString()) && settings::autoProbe()) {
             remote_->probe();
         }
     });
@@ -369,7 +369,7 @@ void MainWindow::createActions() {
     connectionMenu->addSeparator();
     QAction* checkAction = connectionMenu->addAction(tr("Test connection"));
     connect(checkAction, &QAction::triggered, this, [this] {
-        if (usesHarmony900(selectedRemote_.toStdString())) remote_->probe();
+        if (usesUsbNet(selectedRemote_.toStdString())) remote_->probe();
         else showConnectionHelp();
     });
     QAction* backupsAction = connectionMenu->addAction(tr("Backups folder"));
@@ -654,6 +654,11 @@ void MainWindow::applyRemoteResources(bool interactive) {
             statusBar()->showMessage(tr("Remote resources were not updated: %1").arg(error), 15000);
         }
         return;
+    }
+    for (const QString& file : remoteResources::migratedByReload()) {
+        journal::info(tr("Remote description %1 is in an old format and was converted on load. "
+                         "It is updated on disk the next time it is saved in the zone editor.")
+                          .arg(QDir::toNativeSeparators(file)));
     }
     // Ошибки чужих пультов не шумят при запуске: они показываются при выборе пульта и в редакторе зон.
     configView_->refresh();
@@ -1094,11 +1099,11 @@ void MainWindow::updateTitle() {
     if (open) selectedRemote_ = QString::fromStdString(document_->targetRemote());
     const auto* target = remoteProfile(selectedRemote_.toStdString());
     writeRemoteAction_->setEnabled(canWrite && target && target->writable);
-    readRemoteAction_->setEnabled(target && target->driver != "none");
+    readRemoteAction_->setEnabled(target && target->driver != driver::kNone);
     header_->setWriteEnabled(canWrite && target && target->writable);
-    if (!target || target->driver == "none")
+    if (!target || target->driver == driver::kNone)
         header_->setConnectionState(false, tr("No connection driver"));
-    else if (target->driver == "hid")
+    else if (target->driver == driver::kUsbHid)
         header_->setConnectionState(false, tr("USB HID · connect and read"));
     checkConfigAction_->setEnabled(open);
     versionsAction_->setEnabled(open);
@@ -1132,7 +1137,7 @@ void MainWindow::updateTitle() {
 
 void MainWindow::showConnectionHelp() {
     const auto* profile = remoteProfile(selectedRemote_.toStdString());
-    if (!profile || profile->driver == "none") {
+    if (!profile || profile->driver == driver::kNone) {
         QMessageBox::information(this, tr("Remote"), tr("No connection driver"));
         return;
     }
@@ -1140,7 +1145,7 @@ void MainWindow::showConnectionHelp() {
     box.setWindowTitle(tr("Connecting the remote"));
     box.setIcon(QMessageBox::Information);
     box.setProperty(help::kTopicProperty, static_cast<int>(help::Topic::Connect));
-    if (!usesHarmony900(selectedRemote_.toStdString())) {
+    if (!usesUsbNet(selectedRemote_.toStdString())) {
         box.setText(tr("Connect one Harmony One/600/650/665/700 by USB, close other Logitech applications and click Read from remote. No external utility is needed. Windows uses its HID driver; on Linux, access to the hidraw device is required. The program saves a backup for analysis without changing the remote."));
         if (linuxUsb::available()) {
             box.setInformativeText(tr("On Linux press “Set up USB” once (administrator password needed)."));
