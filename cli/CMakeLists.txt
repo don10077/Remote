@@ -1,6 +1,14 @@
 # cli — консольная утилита: проверка, дамп и резервное копирование конфигурации.
 
-add_executable(harmony_cli src/main.cpp src/cliFiles.cpp src/transferCommands.cpp src/hubCommands.cpp)
+add_executable(harmony_cli
+    src/main.cpp
+    src/cliCommon.cpp
+    src/cliFiles.cpp
+    src/fileCommands.cpp
+    src/hubCommands.cpp
+    src/irdbCommands.cpp
+    src/remoteCommands.cpp
+    src/transferCommands.cpp)
 set_target_properties(harmony_cli PROPERTIES OUTPUT_NAME "harmony-cli")
 # harmony::core — через harmony::transport (PUBLIC), без дубля на строке линковки.
 target_link_libraries(harmony_cli PRIVATE harmony::transport)

@@ -192,7 +192,9 @@ jobs:
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: '3.12'
-          pip-install: opencv-python-headless==4.12.0.88
+      # setup-python v7 убрал параметр pip-install — ставим opencv (нужен авто-зонам в тестах) сами.
+      - name: opencv для авто-зон
+        run: python -m pip install opencv-python-headless==4.12.0.88
       - name: Тесты
         run: ctest --preset release
       - name: AppImage
@@ -255,7 +257,11 @@ jobs:
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: '3.12'
-          pip-install: opencv-python-headless==4.12.0.88
+      # setup-python v7 убрал параметр pip-install — ставим opencv (нужен авто-зонам в тестах) сами.
+      # Оболочка по умолчанию здесь msys2, а нужен Python из setup-python — берём его по pythonLocation.
+      - name: opencv для авто-зон
+        shell: pwsh
+        run: '& (Join-Path $env:pythonLocation "python.exe") -m pip install opencv-python-headless==4.12.0.88'
       - name: Тесты
         shell: pwsh
         env:
@@ -308,7 +314,9 @@ jobs:
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: '3.12'
-          pip-install: opencv-python-headless==4.12.0.88
+      # setup-python v7 убрал параметр pip-install — ставим opencv (нужен авто-зонам в тестах) сами.
+      - name: opencv для авто-зон
+        run: python -m pip install opencv-python-headless==4.12.0.88
       - name: Тесты
         run: ctest --preset release
       - name: Бандл и DMG
