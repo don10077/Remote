@@ -100,6 +100,9 @@ if(HARMONY_BUILD_APP)
         ../app/src/icons.cpp
         ../app/src/modern/remoteView.cpp
         ../app/src/modern/remoteView.h
+        ../app/src/modern/remoteViewInput.cpp
+        ../app/src/modern/remoteViewPaint.cpp
+        ../app/src/modern/remoteViewShared.h
         ../app/src/widgets/commandDialog.cpp
         ../app/src/widgets/commandDialog.h
         ../app/src/labels.cpp

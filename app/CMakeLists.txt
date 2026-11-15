@@ -125,6 +125,9 @@ qt_add_executable(harmony_app
     src/widgets/zoneEditorZones.cpp
     src/modern/remoteView.cpp
     src/modern/remoteView.h
+    src/modern/remoteViewInput.cpp
+    src/modern/remoteViewPaint.cpp
+    src/modern/remoteViewShared.h
 )
 
 # Ресурсы под префиксом ":/res/": тема, значки активностей, фото пульта, иконка окна.

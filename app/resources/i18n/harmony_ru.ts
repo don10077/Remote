@@ -91,7 +91,7 @@ The configuration from %1 will be copied into this archive.</source>
       <translation>%1 (нет в пульте)</translation>
     </message>
     <message>
-      <location filename="../../../app/src/modern/remoteView.cpp" />
+      <location filename="../../../app/src/modern/remoteViewInput.cpp" />
       <source>%1 (system button)</source>
       <translation>%1 (системная кнопка)</translation>
     </message>
@@ -156,7 +156,7 @@ The configuration from %1 will be copied into this archive.</source>
       <translation>%1 используется активностью, но она его не включает</translation>
     </message>
     <message>
-      <location filename="../../../app/src/modern/remoteView.cpp" />
+      <location filename="../../../app/src/modern/remoteViewPaint.cpp" />
       <location filename="../../../app/src/widgets/findByRemoteDialog.cpp" />
       <source>%1 of %2</source>
       <translation>%1 из %2</translation>
@@ -247,7 +247,7 @@ The configuration from %1 will be copied into this archive.</source>
       <translation>%1 · запуск</translation>
     </message>
     <message>
-      <location filename="../../../app/src/modern/remoteView.cpp" />
+      <location filename="../../../app/src/modern/remoteViewInput.cpp" />
       <source>%1 — free</source>
       <translation>%1 — свободна</translation>
     </message>
@@ -257,7 +257,7 @@ The configuration from %1 will be copied into this archive.</source>
       <translation>%1 — есть в папке</translation>
     </message>
     <message>
-      <location filename="../../../app/src/modern/remoteView.cpp" />
+      <location filename="../../../app/src/modern/remoteViewInput.cpp" />
       <source>%1 — no such command</source>
       <translation>%1 — нет такой команды</translation>
     </message>
@@ -3048,6 +3048,7 @@ Copy saved: %2</source>
       <location filename="../../../app/src/helpContent.cpp" />
       <location filename="../../../app/src/modern/remotePanel.cpp" />
       <location filename="../../../app/src/modern/remoteView.cpp" />
+      <location filename="../../../app/src/modern/remoteViewPaint.cpp" />
       <location filename="../../../app/src/widgets/configView.cpp" />
       <location filename="../../../app/src/widgets/writePreviewDialog.cpp" />
       <source>Devices</source>
@@ -5481,6 +5482,7 @@ The file contains device names and models, but no IR codes, account or e-mail. Y
     </message>
     <message>
       <location filename="../../../app/src/modern/remoteView.cpp" />
+      <location filename="../../../app/src/modern/remoteViewPaint.cpp" />
       <source>Options</source>
       <translation>Опции</translation>
     </message>
@@ -5541,12 +5543,12 @@ The file contains device names and models, but no IR codes, account or e-mail. Y
       <translation>Свой перевод:</translation>
     </message>
     <message>
-      <location filename="../../../app/src/modern/remoteView.cpp" />
+      <location filename="../../../app/src/modern/remoteViewPaint.cpp" />
       <source>p. %1/%2</source>
       <translation>стр. %1/%2</translation>
     </message>
     <message>
-      <location filename="../../../app/src/modern/remoteView.cpp" />
+      <location filename="../../../app/src/modern/remoteViewPaint.cpp" />
       <source>Page</source>
       <translation>Стр.</translation>
     </message>
@@ -6992,7 +6994,7 @@ Their buttons and start steps in this activity, including input switching, will 
       <translation>Тип экрана:</translation>
     </message>
     <message>
-      <location filename="../../../app/src/modern/remoteView.cpp" />
+      <location filename="../../../app/src/modern/remoteViewInput.cpp" />
       <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
       <source>Screen: %1</source>
       <translation>Экран: %1</translation>
@@ -9354,7 +9356,7 @@ They will not be sent to the remote either. When the device is made active again
       <translation>Что не сработает на пульте — и исправить</translation>
     </message>
     <message>
-      <location filename="../../../app/src/modern/remoteView.cpp" />
+      <location filename="../../../app/src/modern/remoteViewPaint.cpp" />
       <source>What would you like to do?</source>
       <translation>Что вы хотите сделать?</translation>
     </message>
