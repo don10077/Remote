@@ -228,23 +228,21 @@ private:
 
     void paintZones(QPainter& p) const;
     void paintScreen(QPainter& p);
-    /** Отрисовка экрана по раскладке из layouts.json и данным конфигурации (1000/1100/600-серия). */
+    /**
+     * Единая схема для всех пультов: спрайт экрана целиком (compose), иначе фон и плитки
+     * как у 900 по зонам экрана из remote.json пульта. Имена раскладок не используются.
+     */
     void paintModernScreen(QPainter& p);
     /**
      * Экран из картинок remotes/<id>/screens.json (раскладка с "compose"): фон, углы и кнопки —
      * картинки, сверху рисуются плитки и подписи из конфигурации. false — раскладка не собирается.
      */
     bool paintComposedScreen(QPainter& p, const QJsonObject& layout);
-    /** Единый рендерер экрана с "grid": фон и ячейки — картинка или заливка цветом, у ячеек рамка. */
+    /** Плитки (спрайт или paintPill цветом "tiles") и служебные зоны поверх фона экрана. */
     void paintGridScreen(QPainter& p, const QJsonObject& layout);
-    /** Экран 600/650/665/700 (раскладка со стилем "h600"): шапка, 2x2 у боковых кнопок, Devices. */
-    void paintCompactScreen(QPainter& p, const QJsonObject& layout);
-    void paintClassicScreen(QPainter& p);
-    void paintActivityScreen(QPainter& p);
     /// Общая раскладка списка активностей или устройств, с разными данными и действиями.
     bool isListScreen() const { return currentScreen == Screen::Activities || currentScreen == Screen::Devices; }
     const QList<ActivityItem>& listItems() const { return currentScreen == Screen::Devices ? deviceItems : activities; }
-    void paintSoftScreen(QPainter& p);
     int slotsPerPage(const QString& mode) const;
 
     /** цель под курсором при перетаскивании: подсветка, true = можно бросить */
@@ -269,7 +267,6 @@ private:
     QString profileDirectory; ///< папка ресурсов модели (profile.json, screens.json)
     QJsonObject modes;
     QHash<QString, QJsonObject> layouts;
-    QSet<QString> overriddenLayouts; ///< раскладки, подменённые overrideLayout(): рисуются по зонам, а не по готовому виду
     QString activeMode;
     QList<ActivityItem> deviceItems;
     int otherPage = 0;

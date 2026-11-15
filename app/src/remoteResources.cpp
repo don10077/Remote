@@ -84,9 +84,10 @@ void expandRemoteJson(QHash<QString, QByteArray>& candidate, QHash<QString, QStr
         for (const auto& value : remote.value("screens").toArray()) {
             const auto screen = value.toObject();
             const QString mode = screen.value("id").toString();
-            QString layoutId = screen.value("layout").toString();
             if (mode.isEmpty()) continue;
-            if (layoutId.isEmpty()) layoutId = modelId + "_" + mode;
+            // Раскладка экрана принадлежит только этому пульту: имя всегда <модель>_<экран>.
+            // Общих именованных раскладок (list_3, soft_2x2 и т.п.) больше нет, поле "layout" не читается.
+            QString layoutId = modelId + "_" + mode;
             QJsonArray cells = screen.value("cells").toArray();
             const auto grid = screen.value("grid").toObject();
             const auto refSize = screen.value("ref").toArray();
@@ -115,9 +116,15 @@ void expandRemoteJson(QHash<QString, QByteArray>& candidate, QHash<QString, QStr
                                {"touch", screen.value("touch")}, {"zones", cells}};
             for (const char* field : {"style", "centerLastRow", "compose", "grid", "background"})
                 if (screen.contains(field)) layout.insert(field, screen.value(field));
-            if (grid.contains("cols")) layout.insert("cellStyle", screen.value("cell"));
+            // Оформление плиток нужно любому экрану с плитками: иначе цвет из редактора не виден.
+            // Общий блок remote.json "tiles" (цвет, рамка плиток) перекрывает оформление экрана:
+            // плитки у всех экранов пульта одинаковые.
+            QJsonObject cellStyle = screen.value("cell").toObject();
+            const auto tiles = remote.value("tiles").toObject();
+            for (auto it = tiles.begin(); it != tiles.end(); ++it) cellStyle.insert(it.key(), it.value());
+            if (grid.contains("cols") || !cellStyle.isEmpty()) layout.insert("cellStyle", cellStyle);
             const auto cell = screen.value("cell").toObject();
-            if (cell.contains("image")) layout.insert("tile", cell);
+            if (cell.contains("image")) layout.insert("tile", cellStyle); // со спрайтом, но и с общим цветом/рамкой
             if (libraryById.contains(layoutId) && libraryById.value(layoutId) != layout) {
                 layoutId += "_" + modelId;
                 layout.insert("id", layoutId);

@@ -2779,11 +2779,6 @@ Copy saved: %2</source>
       <translation>По умолчанию</translation>
     </message>
     <message>
-      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
-      <source>Defines where the screen is drawn on the remote. Disabling removes the screen rectangle from the profile; it does not just hide the outline.</source>
-      <translation>Задаёт место экрана на пульте. При отключении рамка экрана удаляется из профиля, а не просто скрывается.</translation>
-    </message>
-    <message>
       <location filename="../../../app/src/helpContent.cpp" />
       <location filename="../../../app/src/mainWindow.cpp" />
       <location filename="../../../app/src/widgets/configView.cpp" />
@@ -4704,11 +4699,6 @@ The file contains device names and models, but no IR codes, account or e-mail. Y
       <translation>Без звука</translation>
     </message>
     <message>
-      <location filename="../../../app/src/modern/remoteView.cpp" />
-      <source>My activities</source>
-      <translation>Мои активности</translation>
-    </message>
-    <message>
       <location filename="../../../app/src/widgets/newConfigDialog.cpp" />
       <source>My configuration</source>
       <translation>Моя конфигурация</translation>
@@ -5987,11 +5977,6 @@ The file contains device names and models, but no IR codes, account or e-mail. Y
       <translation>Назначить кнопки пульта заново по ролям</translation>
     </message>
     <message>
-      <location filename="../../../app/src/modern/remoteView.cpp" />
-      <source>Rec</source>
-      <translation>Запись</translation>
-    </message>
-    <message>
       <location filename="../../../app/src/widgets/learnWizardDialog.cpp" />
       <source>Received: %1. Press the same button once more to check.</source>
       <translation>Принято: %1. Для проверки нажмите ту же кнопку ещё раз.</translation>
@@ -6730,11 +6715,6 @@ Their buttons and start steps in this activity, including input switching, will 
       <translation>Область экрана выходит за границы фотографии</translation>
     </message>
     <message>
-      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
-      <source>Screen area on the remote…</source>
-      <translation>Область экрана на пульте…</translation>
-    </message>
-    <message>
       <location filename="../../../app/src/zoneEditing.cpp" />
       <source>Screen area: width and height must be positive</source>
       <translation>Область экрана: ширина и высота должны быть положительными</translation>
@@ -7067,11 +7047,6 @@ Their buttons and start steps in this activity, including input switching, will 
       <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
       <source>Shows a new screen right away; its parameters below change it live. It is written to the remote only after “Create screen”.</source>
       <translation>Сразу показывает новый экран; параметры ниже меняют его вживую. В пульт он записывается только после «Создать экран».</translation>
-    </message>
-    <message>
-      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
-      <source>Shows the remote photo with the screen rectangle: move and resize it there, or turn the screen area on and off.</source>
-      <translation>Показывает фото пульта с рамкой экрана: двигайте и меняйте её размер там или включайте и выключайте область экрана.</translation>
     </message>
     <message>
       <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
@@ -8071,6 +8046,11 @@ They will not be sent to the remote either. When the device is made active again
       <translation>Пульт не переключает входы</translation>
     </message>
     <message>
+      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <source>The remote has a screen</source>
+      <translation>На пульте есть экран</translation>
+    </message>
+    <message>
       <location filename="../../../core/src/configDocumentCheck.cpp" />
       <source>the remote has an RF blaster, but this device is not assigned to it: commands go from the remote's front IR. Assign it on the remote: Options → RF Receiver Settings</source>
       <translation>у пульта есть RF-бластер, но это устройство на него не назначено: команды идут с переднего ИК пульта. Назначьте его на пульте: Options → RF Receiver Settings</translation>
@@ -8487,11 +8467,6 @@ They will not be sent to the remote either. When the device is made active again
       <translation>В конфигурации этого пульта есть ошибка. Откройте редактор зон для этого пульта и исправьте её.
 
 %1</translation>
-    </message>
-    <message>
-      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
-      <source>This remote has a screen area</source>
-      <translation>В профиле задана область экрана</translation>
     </message>
     <message>
       <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
@@ -9031,6 +9006,11 @@ They will not be sent to the remote either. When the device is made active again
       <location filename="../../../app/src/modern/remoteView.cpp" />
       <source>What would you like to do?</source>
       <translation>Что вы хотите сделать?</translation>
+    </message>
+    <message>
+      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <source>When on, a screen zone is created on the photo: move and resize it like any other zone.</source>
+      <translation>При включении на фото создаётся зона экрана: двигайте и меняйте её размер как любую зону.</translation>
     </message>
     <message>
       <location filename="../../../app/src/widgets/checkDialog.cpp" />

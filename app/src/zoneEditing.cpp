@@ -141,13 +141,8 @@ QByteArray lineIndent(const QByteArray& t, qsizetype pos) {
     return t.mid(start, end - start);
 }
 
-/// Массив зон в remote.json: `hardware.zones` при пустом `screenId`, иначе `cells` экрана `screenId`.
-std::optional<Span> zonesSpan(const QByteArray& t, const QString& screenId) {
-    if (screenId.isEmpty()) {
-        const auto hardware = memberValue(t, rootStart(t), QStringLiteral("hardware"));
-        if (!hardware) return std::nullopt;
-        return memberValue(t, hardware->begin, QStringLiteral("zones"));
-    }
+/// Объект экрана `screenId` в массиве `screens` remote.json; nullopt — такого экрана нет.
+std::optional<Span> screenSpan(const QByteArray& t, const QString& screenId) {
     const auto screens = memberValue(t, rootStart(t), QStringLiteral("screens"));
     if (!screens) return std::nullopt;
     const auto list = elements(t, screens->begin);
@@ -156,9 +151,21 @@ std::optional<Span> zonesSpan(const QByteArray& t, const QString& screenId) {
         const auto id = memberValue(t, span.begin, QStringLiteral("id"));
         if (!id) continue;
         const auto doc = QJsonDocument::fromJson("[" + t.mid(id->begin, id->end - id->begin) + "]");
-        if (doc.array().at(0).toString() == screenId) return memberValue(t, span.begin, QStringLiteral("cells"));
+        if (doc.array().at(0).toString() == screenId) return span;
     }
     return std::nullopt;
+}
+
+/// Массив зон в remote.json: `hardware.zones` при пустом `screenId`, иначе `cells` экрана `screenId`.
+std::optional<Span> zonesSpan(const QByteArray& t, const QString& screenId) {
+    if (screenId.isEmpty()) {
+        const auto hardware = memberValue(t, rootStart(t), QStringLiteral("hardware"));
+        if (!hardware) return std::nullopt;
+        return memberValue(t, hardware->begin, QStringLiteral("zones"));
+    }
+    const auto screen = screenSpan(t, screenId);
+    if (!screen) return std::nullopt;
+    return memberValue(t, screen->begin, QStringLiteral("cells"));
 }
 
 /**
@@ -429,6 +436,20 @@ std::optional<QByteArray> patchZones(const QByteArray& text, const QString& scre
     const auto zones = zonesSpan(text, screenId);
     if (!zones || text[zones->begin] != '[') return std::nullopt;
     return replaced(text, *zones, arrayText(text, *zones, lines));
+}
+
+std::optional<QByteArray> patchGrid(const QByteArray& text, const QString& screenId, int cols, int rows) {
+    const auto screen = screenSpan(text, screenId);
+    if (!screen) return std::nullopt;
+    const auto grid = memberValue(text, screen->begin, QStringLiteral("grid"));
+    if (!grid) return text; // у экрана нет сетки: файл не меняется
+    // Прежний зазор сохраняется; остальные поля сетки — только cols и rows.
+    const auto old = QJsonDocument::fromJson("[" + text.mid(grid->begin, grid->end - grid->begin) + "]")
+                         .array().at(0).toObject();
+    QByteArray value = "{\"cols\": " + QByteArray::number(cols) + ", \"rows\": " + QByteArray::number(rows);
+    if (old.contains(QStringLiteral("gap"))) value += ", \"gap\": " + number(old.value(QStringLiteral("gap")).toDouble());
+    value += "}";
+    return replaced(text, *grid, value);
 }
 
 std::optional<QByteArray> patchDisplay(const QByteArray& text, const std::optional<QRectF>& rect) {

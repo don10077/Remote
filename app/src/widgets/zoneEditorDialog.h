@@ -218,7 +218,6 @@ private:
     QListWidget* screenList_ = nullptr;      ///< экраны модели (вкладка «Экраны»)
     QComboBox* roleBox_ = nullptr;           ///< роль нового экрана
     QPushButton* addScreenButton_ = nullptr;
-    QPushButton* areaButton_ = nullptr;      ///< перейти к рамке экрана на фото пульта
     QWidget* draftPanel_ = nullptr;          ///< кнопки «Создать»/«Отмена» черновика
     int draftSerial_ = 0;                    ///< номер для уникального ключа черновика (история правок ссылается на ключ)
     QSpinBox* arrangeColsBox_ = nullptr;     ///< колонок плиток открытого экрана

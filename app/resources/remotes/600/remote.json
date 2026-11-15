@@ -622,22 +622,25 @@
   ],
   "tint": "#7d7f82"
  },
+ "tiles": {
+  "color": "#0b3442",
+  "border": "#ffffff"
+ },
  "screens": [
   {
    "id": "devices",
    "role": "devices",
-   "layout": "soft_2x2",
    "ref": [
     172,
     182
    ],
+   "grid": {
+    "cols": 2,
+    "rows": 2
+   },
    "touch": false,
    "background": {
     "color": "#0b3442"
-   },
-   "cell": {
-    "color": "#0b3442",
-    "border": "#ffffff"
    },
    "cells": [
     {
@@ -728,18 +731,17 @@
   {
    "id": "activities",
    "role": "activity",
-   "layout": "soft_2x2",
    "ref": [
     172,
     182
    ],
+   "grid": {
+    "cols": 2,
+    "rows": 2
+   },
    "touch": false,
    "background": {
     "color": "#0b3442"
-   },
-   "cell": {
-    "color": "#0b3442",
-    "border": "#ffffff"
    },
    "cells": [
     {
@@ -830,18 +832,17 @@
   {
    "id": "command",
    "role": "command",
-   "layout": "soft_2x2",
    "ref": [
     172,
     182
    ],
+   "grid": {
+    "cols": 2,
+    "rows": 2
+   },
    "touch": false,
    "background": {
     "color": "#0b3442"
-   },
-   "cell": {
-    "color": "#0b3442",
-    "border": "#ffffff"
    },
    "cells": [
     {

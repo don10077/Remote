@@ -106,6 +106,11 @@ QJsonArray parseZones(const QByteArray& text);
 /// Заменить массив зон корпуса (`screenId` пуст) или ячеек экрана строками `lines`; nullopt — массива нет.
 std::optional<QByteArray> patchZones(const QByteArray& text, const QString& screenId,
                                      const QList<QByteArray>& lines);
+/**
+ * @brief Записать в `grid` экрана `screenId` число колонок и рядов плиток (зазор `gap` сохраняется).
+ * @return Новый текст; исходный, если у экрана нет `grid`; nullopt — экрана нет.
+ */
+std::optional<QByteArray> patchGrid(const QByteArray& text, const QString& screenId, int cols, int rows);
 /// Заменить `display.rect` (nullopt — `null`); nullopt — ключа нет.
 std::optional<QByteArray> patchDisplay(const QByteArray& text, const std::optional<QRectF>& rect);
 

@@ -212,6 +212,22 @@ TEST(ZoneEditing, PatchZonesUnknownScreenReturnsNothing) {
     EXPECT_FALSE(ze::patchZones(kRemote, "Nope", {}).has_value());
 }
 
+TEST(ZoneEditing, PatchGridWritesColsRowsAndKeepsGap) {
+    QByteArray text = kRemote;
+    text.replace(R"("id": "Home",)", R"("id": "Home", "grid": {"cols": 2, "rows": 1, "gap": 3},)");
+    const auto patched = ze::patchGrid(text, "Home", 1, 3);
+    ASSERT_TRUE(patched.has_value());
+    const auto grid = QJsonDocument::fromJson(*patched).object()["screens"].toArray()[0].toObject()["grid"].toObject();
+    EXPECT_EQ(grid["cols"].toInt(), 1);
+    EXPECT_EQ(grid["rows"].toInt(), 3);
+    EXPECT_EQ(grid["gap"].toInt(), 3);
+    // Экран без сетки не меняется, неизвестный экран — ошибка.
+    const auto untouched = ze::patchGrid(kRemote, "Menu", 2, 2);
+    ASSERT_TRUE(untouched.has_value());
+    EXPECT_TRUE(*untouched == kRemote);
+    EXPECT_FALSE(ze::patchGrid(kRemote, "Nope", 2, 2).has_value());
+}
+
 TEST(ZoneEditing, PatchDisplayChangesRect) {
     const auto patched = ze::patchDisplay(kRemote, QRectF(120, 60, 180, 140));
     ASSERT_TRUE(patched.has_value());

@@ -160,6 +160,23 @@ bool isSlot(const QJsonObject& zone) {
     return zone.value(QStringLiteral("kind")).toString(QStringLiteral("ScreenSlot")) == QLatin1String("ScreenSlot");
 }
 
+/**
+ * @brief Сетка плиток экрана: колонки и ряды по числу различных x и y левых верхних углов плиток.
+ * @return Размер cols × rows, каждое значение от 1 до 12.
+ */
+QSize slotGrid(const QJsonArray& zones) {
+    QSet<int> xs;
+    QSet<int> ys;
+    for (const auto& value : zones) {
+        const QJsonObject zone = value.toObject();
+        if (!isSlot(zone)) continue;
+        const QRectF r = zoneEditing::rectOf(zone);
+        xs.insert(static_cast<int>(std::lround(r.x())));
+        ys.insert(static_cast<int>(std::lround(r.y())));
+    }
+    return {std::clamp(static_cast<int>(xs.size()), 1, 12), std::clamp(static_cast<int>(ys.size()), 1, 12)};
+}
+
 } // namespace
 
 // ── Подпись с сокращением ─────────────────────────────────────────────────────
@@ -355,6 +372,14 @@ ZoneEditorDialog::ZoneEditorDialog(const QString& model, QWidget* parent) : QDia
     selectionHint_->setWordWrap(true);
     selectionHint_->setObjectName("pageMeta");
     zonesLayout->addWidget(selectionHint_);
+
+    // Только для корпуса: есть ли у пульта экран. Включение создаёт зону экрана на фото,
+    // дальше она правится как любая зона; выключение удаляет её.
+    screenCheck_ = new QCheckBox(tr("The remote has a screen"), this);
+    screenCheck_->setObjectName("zoneScreenArea");
+    screenCheck_->setToolTip(tr("When on, a screen zone is created on the photo: move and resize it like any other zone."));
+    connect(screenCheck_, &QCheckBox::toggled, this, &ZoneEditorDialog::setScreenArea);
+    zonesLayout->addWidget(screenCheck_);
 
     zoneList_ = new QListWidget(this);
     zoneList_->setSelectionMode(QAbstractItemView::ExtendedSelection);
@@ -569,24 +594,6 @@ ZoneEditorDialog::ZoneEditorDialog(const QString& model, QWidget* parent) : QDia
     draftPanel_->hide();
     selectedForm->addRow(draftPanel_);
     screensLayout->addWidget(selectedGroup);
-
-    // Рамка экрана на корпусе задаётся на фото пульта: кнопка переходит к ней.
-    areaButton_ = new QPushButton(tr("Screen area on the remote…"), this);
-    areaButton_->setObjectName("zoneScreenAreaButton");
-    areaButton_->setToolTip(tr("Shows the remote photo with the screen rectangle: move and resize it there, or turn the screen area on and off."));
-    connect(areaButton_, &QPushButton::clicked, this, [this] {
-        showLayer(0);
-        if (layers_.first().current.screen) {
-            canvas_->setSelection({ZoneCanvas::SCREEN_ITEM});
-            canvas_->reveal(ZoneCanvas::SCREEN_ITEM);
-        }
-    });
-    screensLayout->addWidget(areaButton_, 0, Qt::AlignLeft);
-    screenCheck_ = new QCheckBox(tr("This remote has a screen area"), this);
-    screenCheck_->setObjectName("zoneScreenArea");
-    screenCheck_->setToolTip(tr("Defines where the screen is drawn on the remote. Disabling removes the screen rectangle from the profile; it does not just hide the outline."));
-    connect(screenCheck_, &QCheckBox::toggled, this, &ZoneEditorDialog::setScreenArea);
-    screensLayout->addWidget(screenCheck_);
     screensLayout->addStretch(1); // свободное место внизу вкладки, а не в списке экранов
 
     // Вкладка «Проверка»
@@ -758,7 +765,10 @@ bool ZoneEditorDialog::loadModel(const QString& model) {
         l.caption = tr("Screen: %1").arg(RemoteView::screenModeName(id));
         l.role = screenObject.value(QStringLiteral("role")).toString();
         // Поле цвета в редакторе задаёт цвет плиток (cell.color), фон экрана остаётся как у модели.
-        l.background = screenObject.value(QStringLiteral("cell")).toObject().value(QStringLiteral("color")).toString();
+        // Цвет один на пульт: блок "tiles"; у старых файлов — цвет самого экрана.
+        l.background = remote.value(QStringLiteral("tiles")).toObject().value(QStringLiteral("color")).toString();
+        if (l.background.isEmpty())
+            l.background = screenObject.value(QStringLiteral("cell")).toObject().value(QStringLiteral("color")).toString();
         l.ref = QSizeF(ref[0].toDouble(), ref[1].toDouble());
         l.original.zones = screenObject.value(QStringLiteral("cells")).toArray();
         l.originalText = zoneEditing::zoneTexts(remoteText, id).value_or(QList<QByteArray>());
@@ -1507,6 +1517,13 @@ bool ZoneEditorDialog::save() {
             const auto patched = zoneEditing::patchZones(remote, l.body() ? QString() : l.layout, linesOf(l));
             if (!patched) return fail(remotePath);
             remote = *patched;
+            if (!l.body()) {
+                // Сетка экрана (cols × rows) хранится в remote.json рядом с зонами и всегда им соответствует.
+                const QSize grid = slotGrid(l.current.zones);
+                const auto withGrid = zoneEditing::patchGrid(remote, l.layout, grid.width(), grid.height());
+                if (!withGrid) return fail(remotePath);
+                remote = *withGrid;
+            }
         }
         if (l.body() && l.current.screen != l.original.screen) {
             const auto patched = zoneEditing::patchDisplay(remote, l.current.screen);
@@ -1560,20 +1577,11 @@ void ZoneEditorDialog::refreshScreens() {
     }
     // Настройки экрана доступны, пока на холсте экран, а не корпус.
     if (onScreen) {
-        // Колонки и ряды — по текущим плиткам: число различных x и y их левых верхних углов.
-        QSet<int> xs;
-        QSet<int> ys;
-        for (const auto& value : layer().current.zones) {
-            const QJsonObject zone = value.toObject();
-            if (!isSlot(zone)) continue;
-            const QRectF r = zoneEditing::rectOf(zone);
-            xs.insert(static_cast<int>(std::lround(r.x())));
-            ys.insert(static_cast<int>(std::lround(r.y())));
-        }
+        const QSize grid = slotGrid(layer().current.zones);
         QSignalBlocker blockCols(arrangeColsBox_);
         QSignalBlocker blockRows(arrangeRowsBox_);
-        arrangeColsBox_->setValue(std::clamp(static_cast<int>(xs.size()), 1, 12));
-        arrangeRowsBox_->setValue(std::clamp(static_cast<int>(ys.size()), 1, 12));
+        arrangeColsBox_->setValue(grid.width());
+        arrangeRowsBox_->setValue(grid.height());
     }
     backgroundEdit_->setEnabled(onScreen);
     pickButton_->setEnabled(onScreen);
@@ -1588,7 +1596,6 @@ void ZoneEditorDialog::refreshScreens() {
     addScreenButton_->setEnabled(!hasDraft && roleBox_->count() > 0);
     roleBox_->setEnabled(draft);
     draftPanel_->setVisible(draft);
-    areaButton_->setVisible(onScreen);
     {
         QSignalBlocker blockRole(roleBox_);
         const int role = onScreen ? roleBox_->findData(layer().role) : -1;
@@ -1727,7 +1734,10 @@ void ZoneEditorDialog::beginNewScreen() {
             size = QSizeF(donorRef[0].toDouble(), donorRef[1].toDouble());
         for (const auto& value : donor.value(QStringLiteral("cells")).toArray())
             if (!isSlot(value.toObject())) l.current.zones.append(value);
-        if (const QString color = l.cellStyle.value(QStringLiteral("color")).toString(); !color.isEmpty())
+        const QString tilesColor = QJsonDocument::fromJson(readResource(QStringLiteral("remotes/") + model_ + QStringLiteral("/remote.json")))
+                                       .object().value(QStringLiteral("tiles")).toObject().value(QStringLiteral("color")).toString();
+        if (const QString color = !tilesColor.isEmpty() ? tilesColor : l.cellStyle.value(QStringLiteral("color")).toString();
+            !color.isEmpty())
             l.background = color;
     }
     // Плитки 2×2 (на узком экране длинного пульта три колонки не помещаются) — в области между служебными зонами.
@@ -1789,17 +1799,32 @@ void ZoneEditorDialog::createNewScreen() {
     screen.insert(QStringLiteral("id"), id);
     screen.insert(QStringLiteral("role"), draft.role);
     screen.insert(QStringLiteral("ref"), QJsonArray{draft.ref.width(), draft.ref.height()});
+    // Сколько плиток рисовать: колонки и ряды; координаты зон лежат в cells.
+    const QSize grid = slotGrid(draft.current.zones);
+    screen.insert(QStringLiteral("grid"), QJsonObject{{QStringLiteral("cols"), grid.width()},
+                                                      {QStringLiteral("rows"), grid.height()}});
     screen.insert(QStringLiteral("touch"), remote.value(QStringLiteral("capabilities")).toObject().value(QStringLiteral("touch")).toBool());
     screen.insert(QStringLiteral("background"), draft.backgroundStyle); // фон как у образца
     QJsonObject cell = draft.cellStyle.isEmpty()
                            ? QJsonObject{{QStringLiteral("color"), QString::fromLatin1(kDefaultBackground)},
                                          {QStringLiteral("border"), QStringLiteral("#ffffff")}}
                            : draft.cellStyle;
-    cell.insert(QStringLiteral("color"), draft.background); // выбранный цвет плиток
-    screen.insert(QStringLiteral("cell"), cell);
+    const QString donorBorder = cell.value(QStringLiteral("border")).toString();
+    cell.remove(QStringLiteral("color")); // цвет и рамка плиток общие, лежат в "tiles"
+    cell.remove(QStringLiteral("border"));
+    if (cell.isEmpty()) screen.remove(QStringLiteral("cell"));
+    else screen.insert(QStringLiteral("cell"), cell);
     screen.insert(QStringLiteral("cells"), draft.current.zones); // зоны ровно такие, как на холсте
     screens.append(screen);
     remote.insert(QStringLiteral("screens"), screens);
+    {
+        // Выбранный в черновике цвет становится цветом плиток всего пульта.
+        auto tiles = remote.value(QStringLiteral("tiles")).toObject();
+        tiles.insert(QStringLiteral("color"), draft.background);
+        if (!tiles.contains(QStringLiteral("border")))
+            tiles.insert(QStringLiteral("border"), donorBorder.isEmpty() ? QStringLiteral("#ffffff") : donorBorder);
+        remote.insert(QStringLiteral("tiles"), tiles);
+    }
     writeRemoteJson(original, remote, id);
 }
 
@@ -1849,16 +1874,25 @@ void ZoneEditorDialog::applyBackground() {
     QByteArray original;
     if (!readRemoteJson(remote, original)) return;
     QJsonArray screens = remote.value(QStringLiteral("screens")).toArray();
+    // Цвет плиток один на весь пульт: пишем в "tiles", а персональные цвета экранов убираем.
+    // Рамка без редактора остаётся в "tiles" как есть; у экранов её тоже убираем.
+    auto tilesBorder = remote.value(QStringLiteral("tiles")).toObject().value(QStringLiteral("border")).toString();
     for (int i = 0; i < screens.size(); ++i) {
         auto screen = screens[i].toObject();
-        if (screen.value(QStringLiteral("id")).toString() != id) continue;
         auto cell = screen.value(QStringLiteral("cell")).toObject();
-        cell.insert(QStringLiteral("color"), text.isEmpty() ? QString::fromLatin1(kDefaultBackground) : text);
+        if (!cell.contains(QStringLiteral("color")) && !cell.contains(QStringLiteral("border"))) continue;
+        if (tilesBorder.isEmpty()) tilesBorder = cell.value(QStringLiteral("border")).toString();
+        cell.remove(QStringLiteral("color"));
+        cell.remove(QStringLiteral("border"));
         screen.insert(QStringLiteral("cell"), cell);
         screens[i] = screen;
-        break;
     }
     remote.insert(QStringLiteral("screens"), screens);
+    auto tiles = remote.value(QStringLiteral("tiles")).toObject();
+    tiles.insert(QStringLiteral("color"), text.isEmpty() ? QString::fromLatin1(kDefaultBackground) : text);
+    if (!tiles.contains(QStringLiteral("border")) && !tilesBorder.isEmpty())
+        tiles.insert(QStringLiteral("border"), tilesBorder);
+    remote.insert(QStringLiteral("tiles"), tiles);
     writeRemoteJson(original, remote, id);
 }
 

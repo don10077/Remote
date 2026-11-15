@@ -280,23 +280,28 @@
    255
   ]
  },
+ "tiles": {
+  "color": "#0b3442",
+  "border": "#ffffff"
+ },
  "screens": [
   {
    "id": "devices",
    "role": "devices",
-   "layout": "t1100_activities",
    "ref": [
     320,
     240
    ],
+   "grid": {
+    "cols": 3,
+    "rows": 2
+   },
    "touch": true,
    "background": {
     "color": "#0b3442",
     "image": "sprites/background_1100.png"
    },
    "cell": {
-    "color": "#0b3442",
-    "border": "#ffffff",
     "image": "sprites/tile_1100.png"
    },
    "cells": [
@@ -580,19 +585,20 @@
   {
    "id": "activities",
    "role": "activity",
-   "layout": "t1100_activities",
    "ref": [
     320,
     240
    ],
+   "grid": {
+    "cols": 3,
+    "rows": 2
+   },
    "touch": true,
    "background": {
     "color": "#0b3442",
     "image": "sprites/background_1100.png"
    },
    "cell": {
-    "color": "#0b3442",
-    "border": "#ffffff",
     "image": "sprites/tile_1100.png"
    },
    "cells": [
@@ -876,19 +882,20 @@
   {
    "id": "command",
    "role": "command",
-   "layout": "t1100_command",
    "ref": [
     320,
     240
    ],
+   "grid": {
+    "cols": 3,
+    "rows": 2
+   },
    "touch": true,
    "background": {
     "color": "#0b3442",
     "image": "sprites/background_1100.png"
    },
    "cell": {
-    "color": "#0b0e10",
-    "border": "#6fa9b6",
     "image": "sprites/tile_1100.png"
    },
    "cells": [
@@ -1360,19 +1367,20 @@
   {
    "id": "favorites",
    "role": "favorites",
-   "layout": "t1100_command",
    "ref": [
     320,
     240
    ],
+   "grid": {
+    "cols": 3,
+    "rows": 2
+   },
    "touch": true,
    "background": {
     "color": "#0b3442",
     "image": "sprites/background_1100.png"
    },
    "cell": {
-    "color": "#0b0e10",
-    "border": "#6fa9b6",
     "image": "sprites/tile_1100.png"
    },
    "cells": [
@@ -1844,7 +1852,6 @@
   {
    "id": "transport",
    "role": "media",
-   "layout": "t1100_transport",
    "ref": [
     320,
     240
@@ -1853,10 +1860,6 @@
    "background": {
     "color": "#0b3442",
     "image": "sprites/background_1100.png"
-   },
-   "cell": {
-    "color": "#0b3442",
-    "border": "#ffffff"
    },
    "cells": [
     {
@@ -2361,7 +2364,6 @@
   {
    "id": "keypad",
    "role": "numpad",
-   "layout": "t1100_keypad",
    "ref": [
     320,
     240
@@ -2370,10 +2372,6 @@
    "background": {
     "color": "#0b3442",
     "image": "sprites/background_1100.png"
-   },
-   "cell": {
-    "color": "#0b3442",
-    "border": "#ffffff"
    },
    "cells": [
     {
