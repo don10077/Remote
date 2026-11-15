@@ -259,33 +259,20 @@ Result<DbImportReport> ConfigDocument::importDbDevice(const irdb::DbDevice& sour
                 appendText(command, "Name", item.command->name);
                 pugi::xml_node data = command.append_child("Data");
                 if (item.native) {
-                    auto protocolTable = detail::writableTable(ir.irProto, formats::kIrProtoFileName);
-                    if (protocolTable) {
-                        formats::IrTable& table = **protocolTable;
-                        const std::size_t before = table.entries.size();
-                        const std::size_t index = table.intern(item.native->protocol);
-                        if (index <= detail::kMaxProtocolIndex && formats::fitsOffsets(table)) {
-                            appendText(data, "Protocol", std::to_string(index));
-                            appendText(data, "Code", ir::codeText(item.native->code, static_cast<unsigned>(index)));
-                            protocolsChanged = protocolsChanged || table.entries.size() != before;
-                            ++report.protocolCommands;
-                            continue;
-                        }
-                        if (table.entries.size() != before) {
-                            table.entries.pop_back(); // не поместилась — не оставлять
-                        }
+                    if (const auto stored = detail::tryInternProtocol(ir, item.native->protocol)) {
+                        appendText(data, "Protocol", std::to_string(stored->index));
+                        appendText(data, "Code", ir::codeText(item.native->code, static_cast<unsigned>(stored->index)));
+                        protocolsChanged = protocolsChanged || stored->added;
+                        ++report.protocolCommands;
+                        continue;
                     }
                 }
-                auto rawTable = detail::writableTable(ir.ssIr, formats::kSsIrFileName);
-                if (!rawTable) {
-                    return std::unexpected(std::move(rawTable.error()));
-                }
-                const std::size_t index = (*rawTable)->intern(item.entry);
-                if (index > detail::kMaxRawIndex || !formats::fitsOffsets(**rawTable)) {
-                    return makeError(ErrorCode::Format, "no room for a new code in SsIr.bin");
+                const auto index = detail::internRawCode(ir, item.entry);
+                if (!index) {
+                    return std::unexpected(std::move(index.error()));
                 }
                 appendText(data, "Protocol", "-1");
-                appendText(data, "Code", detail::rawCode(index));
+                appendText(data, "Code", detail::rawCode(*index));
             }
             if (protocolsChanged) {
                 if (auto hashed = detail::updateProtocolHash(root, ir.irProto); !hashed) {
@@ -385,32 +372,20 @@ Result<void> writeResolved(ConfigDocument::Impl& impl, const std::vector<Resolve
             }
             pugi::xml_node data = commandNode.append_child("Data");
             if (item.native) {
-                auto table = detail::writableTable(ir.irProto, formats::kIrProtoFileName);
-                if (table) {
-                    const std::size_t before = (*table)->entries.size();
-                    const std::size_t index = (*table)->intern(item.native->protocol);
-                    if (index <= detail::kMaxProtocolIndex && formats::fitsOffsets(**table)) {
-                        appendText(data, "Protocol", std::to_string(index));
-                        appendText(data, "Code", ir::codeText(item.native->code, static_cast<unsigned>(index)));
-                        protocolsChanged = protocolsChanged || (*table)->entries.size() != before;
-                        ++report.asProtocol;
-                        continue;
-                    }
-                    if ((*table)->entries.size() != before) {
-                        (*table)->entries.pop_back();
-                    }
+                if (const auto stored = detail::tryInternProtocol(ir, item.native->protocol)) {
+                    appendText(data, "Protocol", std::to_string(stored->index));
+                    appendText(data, "Code", ir::codeText(item.native->code, static_cast<unsigned>(stored->index)));
+                    protocolsChanged = protocolsChanged || stored->added;
+                    ++report.asProtocol;
+                    continue;
                 }
             }
-            auto raw = detail::writableTable(ir.ssIr, formats::kSsIrFileName);
-            if (!raw) {
-                return std::unexpected(std::move(raw.error()));
-            }
-            const std::size_t index = (*raw)->intern(item.entry);
-            if (index > detail::kMaxRawIndex || !formats::fitsOffsets(**raw)) {
-                return makeError(ErrorCode::Format, "no room for a new code in SsIr.bin");
+            const auto index = detail::internRawCode(ir, item.entry);
+            if (!index) {
+                return std::unexpected(std::move(index.error()));
             }
             appendText(data, "Protocol", "-1");
-            appendText(data, "Code", detail::rawCode(index));
+            appendText(data, "Code", detail::rawCode(*index));
             ++report.asSignal;
         }
         if (protocolsChanged) {

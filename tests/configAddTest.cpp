@@ -457,6 +457,28 @@ TEST(LearnedCommands, LearnsAndReplacesRawCommands) {
     EXPECT_TRUE(reopened->checkIrData());
 }
 
+/// В SsIr.bin не больше 256 кодов (номер — один байт): лишний не записывается, документ не меняется.
+TEST(LearnedCommands, RawTableLimit) {
+    ConfigDocument document = ConfigDocument::createNew("С нуля");
+    auto id = document.createDevice({.label = "ТВ", .type = "Television", .manufacturer = "", .model = ""});
+    ASSERT_TRUE(id);
+    for (int command = 0; command <= 0xFF; ++command) {
+        ASSERT_TRUE(document.learnCommand(*id, "C" + std::to_string(command),
+                                          necSignal(static_cast<std::uint8_t>(command))))
+            << command;
+    }
+    // Тот же сигнал под другим именем — номер прежний, место не нужно.
+    ASSERT_TRUE(document.learnCommand(*id, "Again", necSignal(0x05)));
+
+    auto extra = necSignal(0x00);
+    extra.durations.back() = -50000; // другой сигнал — нужна новая запись
+    const auto full = document.learnCommand(*id, "Extra", extra);
+    ASSERT_FALSE(full);
+    EXPECT_EQ(full.error().code, ErrorCode::Format);
+    EXPECT_EQ(document.model().findDevice(*id)->commands.size(), 257U);
+    EXPECT_TRUE(document.checkIrData());
+}
+
 TEST(LearnedCommands, PowerCommandsDescribePower) {
     ConfigDocument document = ConfigDocument::createNew("С нуля");
     auto toggle = document.createDevice({.label = "Плеер", .type = "DvdCd", .manufacturer = "", .model = ""});

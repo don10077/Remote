@@ -5105,14 +5105,11 @@ The file contains device names and models, but no IR codes, account or e-mail. Y
     </message>
     <message>
       <location filename="../../../core/src/configDocumentAdd.cpp" />
-      <location filename="../../../core/src/configDocumentCommands.cpp" />
-      <location filename="../../../core/src/configDocumentDatabase.cpp" />
       <source>no room for a new code in SsIr.bin</source>
       <translation>в SsIr.bin нет места для нового кода</translation>
     </message>
     <message>
       <location filename="../../../core/src/configDocumentAdd.cpp" />
-      <location filename="../../../core/src/configDocumentCommands.cpp" />
       <source>no room for a new protocol in IrProto.bin</source>
       <translation>в IrProto.bin нет места для нового протокола</translation>
     </message>

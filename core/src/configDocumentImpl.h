@@ -148,8 +148,32 @@ inline constexpr std::size_t kMaxRawIndex = 0xFF;
 /// Наибольший номер записи IrProto.bin для нового протокола (номер — и в <Protocol>, и в начале <Code>).
 inline constexpr std::size_t kMaxProtocolIndex = 0xFF;
 
-/// Таблица, в которую можно добавлять записи; создаёт пустую, если файла не было.
-[[nodiscard]] Result<formats::IrTable*> writableTable(TableFile& file, std::string_view fileName);
+/**
+ * @brief Добавить запись протокола в IrProto.bin (такая уже есть — вернуть её номер).
+ *
+ * Если файла не было, создаётся пустая таблица.
+ * @return Номер записи; ErrorCode::Format — таблица не читается, номер больше kMaxProtocolIndex
+ *         или таблица не помещается в смещения. При ошибке запись может остаться в таблице:
+ *         вызывающий отменяет всю правку (mutate).
+ */
+[[nodiscard]] Result<std::size_t> internProtocol(IrData& ir, const formats::Bytes& entry);
+
+/// То же для сырого кода в SsIr.bin; предел номера — kMaxRawIndex.
+[[nodiscard]] Result<std::size_t> internRawCode(IrData& ir, const formats::Bytes& entry);
+
+/// Результат tryInternProtocol().
+struct InternedProtocol {
+    std::size_t index = 0; ///< Номер записи в IrProto.bin
+    bool added = false;    ///< Запись новая (таблица изменилась, нужен новый хеш протоколов)
+};
+
+/**
+ * @brief Добавить запись протокола, если она помещается; иначе таблица не меняется.
+ *
+ * Для команд, которые при неудаче записываются сигналом в SsIr.bin.
+ * @return nullopt — таблица не читается или переполнена.
+ */
+[[nodiscard]] std::optional<InternedProtocol> tryInternProtocol(IrData& ir, const formats::Bytes& entry);
 
 /**
  * @brief <Command> с именем @p name в <Commands> устройства, без <Data>.

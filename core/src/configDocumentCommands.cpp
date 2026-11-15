@@ -121,18 +121,14 @@ bool simpleLayout(std::span<const std::uint8_t> entry) {
 bool storeNative(ConfigDocument::Impl& impl, const std::string& deviceId, const std::string& name,
                  const ir::NativeCommand& native) {
     auto stored = detail::mutate(impl, [&](pugi::xml_node root, detail::IrData& ir) -> Result<void> {
-        auto table = detail::writableTable(ir.irProto, formats::kIrProtoFileName);
-        if (!table) {
-            return std::unexpected(std::move(table.error()));
-        }
-        const std::size_t index = (*table)->intern(native.protocol);
-        if (index > detail::kMaxProtocolIndex || !formats::fitsOffsets(**table)) {
-            return makeError(ErrorCode::Format, "no room for a new protocol in IrProto.bin");
+        const auto index = detail::internProtocol(ir, native.protocol);
+        if (!index) {
+            return std::unexpected(std::move(index.error()));
         }
         pugi::xml_node device = detail::findById(root, "Device", deviceId);
         pugi::xml_node data = detail::commandWithoutData(device, name).append_child("Data");
-        appendText(data, "Protocol", std::to_string(index));
-        appendText(data, "Code", ir::codeText(native.code, static_cast<unsigned>(index)));
+        appendText(data, "Protocol", std::to_string(*index));
+        appendText(data, "Code", ir::codeText(native.code, static_cast<unsigned>(*index)));
         if (auto hashed = detail::updateProtocolHash(root, ir.irProto); !hashed) {
             return hashed;
         }
@@ -174,20 +170,16 @@ Result<void> ConfigDocument::learnCommand(const std::string& deviceId, const std
     }
     const formats::Bytes entry = ir::encodeRawEntry(signal);
     return detail::mutate(*impl_, [&](pugi::xml_node root, detail::IrData& ir) -> Result<void> {
-        auto table = detail::writableTable(ir.ssIr, formats::kSsIrFileName);
-        if (!table) {
-            return std::unexpected(std::move(table.error()));
-        }
-        const std::size_t index = (*table)->intern(entry);
-        if (index > detail::kMaxRawIndex || !formats::fitsOffsets(**table)) {
-            return makeError(ErrorCode::Format, "no room for a new code in SsIr.bin");
+        const auto index = detail::internRawCode(ir, entry);
+        if (!index) {
+            return std::unexpected(std::move(index.error()));
         }
 
         pugi::xml_node device = detail::findById(root, "Device", deviceId);
         // Заново выученная — прежний сигнал заменяется.
         pugi::xml_node data = detail::commandWithoutData(device, name).append_child("Data");
         appendText(data, "Protocol", "-1");
-        appendText(data, "Code", detail::rawCode(index));
+        appendText(data, "Code", detail::rawCode(*index));
 
         if (name == "PowerOn" || name == "PowerOff" || name == "PowerToggle") {
             describePower(root, device, deviceId);

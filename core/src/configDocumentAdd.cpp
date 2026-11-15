@@ -40,7 +40,10 @@ Result<void> detail::updateProtocolHash(pugi::xml_node root, const TableFile& ir
     return {};
 }
 
-Result<formats::IrTable*> detail::writableTable(TableFile& file, std::string_view fileName) {
+namespace {
+
+/// Таблица, в которую можно добавлять записи; создаёт пустую, если файла не было.
+Result<formats::IrTable*> writableTable(detail::TableFile& file, std::string_view fileName) {
     if (!file.present) {
         file.present = true;
         file.table = formats::IrTable{};
@@ -50,6 +53,49 @@ Result<formats::IrTable*> detail::writableTable(TableFile& file, std::string_vie
                          {std::string(fileName)});
     }
     return &*file.table;
+}
+
+} // namespace
+
+Result<std::size_t> detail::internProtocol(IrData& ir, const formats::Bytes& entry) {
+    auto table = writableTable(ir.irProto, formats::kIrProtoFileName);
+    if (!table) {
+        return std::unexpected(std::move(table.error()));
+    }
+    const std::size_t index = (*table)->intern(entry);
+    if (index > kMaxProtocolIndex || !formats::fitsOffsets(**table)) {
+        return makeError(ErrorCode::Format, "no room for a new protocol in IrProto.bin");
+    }
+    return index;
+}
+
+Result<std::size_t> detail::internRawCode(IrData& ir, const formats::Bytes& entry) {
+    auto table = writableTable(ir.ssIr, formats::kSsIrFileName);
+    if (!table) {
+        return std::unexpected(std::move(table.error()));
+    }
+    const std::size_t index = (*table)->intern(entry);
+    if (index > kMaxRawIndex || !formats::fitsOffsets(**table)) {
+        return makeError(ErrorCode::Format, "no room for a new code in SsIr.bin");
+    }
+    return index;
+}
+
+std::optional<detail::InternedProtocol> detail::tryInternProtocol(IrData& ir, const formats::Bytes& entry) {
+    auto writable = writableTable(ir.irProto, formats::kIrProtoFileName);
+    if (!writable) {
+        return std::nullopt;
+    }
+    formats::IrTable& table = **writable;
+    const std::size_t before = table.entries.size();
+    const std::size_t index = table.intern(entry);
+    if (index <= kMaxProtocolIndex && formats::fitsOffsets(table)) {
+        return InternedProtocol{.index = index, .added = table.entries.size() != before};
+    }
+    if (table.entries.size() != before) {
+        table.entries.pop_back(); // не поместилась — не оставлять
+    }
+    return std::nullopt;
 }
 
 namespace {
@@ -150,16 +196,12 @@ Result<void> remapCommands(pugi::xml_node device, const detail::IrData& source, 
             if (!entry) {
                 return std::unexpected(std::move(entry.error()));
             }
-            auto table = detail::writableTable(target.irProto, formats::kIrProtoFileName);
-            if (!table) {
-                return std::unexpected(std::move(table.error()));
+            const auto index = detail::internProtocol(target, **entry);
+            if (!index) {
+                return std::unexpected(std::move(index.error()));
             }
-            const std::size_t index = (*table)->intern(**entry);
-            if (index > detail::kMaxProtocolIndex || !formats::fitsOffsets(**table)) {
-                return makeError(ErrorCode::Format, "no room for a new protocol in IrProto.bin");
-            }
-            protocolNode.text() = static_cast<int>(index);
-            setCodeWord(code, 0, static_cast<unsigned>(index));
+            protocolNode.text() = static_cast<int>(*index);
+            setCodeWord(code, 0, static_cast<unsigned>(*index));
         } else if (protocol == -1) {
             const auto rawIndex = codeWord(code, 2);
             if (codeWord(code, 0) != 0xFFFFU || !rawIndex) {
@@ -169,15 +211,11 @@ Result<void> remapCommands(pugi::xml_node device, const detail::IrData& source, 
             if (!entry) {
                 return std::unexpected(std::move(entry.error()));
             }
-            auto table = detail::writableTable(target.ssIr, formats::kSsIrFileName);
-            if (!table) {
-                return std::unexpected(std::move(table.error()));
+            const auto index = detail::internRawCode(target, **entry);
+            if (!index) {
+                return std::unexpected(std::move(index.error()));
             }
-            const std::size_t index = (*table)->intern(**entry);
-            if (index > detail::kMaxRawIndex || !formats::fitsOffsets(**table)) {
-                return makeError(ErrorCode::Format, "no room for a new code in SsIr.bin");
-            }
-            setCodeWord(code, 2, static_cast<unsigned>(index));
+            setCodeWord(code, 2, static_cast<unsigned>(*index));
         } else {
             return fail("invalid protocol number");
         }
