@@ -37,7 +37,7 @@ The configuration from %1 will be copied into this archive.</source>
       <translation> · обновлена %1</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowImport.cpp" />
       <source> — %1 of %2 commands match</source>
       <translation> — совпало команд: %1 из %2</translation>
     </message>
@@ -111,7 +111,7 @@ The configuration from %1 will be copied into this archive.</source>
       <translation>%1 и %2. Ошибки — кнопки или шаги, которые на пульте не сработают. Предупреждения — работает, но, скорее всего, не так, как задумано.</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowImport.cpp" />
       <source>%1 commands got IR codes picked from the database by device model and command name (highlighted in the command list). The stock hub does not report its codes, so the real ones may differ.</source>
       <translation>Для команд (%1) ИК-коды подобраны из базы по модели устройства и имени команды (выделены цветом в списке команд). Стоковый хаб не сообщает свои коды, поэтому настоящие могут отличаться.</translation>
     </message>
@@ -187,7 +187,7 @@ The configuration from %1 will be copied into this archive.</source>
       <translation>%1 перекрывает %2</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowButtons.cpp" />
       <source>%1 Undo — %2</source>
       <translation>%1 Отменить — %2</translation>
     </message>
@@ -292,12 +292,12 @@ The configuration from %1 will be copied into this archive.</source>
       <translation>%1, адрес %2 (%3)</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowButtons.cpp" />
       <source>%1. Not sent to the remote: %2. Undo — %3</source>
       <translation>%1. Не отправляется на пульт: %2. Отменить — %3</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowButtons.cpp" />
       <source>%1. Undo — %2</source>
       <translation>%1. Отменить — %2</translation>
     </message>
@@ -417,32 +417,32 @@ The configuration from %1 will be copied into this archive.</source>
       <translation>ещё %n</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowMenus.cpp" />
       <source>&amp;Edit</source>
       <translation>&amp;Правка</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowMenus.cpp" />
       <source>&amp;File</source>
       <translation>&amp;Файл</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowMenus.cpp" />
       <source>&amp;Help</source>
       <translation>&amp;Справка</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowMenus.cpp" />
       <source>&amp;Remote</source>
       <translation>П&amp;ульт</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowMenus.cpp" />
       <source>&amp;Settings</source>
       <translation>&amp;Настройки</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowMenus.cpp" />
       <source>&amp;View</source>
       <translation>&amp;Вид</translation>
     </message>
@@ -452,7 +452,7 @@ The configuration from %1 will be copied into this archive.</source>
       <translation>(выберите команду)</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowMenus.cpp" />
       <source>(empty)</source>
       <translation>(пусто)</translation>
     </message>
@@ -602,7 +602,7 @@ The configuration from %1 will be copied into this archive.</source>
       <translation>&lt;b&gt;Кнопка на экран…&lt;/b&gt;: кнопка на экране пульта с подписью или значком.</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowMenus.cpp" />
       <source>&lt;b&gt;The Harmony 900/1100 connects via USB and shows up as a network adapter.&lt;/b&gt;</source>
       <translation>&lt;b&gt;Harmony 900/1100 подключается по USB и определяется как сетевая карта.&lt;/b&gt;</translation>
     </message>
@@ -695,7 +695,7 @@ The configuration from %1 will be copied into this archive.</source>
       <translation>Файл harmony_&lt;код&gt;.ts в папке переводов добавляет язык (harmony_de.ts) или правит встроенный (harmony_ru.ts). Заготовка — все строки программы; непереведённые остаются по-английски.</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowEdit.cpp" />
       <source>a macro button</source>
       <translation>кнопка-макрос</translation>
     </message>
@@ -780,7 +780,7 @@ The configuration from %1 will be copied into this archive.</source>
       <translation>Перевод — файл Qt Linguist harmony_&amp;lt;код&amp;gt;.ts. Положите его в папку переводов («Настройки → Общие») и выберите язык; новый язык заработает после перезапуска. «Заготовка перевода…» сохраняет файл со всеми строками программы. Непереведённые строки остаются на английском.</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowMenus.cpp" />
       <source>About</source>
       <translation>О программе</translation>
     </message>
@@ -790,7 +790,7 @@ The configuration from %1 will be copied into this archive.</source>
       <translation>О программе Harmony</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowMenus.cpp" />
       <source>About Qt</source>
       <translation>О Qt</translation>
     </message>
@@ -824,7 +824,7 @@ The configuration from %1 will be copied into this archive.</source>
       <translation>Активности</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowButtons.cpp" />
       <source>Activities changed: %1.</source>
       <translation>Изменено активностей: %1.</translation>
     </message>
@@ -859,7 +859,7 @@ The configuration from %1 will be copied into this archive.</source>
       <translation>активность %1: у кнопки «%2» неверная позиция «%3»</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowMenus.cpp" />
       <source>Activity setup…</source>
       <translation>Состав активности…</translation>
     </message>
@@ -885,6 +885,8 @@ The configuration from %1 will be copied into this archive.</source>
     </message>
     <message>
       <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowButtons.cpp" />
+      <location filename="../../../app/src/mainWindowEdit.cpp" />
       <location filename="../../../app/src/mainWindowRemote.cpp" />
       <location filename="../../../app/src/widgets/compareConfigsDialog.cpp" />
       <location filename="../../../app/src/widgets/configView.cpp" />
@@ -912,13 +914,13 @@ The configuration from %1 will be copied into this archive.</source>
       <translation>Добавить кнопку на экран пульта</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowButtons.cpp" />
       <location filename="../../../app/src/widgets/activityDialog.cpp" />
       <source>Add activity</source>
       <translation>Добавить активность</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowMenus.cpp" />
       <source>Add activity…</source>
       <translation>Добавить активность…</translation>
     </message>
@@ -934,18 +936,18 @@ The configuration from %1 will be copied into this archive.</source>
       <translation>Добавить команду</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowImport.cpp" />
       <location filename="../../../app/src/widgets/addDeviceDialog.cpp" />
       <source>Add device</source>
       <translation>Добавить устройство</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowEdit.cpp" />
       <source>Add devices (%1)</source>
       <translation>Добавить устройства (%1)</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowMenus.cpp" />
       <source>Add device…</source>
       <translation>Добавить устройство…</translation>
     </message>
@@ -981,22 +983,24 @@ The configuration from %1 will be copied into this archive.</source>
       <translation>Добавить зону</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowButtons.cpp" />
+      <location filename="../../../app/src/mainWindowEdit.cpp" />
+      <location filename="../../../app/src/mainWindowImport.cpp" />
       <source>Add “%1”</source>
       <translation>Добавить «%1»</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowEdit.cpp" />
       <source>Added “%1”. In existing activities it is turned off.</source>
       <translation>Добавлено «%1». В существующих активностях оно выключено.</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowImport.cpp" />
       <source>Added “%1”: %2. In existing activities it is turned off.</source>
       <translation>Добавлено «%1»: %2. В существующих активностях оно выключено.</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowEdit.cpp" />
       <source>Added: %1. In existing activities they are turned off.</source>
       <translation>Добавлено: %1. В существующих активностях они выключены.</translation>
     </message>
@@ -1063,12 +1067,12 @@ The configuration from %1 will be copied into this archive.</source>
       <translation>Все записи</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowMenus.cpp" />
       <source>All resources</source>
       <translation>Все ресурсы</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowButtons.cpp" />
       <source>Already taken, kept: %1.</source>
       <translation>Уже заняты, оставлены: %1.</translation>
     </message>
@@ -1098,7 +1102,7 @@ The configuration from %1 will be copied into this archive.</source>
       <translation>в активности должно быть хотя бы одно устройство</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowButtons.cpp" />
       <source>An activity turns devices on, but the configuration has none yet.
 
 Add a device?</source>
@@ -1137,7 +1141,7 @@ Add a device?</source>
       <translation>у другой активности такое же имя</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowEdit.cpp" />
       <source>Another activity is already called “%1”. The remote shows only names, so choose a different one.</source>
       <translation>Другая активность уже называется «%1». Пульт показывает только имена, поэтому выберите другое.</translation>
     </message>
@@ -1152,7 +1156,7 @@ Add a device?</source>
       <translation>у другого устройства такое же имя</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowEdit.cpp" />
       <source>Another device is already called “%1”. The remote shows only names, so choose a different one.</source>
       <translation>Другое устройство уже называется «%1». Пульт показывает только имена, поэтому выберите другое.</translation>
     </message>
@@ -1242,12 +1246,12 @@ Add a device?</source>
       <translation>Назначить кнопку…</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowButtons.cpp" />
       <source>Assign “%1”</source>
       <translation>Назначить «%1»</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowButtons.cpp" />
       <source>Assign “%1” to “%2”</source>
       <translation>Назначить «%1» на «%2»</translation>
     </message>
@@ -1267,7 +1271,7 @@ Add a device?</source>
       <translation>Назначение</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowButtons.cpp" />
       <source>Assignment of “%1” cleared. Undo — %2</source>
       <translation>Назначение «%1» снято. Отменить — %2</translation>
     </message>
@@ -1370,7 +1374,7 @@ Add a device?</source>
       <translation>Резервные копии</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowMenus.cpp" />
       <location filename="../../../app/src/widgets/settingsDialog.cpp" />
       <source>Backups folder</source>
       <translation>Папка резервных копий</translation>
@@ -1539,7 +1543,7 @@ Add a device?</source>
       <translation>Кнопки и экран</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowButtons.cpp" />
       <source>Buttons moved: %1, start steps: %2.</source>
       <translation>Перенесено кнопок: %1, шагов запуска: %2.</translation>
     </message>
@@ -1549,7 +1553,7 @@ Add a device?</source>
       <translation>кнопки ещё не назначены</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowEdit.cpp" />
       <source>buttons of activity “%1”</source>
       <translation>кнопки активности «%1»</translation>
     </message>
@@ -1564,7 +1568,7 @@ Add a device?</source>
       <translation>Кнопки · %1</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowImport.cpp" />
       <location filename="../../../app/src/widgets/configView.cpp" />
       <source>button|buttons</source>
       <translation>кнопка|кнопки|кнопок</translation>
@@ -1728,7 +1732,7 @@ Add a device?</source>
       <translation>Смена целевого пульта</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowMenus.cpp" />
       <source>Change target remote…</source>
       <translation>Сменить целевой пульт…</translation>
     </message>
@@ -1785,7 +1789,7 @@ Add a device?</source>
       <translation>Проверка конфигурации: что не сработает на пульте</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowMenus.cpp" />
       <source>Check configuration…</source>
       <translation>Проверить конфигурацию…</translation>
     </message>
@@ -1912,7 +1916,7 @@ Add a device?</source>
       <translation>Снять назначение</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowButtons.cpp" />
       <source>Clear assignment of “%1”</source>
       <translation>Снять назначение «%1»</translation>
     </message>
@@ -1939,7 +1943,7 @@ Add a device?</source>
       <translation>Часы</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowMenus.cpp" />
       <location filename="../../../app/src/widgets/aboutDialog.cpp" />
       <location filename="../../../app/src/widgets/checkDialog.cpp" />
       <location filename="../../../app/src/widgets/commandDialog.cpp" />
@@ -1990,7 +1994,7 @@ Add a device?</source>
       <translation>Колонки × ряды:</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowEdit.cpp" />
       <location filename="../../../app/src/widgets/compareDevicesDialog.cpp" />
       <location filename="../../../app/src/widgets/configView.cpp" />
       <location filename="../../../app/src/widgets/deviceStatesDialog.cpp" />
@@ -2060,22 +2064,22 @@ Add a device?</source>
       <translation>команда «%1»</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowEdit.cpp" />
       <source>Command “%1” entered manually</source>
       <translation>Команда «%1» вручную</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowEdit.cpp" />
       <source>Command “%1” recognised as %2 and stored as protocol (the remote sends repeats itself)</source>
       <translation>Команда «%1» распознана как %2 и сохранена протоколом (повторы пульт шлёт сам)</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowEdit.cpp" />
       <source>Command “%1” stored as a signal</source>
       <translation>Команда «%1» сохранена сигналом</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowEdit.cpp" />
       <source>Command “%1” stored as protocol %2 (the remote sends repeats itself)</source>
       <translation>Команда «%1» сохранена протоколом %2 (повторы пульт шлёт сам)</translation>
     </message>
@@ -2164,8 +2168,9 @@ Add a device?</source>
     </message>
     <message>
       <location filename="../../../app/src/irDatabaseService.cpp" />
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowButtons.cpp" />
       <location filename="../../../app/src/mainWindowClipboard.cpp" />
+      <location filename="../../../app/src/mainWindowImport.cpp" />
       <location filename="../../../app/src/widgets/addDeviceDialog.cpp" />
       <location filename="../../../app/src/widgets/compareDevicesDialog.cpp" />
       <location filename="../../../app/src/widgets/configView.cpp" />
@@ -2210,7 +2215,7 @@ Add a device?</source>
       <translation>Сравнить с:</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowMenus.cpp" />
       <source>Compare with…</source>
       <translation>Сравнить с…</translation>
     </message>
@@ -2260,7 +2265,7 @@ Add a device?</source>
       <translation>Конфигурация превышает размер отведённой памяти пульта</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowMenus.cpp" />
       <source>Configuration files — all models…</source>
       <translation>Файлы конфигурации — все модели…</translation>
     </message>
@@ -2360,7 +2365,7 @@ Add a device?</source>
       <translation>Подключите только один HID-пульт Harmony</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowMenus.cpp" />
       <source>Connect one Harmony One/600/650/665/700 by USB, close other Logitech applications and click Read from remote. No external utility is needed. Windows uses its HID driver; on Linux, access to the hidraw device is required. The program saves a backup for analysis without changing the remote.</source>
       <translation>Подключите один Harmony One/600/650/665/700 по USB, закройте другие приложения Logitech и нажмите «Прочитать с пульта». Отдельные утилиты не нужны. Windows использует системный HID-драйвер; в Linux нужны права доступа к устройству hidraw. Программа сохранит копию для анализа, не изменяя пульт.</translation>
     </message>
@@ -2376,7 +2381,7 @@ Add a device?</source>
     </message>
     <message>
       <location filename="../../../app/src/helpContent.cpp" />
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowMenus.cpp" />
       <source>Connecting the remote</source>
       <translation>Подключение пульта</translation>
     </message>
@@ -2433,7 +2438,7 @@ Add a device?</source>
       <translation>Управление:</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowImport.cpp" />
       <source>Converting the device's commands…</source>
       <translation>Перенос команд устройства…</translation>
     </message>
@@ -2443,7 +2448,7 @@ Add a device?</source>
       <translation>Скопировано</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowButtons.cpp" />
       <source>Copied %1 to “%2”. Undo — %3</source>
       <translation>Скопировано в «%2»: %1. Отменить — %3</translation>
     </message>
@@ -2463,7 +2468,7 @@ Add a device?</source>
       <translation>Скопировано: %1. Вставить — %2 в кнопки другой активности</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowMenus.cpp" />
       <location filename="../../../app/src/mainWindowRemote.cpp" />
       <location filename="../../../app/src/widgets/copyButtonsDialog.cpp" />
       <location filename="../../../app/src/widgets/journalDialog.cpp" />
@@ -2472,13 +2477,13 @@ Add a device?</source>
       <translation>Копировать</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowButtons.cpp" />
       <location filename="../../../app/src/widgets/compareDevicesDialog.cpp" />
       <source>Copy %1 to “%2”</source>
       <translation>Скопировать %1 в «%2»</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowButtons.cpp" />
       <location filename="../../../app/src/widgets/copyButtonsDialog.cpp" />
       <source>Copy buttons</source>
       <translation>Копирование кнопок</translation>
@@ -2489,7 +2494,7 @@ Add a device?</source>
       <translation>Копировать кнопки «%1»</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowButtons.cpp" />
       <source>Copy buttons to %1</source>
       <translation>Копирование кнопок в %1</translation>
     </message>
@@ -2509,7 +2514,7 @@ Add a device?</source>
       <translation>Скопировать раскладку или выбранную кнопку в другие активности</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowMenus.cpp" />
       <source>Copy the photo, zones and profile to a folder to edit them without rebuilding</source>
       <translation>Скопировать фото, зоны и профиль в папку, чтобы править их без пересборки</translation>
     </message>
@@ -2534,7 +2539,7 @@ Add a device?</source>
       <translation>Копировать сведения о версии</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowButtons.cpp" />
       <source>Copy “%1” → “%2”</source>
       <translation>Копировать «%1» → «%2»</translation>
     </message>
@@ -2604,7 +2609,7 @@ Add a device?</source>
       <translation>не удалось создать папку: %1</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowMenus.cpp" />
       <source>Could not export: %1</source>
       <translation>Не удалось выгрузить: %1</translation>
     </message>
@@ -2641,7 +2646,7 @@ Add a device?</source>
       <translation>не удалось открыть файл: %1</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowMenus.cpp" />
       <source>Could not open the resources folder: %1</source>
       <translation>Не удалось открыть папку ресурсов: %1</translation>
     </message>
@@ -2792,7 +2797,7 @@ Copy saved: %2</source>
       <translation>Создать экран</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowEdit.cpp" />
       <source>Create “%1”</source>
       <translation>Создать «%1»</translation>
     </message>
@@ -2802,7 +2807,7 @@ Copy saved: %2</source>
       <translation>Сейчас «%1» шлёт: %2 — назначение заменится.</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowMenus.cpp" />
       <source>Cut</source>
       <translation>Вырезать</translation>
     </message>
@@ -2875,7 +2880,7 @@ Copy saved: %2</source>
     </message>
     <message>
       <location filename="../../../app/src/helpContent.cpp" />
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowEdit.cpp" />
       <location filename="../../../app/src/widgets/configView.cpp" />
       <location filename="../../../app/src/widgets/deviceStatesDialog.cpp" />
       <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
@@ -2888,17 +2893,17 @@ Copy saved: %2</source>
       <translation>Удалить кнопку</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowEdit.cpp" />
       <source>Delete command</source>
       <translation>Удалить команду</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowEdit.cpp" />
       <source>Delete command “%1”</source>
       <translation>Удалить команду «%1»</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowEdit.cpp" />
       <source>Delete device</source>
       <translation>Удалить устройство</translation>
     </message>
@@ -2908,12 +2913,12 @@ Copy saved: %2</source>
       <translation>Удалить шаг</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowEdit.cpp" />
       <source>Delete the activity “%1”?</source>
       <translation>Удалить активность «%1»?</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowEdit.cpp" />
       <source>Delete the device “%1” with its commands?</source>
       <translation>Удалить устройство «%1» вместе с его командами?</translation>
     </message>
@@ -2928,7 +2933,8 @@ Copy saved: %2</source>
       <translation>Удалить зоны</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowButtons.cpp" />
+      <location filename="../../../app/src/mainWindowEdit.cpp" />
       <source>Delete “%1”</source>
       <translation>Удалить «%1»</translation>
     </message>
@@ -2938,22 +2944,23 @@ Copy saved: %2</source>
       <translation>Удалить «%1», если оно больше не нужно ни одной активности</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowEdit.cpp" />
       <source>Deleted command “%1”. Undo — %2</source>
       <translation>Команда «%1» удалена. Отменить — %2</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowEdit.cpp" />
       <source>Deleted “%1”, it is removed from %2. Undo — %3</source>
       <translation>Удалено «%1», оно убрано из: %2. Отменить — %3</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowButtons.cpp" />
+      <location filename="../../../app/src/mainWindowEdit.cpp" />
       <source>Deleted “%1”. Undo — %2</source>
       <translation>Удалено «%1». Отменить — %2</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowMenus.cpp" />
       <source>Delete…</source>
       <translation>Удалить…</translation>
     </message>
@@ -2994,7 +3001,7 @@ Copy saved: %2</source>
       <translation>устройство %1: у команды «%2» некорректный протокол «%3»</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowEdit.cpp" />
       <source>device buttons</source>
       <translation>кнопки устройства</translation>
     </message>
@@ -3005,7 +3012,7 @@ Copy saved: %2</source>
       <translation>кнопки устройства шлют команды только ему самому</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowEdit.cpp" />
       <source>Device not found.</source>
       <translation>Устройство не найдено.</translation>
     </message>
@@ -3093,6 +3100,7 @@ Copy saved: %2</source>
     <message>
       <location filename="../../../app/src/irDatabaseService.cpp" />
       <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowEdit.cpp" />
       <location filename="../../../app/src/mainWindowRemote.cpp" />
       <location filename="../../../app/src/widgets/addDeviceDialog.cpp" />
       <location filename="../../../app/src/widgets/compareConfigsDialog.cpp" />
@@ -3133,7 +3141,7 @@ Copy saved: %2</source>
       <translation>Только изображение</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowButtons.cpp" />
       <source>Do not send “%1” to the remote</source>
       <translation>Не отправлять «%1» на пульт</translation>
     </message>
@@ -3261,7 +3269,7 @@ Copy saved: %2</source>
       <translation>Каждая выученная команда — отдельный шаг отмены (%1).</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowMenus.cpp" />
       <source>Earlier states of the configuration: autosave, before saving — and restoring them</source>
       <translation>Прежние состояния конфигурации: автосохранение, перед сохранением — и их восстановление</translation>
     </message>
@@ -3271,7 +3279,7 @@ Copy saved: %2</source>
       <translation>Изменить активность</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowMenus.cpp" />
       <source>Edit button zones and screen layouts of a remote model on its photo</source>
       <translation>Редактировать зоны кнопок и раскладки экранов на фотографии пульта</translation>
     </message>
@@ -3281,12 +3289,12 @@ Copy saved: %2</source>
       <translation>Изменить прямоугольник</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowMenus.cpp" />
       <source>Edit remote zones…</source>
       <translation>Редактор зон пульта…</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowButtons.cpp" />
       <source>Edit “%1”</source>
       <translation>Изменить «%1»</translation>
     </message>
@@ -3384,7 +3392,7 @@ Copy saved: %2</source>
       <translation>Только ошибки</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowCheck.cpp" />
       <location filename="../../../app/src/mainWindowRemote.cpp" />
       <location filename="../../../app/src/widgets/checkDialog.cpp" />
       <source>error|errors</source>
@@ -3410,7 +3418,7 @@ Copy saved: %2</source>
     </message>
     <message>
       <location filename="../../../app/src/helpContent.cpp" />
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowMenus.cpp" />
       <location filename="../../../app/src/modern/remoteView.cpp" />
       <source>Exit</source>
       <translation>Выход</translation>
@@ -3421,17 +3429,17 @@ Copy saved: %2</source>
       <translation>Ожидается одна конфигурация MH и один файл описания</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowMenus.cpp" />
       <source>Export remote resources</source>
       <translation>Выгрузка ресурсов пультов</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowMenus.cpp" />
       <source>Export remote resources…</source>
       <translation>Выгрузить ресурсы пультов…</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowMenus.cpp" />
       <source>Export the current resources to the working resources folder. Existing files are replaced only after confirmation.</source>
       <translation>Выгрузить текущие ресурсы в рабочую папку resources. Существующие файлы заменяются только после подтверждения.</translation>
     </message>
@@ -3818,12 +3826,12 @@ Copy saved: %2</source>
       <translation>Помощь</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowMenus.cpp" />
       <source>Help contents</source>
       <translation>Содержание справки</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowMenus.cpp" />
       <source>Help on the open page; the same key in a dialog opens help on that dialog</source>
       <translation>Справка по открытой странице; в окне та же клавиша открывает справку по этому окну</translation>
     </message>
@@ -3983,7 +3991,7 @@ Copy saved: %2</source>
       <translation>Как часто повторяется удерживаемая кнопка (громкость, канал). Обычно 100.</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowMenus.cpp" />
       <source>How the open configuration differs from another one: a recent one or a file</source>
       <translation>Чем открытая конфигурация отличается от другой: из недавних или из файла</translation>
     </message>
@@ -4018,7 +4026,7 @@ Copy saved: %2</source>
       <translation>Как рисуется панель на экране без картинок; её цвет задаётся на вкладке «Экраны».</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowMenus.cpp" />
       <source>How to connect the remote…</source>
       <translation>Как подключить пульт…</translation>
     </message>
@@ -4033,12 +4041,12 @@ Copy saved: %2</source>
       <translation>Чем «%1» отличается от другой конфигурации</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowImport.cpp" />
       <source>Hub configuration opened without IR codes: the IR database is not available.</source>
       <translation>Конфигурация хаба открыта без ИК-кодов: база ИК-кодов недоступна.</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowImport.cpp" />
       <source>Hub IR codes: %1 as protocol, %2 as signal, %3 skipped</source>
       <translation>ИК-коды хаба: %1 протоколом, %2 сигналом, пропущено %3</translation>
     </message>
@@ -4147,12 +4155,12 @@ The file contains device names and models, but no IR codes, account or e-mail. Y
       <translation>Способ ввода:</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowButtons.cpp" />
       <source>Input switches removed (“%1” has no such input): %2.</source>
       <translation>Удалены переключения входов (у «%1» нет такого входа): %2.</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowButtons.cpp" />
       <location filename="../../../app/src/widgets/deviceStatesDialog.cpp" />
       <source>Inputs</source>
       <translation>Входы</translation>
@@ -4168,12 +4176,12 @@ The file contains device names and models, but no IR codes, account or e-mail. Y
       <translation>изменились входы</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowImport.cpp" />
       <source>inputs described</source>
       <translation>входы описаны</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowButtons.cpp" />
       <source>Inputs of “%1”</source>
       <translation>Входы «%1»</translation>
     </message>
@@ -4294,22 +4302,22 @@ The file contains device names and models, but no IR codes, account or e-mail. Y
       <translation>База ИК-кодов (*.irdb)</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowImport.cpp" />
       <source>IR code not resolved: %1</source>
       <translation>ИК-код не найден: %1</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowImport.cpp" />
       <source>IR codes for “%1”</source>
       <translation>ИК-коды для «%1»</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowImport.cpp" />
       <source>IR codes from the database for “%1”</source>
       <translation>ИК-коды из базы для «%1»</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowImport.cpp" />
       <source>IR codes from the database: %1 commands filled, %2 devices without a match. These are not the hub's own codes and may differ.</source>
       <translation>ИК-коды из базы: заполнено команд — %1, устройств без совпадения — %2. Это не собственные коды хаба, они могут отличаться.</translation>
     </message>
@@ -4374,7 +4382,7 @@ The file contains device names and models, but no IR codes, account or e-mail. Y
       <translation>Звук клавиш</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowMenus.cpp" />
       <source>Key beep, backlight, font, theme, clock, child lock</source>
       <translation>Звук клавиш, подсветка, шрифт, тема, часы, блокировка</translation>
     </message>
@@ -4419,7 +4427,7 @@ The file contains device names and models, but no IR codes, account or e-mail. Y
       <translation>Подпись:</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowMenus.cpp" />
       <source>Language</source>
       <translation>Язык</translation>
     </message>
@@ -4459,7 +4467,7 @@ The file contains device names and models, but no IR codes, account or e-mail. Y
       <translation>Обучить команды — «%1»</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowMenus.cpp" />
       <source>Learn commands…</source>
       <translation>Обучить команды…</translation>
     </message>
@@ -4479,7 +4487,7 @@ The file contains device names and models, but no IR codes, account or e-mail. Y
       <translation>Заново обучить предыдущую команду</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowEdit.cpp" />
       <source>Learn “%1”</source>
       <translation>Выучить «%1»</translation>
     </message>
@@ -4590,7 +4598,7 @@ The file contains device names and models, but no IR codes, account or e-mail. Y
       <translation>Макрос (несколько шагов)</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowButtons.cpp" />
       <source>Macro steps moved: %1.</source>
       <translation>Шагов макросов перешло: %1.</translation>
     </message>
@@ -4610,12 +4618,12 @@ The file contains device names and models, but no IR codes, account or e-mail. Y
       <translation>Сделать «%1» активным</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowButtons.cpp" />
       <source>Make the device and these activities inactive</source>
       <translation>Сделать неактивными устройство и эти активности</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowButtons.cpp" />
       <source>Make the device inactive</source>
       <translation>Сделать устройство неактивным</translation>
     </message>
@@ -4745,7 +4753,7 @@ The file contains device names and models, but no IR codes, account or e-mail. Y
       <translation>Модель</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowMenus.cpp" />
       <source>Model %1</source>
       <translation>Модель %1</translation>
     </message>
@@ -4795,12 +4803,12 @@ The file contains device names and models, but no IR codes, account or e-mail. Y
       <translation>Переместить зоны</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowButtons.cpp" />
       <source>Move “%1”</source>
       <translation>Переставить «%1»</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowButtons.cpp" />
       <source>Move “%1” → “%2”</source>
       <translation>Перенести «%1» → «%2»</translation>
     </message>
@@ -4870,7 +4878,7 @@ The file contains device names and models, but no IR codes, account or e-mail. Y
       <translation>Новая конфигурация</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowEdit.cpp" />
       <location filename="../../../app/src/widgets/newDeviceDialog.cpp" />
       <source>New device</source>
       <translation>Новое устройство</translation>
@@ -4881,7 +4889,7 @@ The file contains device names and models, but no IR codes, account or e-mail. Y
       <translation>Новое устройство:</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowMenus.cpp" />
       <location filename="../../../app/src/widgets/addDeviceDialog.cpp" />
       <source>New device…</source>
       <translation>Новое устройство…</translation>
@@ -4897,7 +4905,7 @@ The file contains device names and models, but no IR codes, account or e-mail. Y
       <translation>Новое имя устройства</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowEdit.cpp" />
       <source>New name:</source>
       <translation>Новое имя:</translation>
     </message>
@@ -4922,7 +4930,7 @@ The file contains device names and models, but no IR codes, account or e-mail. Y
       <translation>Только что добавлено</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowMenus.cpp" />
       <source>New…</source>
       <translation>Новая…</translation>
     </message>
@@ -4995,6 +5003,7 @@ The file contains device names and models, but no IR codes, account or e-mail. Y
     </message>
     <message>
       <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowMenus.cpp" />
       <source>No connection driver</source>
       <translation>Драйвер подключения не задан</translation>
     </message>
@@ -5034,7 +5043,7 @@ The file contains device names and models, but no IR codes, account or e-mail. Y
       <translation>ни у одного устройства нет главной роли (DEFAULT): кнопки без назначения ничего не делают</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowImport.cpp" />
       <source>No device in the IR database for “%1”</source>
       <translation>В базе ИК-кодов нет устройства для «%1»</translation>
     </message>
@@ -5159,7 +5168,7 @@ The file contains device names and models, but no IR codes, account or e-mail. Y
       <translation>Некорректный цвет: %1</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowImport.cpp" />
       <source>not converted: %1</source>
       <translation>не преобразовано: %1</translation>
     </message>
@@ -5318,7 +5327,7 @@ The file contains device names and models, but no IR codes, account or e-mail. Y
       <translation>При нажатии:</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowMenus.cpp" />
       <source>On Linux press “Set up USB” once (administrator password needed).</source>
       <translation>На Linux один раз нажмите «Настроить USB» (понадобится пароль администратора).</translation>
     </message>
@@ -5425,7 +5434,7 @@ The file contains device names and models, but no IR codes, account or e-mail. Y
       <translation>Открыть конфигурацию</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowMenus.cpp" />
       <source>Open example configuration</source>
       <translation>Открыть пример конфигурации</translation>
     </message>
@@ -5440,7 +5449,7 @@ The file contains device names and models, but no IR codes, account or e-mail. Y
       <translation>Открыть папку</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowMenus.cpp" />
       <source>Open remote resources folder</source>
       <translation>Открыть папку ресурсов пультов</translation>
     </message>
@@ -5475,7 +5484,7 @@ The file contains device names and models, but no IR codes, account or e-mail. Y
       <translation>Открыто: %1</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowMenus.cpp" />
       <location filename="../../../app/src/widgets/startDialog.cpp" />
       <source>Open…</source>
       <translation>Открыть…</translation>
@@ -5594,7 +5603,7 @@ The file contains device names and models, but no IR codes, account or e-mail. Y
       <translation>длину параметра %1 нельзя закодировать</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowMenus.cpp" />
       <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
       <source>Paste</source>
       <translation>Вставить</translation>
@@ -5756,7 +5765,7 @@ The file contains device names and models, but no IR codes, account or e-mail. Y
       <translation>Границы:</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowButtons.cpp" />
       <location filename="../../../app/src/widgets/configView.cpp" />
       <location filename="../../../app/src/widgets/deviceStatesDialog.cpp" />
       <source>Power</source>
@@ -5768,7 +5777,7 @@ The file contains device names and models, but no IR codes, account or e-mail. Y
       <translation>Питание и входы</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowButtons.cpp" />
       <source>Power of “%1”</source>
       <translation>Питание «%1»</translation>
     </message>
@@ -5793,7 +5802,7 @@ The file contains device names and models, but no IR codes, account or e-mail. Y
       <translation>включение или переключение входов шлёт «%1», а у устройства такой команды нет</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowEdit.cpp" />
       <source>power or inputs of the device</source>
       <translation>питание или входы устройства</translation>
     </message>
@@ -5803,7 +5812,7 @@ The file contains device names and models, but no IR codes, account or e-mail. Y
       <translation>Питание — «%1»</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowImport.cpp" />
       <location filename="../../../app/src/widgets/addDeviceDialog.cpp" />
       <source>power: manual</source>
       <translation>питание: вручную</translation>
@@ -5905,7 +5914,7 @@ The file contains device names and models, but no IR codes, account or e-mail. Y
       <translation>Журнал программы</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowMenus.cpp" />
       <source>Program journal…</source>
       <translation>Журнал программы…</translation>
     </message>
@@ -5936,7 +5945,7 @@ The file contains device names and models, but no IR codes, account or e-mail. Y
       <translation>Свойства и переключатель «Активно»</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowEdit.cpp" />
       <source>Properties of “%1”</source>
       <translation>Свойства «%1»</translation>
     </message>
@@ -6013,7 +6022,7 @@ The file contains device names and models, but no IR codes, account or e-mail. Y
       <translation>Файл протоколов:</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowEdit.cpp" />
       <location filename="../../../app/src/widgets/configView.cpp" />
       <source>Put another device in its place in activities — e.g. a new TV</source>
       <translation>Поставить на его место в активностях другое устройство — например, новый телевизор</translation>
@@ -6030,7 +6039,7 @@ The file contains device names and models, but no IR codes, account or e-mail. Y
       <translation>Быстрый поиск</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowMenus.cpp" />
       <source>Quick search…</source>
       <translation>Быстрый поиск…</translation>
     </message>
@@ -6070,7 +6079,7 @@ The file contains device names and models, but no IR codes, account or e-mail. Y
       <translation>Считайте резервную копию или запишите готовую конфигурацию из Concordance, Afterglow, re-harmony или Harmony. Фото и зоны кнопок не требуются. Файл должен соответствовать модели пульта.</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowMenus.cpp" />
       <source>Read configuration from remote</source>
       <translation>Прочитать конфигурацию с пульта</translation>
     </message>
@@ -6149,7 +6158,7 @@ The file contains device names and models, but no IR codes, account or e-mail. Y
       <translation>Чтение журнала с пульта…</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowMenus.cpp" />
       <source>Reads the configuration from the remote, saves it as a backup and opens it</source>
       <translation>Снимает конфигурацию с пульта, сохраняет её как резервную копию и открывает</translation>
     </message>
@@ -6169,12 +6178,12 @@ The file contains device names and models, but no IR codes, account or e-mail. Y
       <translation>Получение конфигурации (%1 КБ)…</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowMenus.cpp" />
       <source>Recent</source>
       <translation>Последние</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowMenus.cpp" />
       <source>Recent configurations…</source>
       <translation>Недавние конфигурации…</translation>
     </message>
@@ -6230,17 +6239,17 @@ The file contains device names and models, but no IR codes, account or e-mail. Y
       <translation>Пишет на диск</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowMenus.cpp" />
       <source>Recover IR data</source>
       <translation>Восстановление ИК-данных</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowMenus.cpp" />
       <source>Recover IR data from backup</source>
       <translation>Восстановление ИК-данных из резервной копии</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowMenus.cpp" />
       <source>Recover IR data from backup…</source>
       <translation>Восстановить ИК-данные из копии…</translation>
     </message>
@@ -6252,6 +6261,7 @@ The file contains device names and models, but no IR codes, account or e-mail. Y
     <message>
       <location filename="../../../app/src/helpContent.cpp" />
       <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowMenus.cpp" />
       <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
       <source>Redo</source>
       <translation>Повторить</translation>
@@ -6263,6 +6273,7 @@ The file contains device names and models, but no IR codes, account or e-mail. Y
     </message>
     <message>
       <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowMenus.cpp" />
       <source>Redo: %1</source>
       <translation>Повтор: %1</translation>
     </message>
@@ -6282,12 +6293,12 @@ The file contains device names and models, but no IR codes, account or e-mail. Y
       <translation>Загрузить заново, отбросив мои правки</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowMenus.cpp" />
       <source>Reload remote resources</source>
       <translation>Обновить ресурсы пультов</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowMenus.cpp" />
       <location filename="../../../app/src/modern/remotePanel.cpp" />
       <location filename="../../../app/src/widgets/configView.cpp" />
       <location filename="../../../app/src/widgets/settingsDialog.cpp" />
@@ -6301,7 +6312,7 @@ The file contains device names and models, but no IR codes, account or e-mail. Y
       <translation>Адрес пульта:</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowMenus.cpp" />
       <source>Remote backup (*.EZHex);;All files (*)</source>
       <translation>Резервная копия пульта (*.EZHex);;Все файлы (*)</translation>
     </message>
@@ -6333,7 +6344,7 @@ The file contains device names and models, but no IR codes, account or e-mail. Y
       <translation>Кнопки пульта назначатся сами: %1 из %2.</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowButtons.cpp" />
       <source>Remote buttons: %1, screen buttons: %2.</source>
       <translation>Кнопок пульта: %1, экранных: %2.</translation>
     </message>
@@ -6363,7 +6374,7 @@ The file contains device names and models, but no IR codes, account or e-mail. Y
       <translation>Пульт подключён: %1</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowMenus.cpp" />
       <source>Remote description %1 is in an old format and was converted on load. It is updated on disk the next time it is saved in the zone editor.</source>
       <translation>Описание пульта %1 в старом формате и переведено на новый при загрузке. Файл на диске обновится при следующем сохранении в редакторе зон.</translation>
     </message>
@@ -6395,32 +6406,32 @@ The file contains device names and models, but no IR codes, account or e-mail. Y
     </message>
     <message>
       <location filename="../../../app/src/helpContent.cpp" />
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowMenus.cpp" />
       <source>Remote overview</source>
       <translation>Обзор пульта</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowMenus.cpp" />
       <source>Remote resources</source>
       <translation>Ресурсы пультов</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowMenus.cpp" />
       <source>Remote resources exported</source>
       <translation>Ресурсы пультов выгружены</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowMenus.cpp" />
       <source>Remote resources exported: %1</source>
       <translation>Ресурсы пультов выгружены: %1</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowMenus.cpp" />
       <source>Remote resources updated</source>
       <translation>Ресурсы пультов обновлены</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowMenus.cpp" />
       <source>Remote resources were not updated: %1</source>
       <translation>Ресурсы пультов не обновлены: %1</translation>
     </message>
@@ -6451,7 +6462,7 @@ The file contains device names and models, but no IR codes, account or e-mail. Y
       <translation>Настройки пульта: %1</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowMenus.cpp" />
       <source>Remote settings…</source>
       <translation>Настройки пульта…</translation>
     </message>
@@ -6471,7 +6482,7 @@ The file contains device names and models, but no IR codes, account or e-mail. Y
       <translation>Журнал пульта: %1</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowMenus.cpp" />
       <source>Remote system log…</source>
       <translation>Журнал пульта…</translation>
     </message>
@@ -6505,7 +6516,7 @@ Their buttons and start steps in this activity, including input switching, will 
 Их кнопки и шаги запуска в этой активности, включая переключение входов, будут удалены.</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowEdit.cpp" />
       <source>Remove from activities and delete</source>
       <translation>Убрать из активностей и удалить</translation>
     </message>
@@ -6515,7 +6526,7 @@ Their buttons and start steps in this activity, including input switching, will 
       <translation>Убрать из списка</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowEdit.cpp" />
       <source>Remove from there and delete</source>
       <translation>Убрать оттуда и удалить</translation>
     </message>
@@ -6530,12 +6541,12 @@ Their buttons and start steps in this activity, including input switching, will 
       <translation>Удалить экран «%1»? Его зоны будут удалены.</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowMenus.cpp" />
       <source>Remove USB setup</source>
       <translation>Убрать настройку USB</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowButtons.cpp" />
       <source>Removed without a matching command: %1.</source>
       <translation>Убрано без подходящей команды: %1.</translation>
     </message>
@@ -6555,22 +6566,22 @@ Their buttons and start steps in this activity, including input switching, will 
       <translation>Переименовать</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowEdit.cpp" />
       <source>Rename activity</source>
       <translation>Переименовать активность</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowEdit.cpp" />
       <source>Rename device</source>
       <translation>Переименовать устройство</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowEdit.cpp" />
       <source>Rename “%1”</source>
       <translation>Переименовать «%1»</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowMenus.cpp" />
       <location filename="../../../app/src/widgets/configView.cpp" />
       <source>Rename…</source>
       <translation>Переименовать…</translation>
@@ -6592,7 +6603,7 @@ Their buttons and start steps in this activity, including input switching, will 
       <translation>Заменить текущую</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowButtons.cpp" />
       <location filename="../../../app/src/widgets/replaceDeviceDialog.cpp" />
       <source>Replace device</source>
       <translation>Замена устройства</translation>
@@ -6613,12 +6624,12 @@ Their buttons and start steps in this activity, including input switching, will 
       <translation>Заменить «%1» в активностях</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowButtons.cpp" />
       <source>Replace “%1” with “%2”</source>
       <translation>Замена «%1» на «%2»</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowEdit.cpp" />
       <source>Replace…</source>
       <translation>Заменить…</translation>
     </message>
@@ -6633,17 +6644,17 @@ Their buttons and start steps in this activity, including input switching, will 
       <translation>Сообщить о проблеме</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowMenus.cpp" />
       <source>Reset settings</source>
       <translation>Сбросить настройки</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowMenus.cpp" />
       <source>Reset settings…</source>
       <translation>Сбросить настройки…</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowMenus.cpp" />
       <source>Reset the settings to their defaults? The list of configurations stays.</source>
       <translation>Вернуть настройки к значениям по умолчанию? Список конфигураций останется.</translation>
     </message>
@@ -6658,12 +6669,12 @@ Their buttons and start steps in this activity, including input switching, will 
       <translation>Изменить размеры зон</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowImport.cpp" />
       <source>Resolve hub IR codes</source>
       <translation>ИК-коды хаба из базы</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowMenus.cpp" />
       <source>Resources were not updated. The previous resources are still in use.
 
 %1</source>
@@ -6759,7 +6770,7 @@ Their buttons and start steps in this activity, including input switching, will 
     </message>
     <message>
       <location filename="../../../app/src/helpContent.cpp" />
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowMenus.cpp" />
       <location filename="../../../app/src/widgets/activityDialog.cpp" />
       <location filename="../../../app/src/widgets/deviceStatesDialog.cpp" />
       <location filename="../../../app/src/widgets/protocolCommandDialog.cpp" />
@@ -6784,7 +6795,7 @@ Their buttons and start steps in this activity, including input switching, will 
       <translation>Сохранить как</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowMenus.cpp" />
       <source>Save as…</source>
       <translation>Сохранить как…</translation>
     </message>
@@ -6919,7 +6930,7 @@ Their buttons and start steps in this activity, including input switching, will 
       <translation>Кнопка на экране</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowButtons.cpp" />
       <source>screen button %1</source>
       <translation>экранная кнопка %1</translation>
     </message>
@@ -7071,7 +7082,7 @@ Their buttons and start steps in this activity, including input switching, will 
       <translation>Отправлять Stop при завершении активности.</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowButtons.cpp" />
       <source>Send “%1” to the remote</source>
       <translation>Отправлять «%1» на пульт</translation>
     </message>
@@ -7091,17 +7102,17 @@ Their buttons and start steps in this activity, including input switching, will 
       <translation>Отдельные команды включения и выключения</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowMenus.cpp" />
       <source>Set up USB</source>
       <translation>Настроить USB</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowMenus.cpp" />
       <source>Set up USB again</source>
       <translation>Настроить USB заново</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowMenus.cpp" />
       <source>Set up USB connection…</source>
       <translation>Настроить связь по USB…</translation>
     </message>
@@ -7148,7 +7159,7 @@ Their buttons and start steps in this activity, including input switching, will 
       <translation>Настройки самого пульта. «Сохранить в конфигурацию» — они уйдут на пульт вместе с конфигурацией. «Применить на пульте» — подключённый пульт сменит их сразу. «Как на пульте» — пульт оставит своё значение.</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowMenus.cpp" />
       <source>Settings reset.</source>
       <translation>Настройки сброшены.</translation>
     </message>
@@ -7158,7 +7169,7 @@ Their buttons and start steps in this activity, including input switching, will 
       <translation>Настройки, которые пульт берёт из конфигурации: паузы между нажатиями, питание, стартовая страница и другие</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowMenus.cpp" />
       <source>Settings…</source>
       <translation>Настройки…</translation>
     </message>
@@ -7173,7 +7184,7 @@ Their buttons and start steps in this activity, including input switching, will 
       <translation>Настроить не удалось:&lt;br&gt;&lt;code&gt;%1&lt;/code&gt;&lt;br&gt;&lt;br&gt;Можно выполнить в терминале:&lt;br&gt;&lt;code&gt;%2&lt;/code&gt;</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowImport.cpp" />
       <source>Several models in the IR database fit “%1”. Choose the one that matches your device:</source>
       <translation>В базе ИК-кодов несколько моделей подходят к «%1». Выберите ту, что совпадает с вашим устройством:</translation>
     </message>
@@ -7293,7 +7304,7 @@ Their buttons and start steps in this activity, including input switching, will 
       <translation>Пропустить</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowButtons.cpp" />
       <source>Skipped (the device is not turned on there): %1.</source>
       <translation>Пропущено (устройство там не включается): %1.</translation>
     </message>
@@ -7343,7 +7354,7 @@ Their buttons and start steps in this activity, including input switching, will 
       <translation>Начать</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowEdit.cpp" />
       <source>start of activity “%1”</source>
       <translation>запуск активности «%1»</translation>
     </message>
@@ -7418,7 +7429,7 @@ Their buttons and start steps in this activity, including input switching, will 
       <translation>Поменять устройства местами</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowButtons.cpp" />
       <source>Swap “%1” and “%2”</source>
       <translation>Поменять местами «%1» и «%2»</translation>
     </message>
@@ -7478,7 +7489,7 @@ Translate the strings and restart the program — the language will appear in th
 Переведите строки и перезапустите программу — язык появится в списке.</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowMenus.cpp" />
       <source>Test connection</source>
       <translation>Проверить связь</translation>
     </message>
@@ -7664,7 +7675,7 @@ Translate the strings and restart the program — the language will appear in th
       <translation>Команда формирует пустой ИК-сигнал</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowEdit.cpp" />
       <source>The command “%1” is used in:
 %2
 
@@ -7675,7 +7686,7 @@ Power, inputs and macro buttons are changed in their own windows: remove the com
 Питание, входы и кнопки-макросы меняются в своих окнах: сначала уберите команду там.</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowEdit.cpp" />
       <source>The command “%1” is used in:
 %2
 
@@ -7776,7 +7787,7 @@ These buttons and start steps will be deleted together with the command.</source
       <translation>у устройства нет имени, на пульте будет пустая строка</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowEdit.cpp" />
       <source>The device is created but has no commands yet.
 
 Learn commands from the original remote now?</source>
@@ -7785,7 +7796,7 @@ Learn commands from the original remote now?</source>
 Выучить команды с родного пульта сейчас?</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowButtons.cpp" />
       <source>The device is not found.</source>
       <translation>Устройство не найдено.</translation>
     </message>
@@ -7825,7 +7836,7 @@ Learn commands from the original remote now?</source>
       <translation>Устройство, на котором видно картинку</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowEdit.cpp" />
       <source>The device “%1” is used in activities: %2.
 
 It can be removed from them: its buttons, input switching and start steps in these activities will be deleted.</source>
@@ -7834,7 +7845,7 @@ It can be removed from them: its buttons, input switching and start steps in the
 Его можно убрать из них: его кнопки, переключение входов и шаги запуска в этих активностях будут удалены.</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowButtons.cpp" />
       <source>The device “%1” is used in activities: %2.
 
 They will not be sent to the remote either. When the device is made active again, they are sent again.</source>
@@ -8126,7 +8137,7 @@ They will not be sent to the remote either. When the device is made active again
       <translation>Название пульта не может быть пустым.</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowMenus.cpp" />
       <source>The new language takes effect after a restart. Restart now?</source>
       <translation>Новый язык включится после перезапуска. Перезапустить сейчас?</translation>
     </message>
@@ -8155,7 +8166,7 @@ They will not be sent to the remote either. When the device is made active again
       <translation>Программа не подключается к этому пульту. Запись конфигурации на пульт реализована только для пары «USB-сеть + Harmony XML».</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowMenus.cpp" />
       <source>The program finds the remote at %1 by itself — the state is shown at the top right.&lt;br&gt;&lt;br&gt;&lt;b&gt;Windows:&lt;/b&gt; you need the driver from Logitech Harmony Remote Software 7.8 (Logitech's servers are closed, the installer is available in archives, e.g. on archive.org). You don't need to run the Logitech program itself.&lt;br&gt;&lt;br&gt;&lt;b&gt;Linux:&lt;/b&gt; the remote waits for an address via DHCP. Press “Set up USB” once (administrator password needed), then reconnect the remote.&lt;br&gt;&lt;br&gt;After connecting wait a few seconds: the remote is not ready immediately. Before any write the program saves a backup of the remote's current configuration to the folder “%2”.</source>
       <translation>Программа находит пульт по адресу %1 сама — состояние видно справа вверху.&lt;br&gt;&lt;br&gt;&lt;b&gt;Windows:&lt;/b&gt; нужен драйвер из Logitech Harmony Remote Software 7.8 (серверы Logitech закрыты, установщик есть в архивах, например на archive.org). Саму программу Logitech запускать не нужно.&lt;br&gt;&lt;br&gt;&lt;b&gt;Linux:&lt;/b&gt; пульт ждёт адрес по DHCP. Один раз нажмите «Настроить USB» (понадобится пароль администратора) и переподключите пульт.&lt;br&gt;&lt;br&gt;После подключения подождите несколько секунд: пульт готов не сразу. Перед любой записью программа сама сохраняет резервную копию текущей конфигурации пульта в папку «%2».</translation>
     </message>
@@ -8426,7 +8437,7 @@ They will not be sent to the remote either. When the device is made active again
       <translation>настройка пульта %1 должна быть числом от %2 до %3</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowImport.cpp" />
       <source>the remote turns it on and off</source>
       <translation>пульт включает и выключает сам</translation>
     </message>
@@ -8456,7 +8467,7 @@ They will not be sent to the remote either. When the device is made active again
       <translation>Текущая конфигурация пульта сохранена: %1</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowMenus.cpp" />
       <source>The remote's own log: what it sent and why it rejected a configuration</source>
       <translation>Собственный журнал пульта: что он отправлял и почему отверг конфигурацию</translation>
     </message>
@@ -8646,7 +8657,7 @@ They will not be sent to the remote either. When the device is made active again
       <translation>Нет другого устройства на его место — сначала добавьте новое.</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowEdit.cpp" />
       <source>These activities have no other devices and will be deleted: %1.</source>
       <translation>В этих активностях не останется других устройств, и они будут удалены: %1.</translation>
     </message>
@@ -8656,7 +8667,7 @@ They will not be sent to the remote either. When the device is made active again
       <translation>Эти команды уже здесь — выберите другое устройство</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowMenus.cpp" />
       <source>These files already exist and will be replaced:
 
 %1</source>
@@ -9020,6 +9031,7 @@ They will not be sent to the remote either. When the device is made active again
     <message>
       <location filename="../../../app/src/helpContent.cpp" />
       <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowMenus.cpp" />
       <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
       <source>Undo</source>
       <translation>Отменить</translation>
@@ -9030,12 +9042,13 @@ They will not be sent to the remote either. When the device is made active again
       <translation>Отменить (%1)</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowButtons.cpp" />
       <source>Undo — %1.</source>
       <translation>Отменить — %1.</translation>
     </message>
     <message>
       <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowMenus.cpp" />
       <source>Undo: %1</source>
       <translation>Отмена: %1</translation>
     </message>
@@ -9220,7 +9233,7 @@ They will not be sent to the remote either. When the device is made active again
       <translation>Версии, поиск и журнал</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowMenus.cpp" />
       <source>Versions…</source>
       <translation>Версии…</translation>
     </message>
@@ -9290,7 +9303,7 @@ They will not be sent to the remote either. When the device is made active again
       <translation>Ждать сигнал при обучении:</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowMenus.cpp" />
       <source>Wait for the current remote operation to finish.</source>
       <translation type="unfinished" />
     </message>
@@ -9310,7 +9323,7 @@ They will not be sent to the remote either. When the device is made active again
       <translation>Предупреждения и ошибки</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowCheck.cpp" />
       <location filename="../../../app/src/widgets/checkDialog.cpp" />
       <source>warning|warnings</source>
       <translation>предупреждение|предупреждения|предупреждений</translation>
@@ -9341,7 +9354,7 @@ They will not be sent to the remote either. When the device is made active again
       <translation>Что открывает кнопка Media.</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowMenus.cpp" />
       <source>What the program did and what went wrong</source>
       <translation>Что делала программа и что пошло не так</translation>
     </message>
@@ -9351,7 +9364,7 @@ They will not be sent to the remote either. When the device is made active again
       <translation>Что программа делала с пультом и конфигурацией и что пошло не так. Сколько записывать — «Настройки → Общие».</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowMenus.cpp" />
       <source>What will not work on the remote — and fix it</source>
       <translation>Что не сработает на пульте — и исправить</translation>
     </message>
@@ -9392,7 +9405,7 @@ They will not be sent to the remote either. When the device is made active again
       <translation>На какое поведение рекордера рассчитывает пульт.</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowMenus.cpp" />
       <source>Which resources to export?</source>
       <translation>Какие ресурсы выгрузить?</translation>
     </message>
@@ -9463,7 +9476,7 @@ Do not disconnect the remote while writing.</source>
       <translation>Записать на пульт</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowMenus.cpp" />
       <source>Write to remote…</source>
       <translation>Записать на пульт…</translation>
     </message>
@@ -9658,7 +9671,7 @@ Do not disconnect the remote while writing.</source>
       <translation>— убрать</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowImport.cpp" />
       <source>— skip this device —</source>
       <translation>— пропустить это устройство —</translation>
     </message>
@@ -9668,7 +9681,7 @@ Do not disconnect the remote while writing.</source>
       <translation>«%1» и «%2»</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowButtons.cpp" />
       <source>“%1” has no assignment: nothing to move.</source>
       <translation>У «%1» нет назначения: переносить нечего.</translation>
     </message>
@@ -9684,7 +9697,7 @@ Do not disconnect the remote while writing.</source>
       <translation>«%1» — системная кнопка пульта, своей команды у неё нет.</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/mainWindowButtons.cpp" />
       <source>“%1” is deleted.</source>
       <translation>«%1» удалено.</translation>
     </message>

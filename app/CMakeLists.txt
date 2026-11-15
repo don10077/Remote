@@ -32,6 +32,11 @@ qt_add_executable(harmony_app
     src/linuxUsbSetup.h
     src/mainWindowClipboard.cpp
     src/mainWindowVersions.cpp
+    src/mainWindowButtons.cpp
+    src/mainWindowCheck.cpp
+    src/mainWindowEdit.cpp
+    src/mainWindowImport.cpp
+    src/mainWindowMenus.cpp
     src/mainWindow.h
     src/configLibrary.cpp
     src/configLibrary.h
