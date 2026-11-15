@@ -18,6 +18,7 @@
 
 #include <algorithm>
 #include <map>
+#include <optional>
 #include <set>
 
 namespace harmony {
@@ -107,21 +108,39 @@ std::vector<pugi::xml_node> operations(pugi::xml_node node) {
     return out;
 }
 
-/// Собирает проблемы; держит конфигурацию и её дерево XML.
+/**
+ * @brief Собирает проблемы документа: по одному методу на правило.
+ *
+ * Порядок проверок задаёт порядок проблем: конфигурация целиком, устройства, активности,
+ * ИК-данные команд, макросы, RF-бластер; в конце ошибки переносятся вперёд.
+ */
 class Checker {
 public:
-    Checker(const model::RemoteConfig& config, pugi::xml_node root)
-        : config_(config), root_(root) {}
+    Checker(const ConfigDocument& document, pugi::xml_node root)
+        : document_(document), config_(document.model()), root_(root) {}
 
     std::vector<Problem> run() {
-        checkConfig();
+        checkDeviceLimit();
+        checkDuplicateIds();
+        checkDeviceNames();
+        checkActivityNames();
         for (const auto& device : config_.devices) {
             checkDevice(device);
         }
         for (const auto& activity : config_.activities) {
             checkActivity(activity);
         }
-        // Сначала ошибки, внутри — порядок конфигурации.
+        for (const auto& device : config_.devices) {
+            checkIrData(device);
+        }
+        for (const auto& device : config_.devices) {
+            checkMacros(Problem::Where::Device, device.id, device.displayName(), device.controlGroups);
+        }
+        for (const auto& activity : config_.activities) {
+            checkMacros(Problem::Where::Activity, activity.id, activity.label, activity.controlGroups);
+        }
+        checkRfBlaster();
+        // Сначала ошибки, внутри — порядок проверок.
         std::ranges::stable_sort(problems_, [](const Problem& a, const Problem& b) {
             return a.severity == Problem::Severity::Error && b.severity != Problem::Severity::Error;
         });
@@ -161,13 +180,17 @@ private:
 
     // --- Конфигурация целиком -------------------------------------------------------
 
-    void checkConfig() {
+    /// Устройств больше, чем помнит пульт.
+    void checkDeviceLimit() {
         if (config_.devices.size() > kDeviceLimit) {
             error(Problem::Where::Config, {}, say("The whole configuration"),
                   say("%1 devices, the remote supports %2",
                       {std::to_string(config_.devices.size()), std::to_string(kDeviceLimit)}));
         }
-        // Id — ссылки между устройствами и активностями: повтор делает их неоднозначными.
+    }
+
+    /// Id — ссылки между устройствами и активностями: повтор делает их неоднозначными.
+    void checkDuplicateIds() {
         std::set<std::string> ids;
         for (const auto& device : config_.devices) {
             if (!ids.insert(device.id).second) {
@@ -181,8 +204,10 @@ private:
                       say("another device or activity has the same id %1", {activity.id}));
             }
         }
+    }
 
-        // На пульте видны только имена: одинаковые путают.
+    /// На пульте видны только имена: пустые и одинаковые имена устройств путают.
+    void checkDeviceNames() {
         std::map<std::string, int> deviceNames;
         for (const auto& device : config_.devices) {
             ++deviceNames[lower(trimmed(device.displayName()))];
@@ -198,6 +223,10 @@ private:
                     .fix = Problem::Fix::Rename;
             }
         }
+    }
+
+    /// То же для активностей («кнопка Off» на экране пульта не показывается и не считается).
+    void checkActivityNames() {
         std::map<std::string, int> activityNames;
         for (const auto& activity : config_.activities) {
             if (!activity.isPowerOff()) {
@@ -206,7 +235,7 @@ private:
         }
         for (const auto& activity : config_.activities) {
             if (activity.isPowerOff()) {
-                continue; // «кнопка Off» на экране пульта не показывается
+                continue;
             }
             const std::string name = trimmed(activity.label);
             if (name.empty()) {
@@ -224,11 +253,18 @@ private:
 
     void checkDevice(const model::Device& device) {
         const std::string name = device.displayName();
+        checkCommandNames(device, name);
+        checkDeviceKeys(device, name);
+        checkSoftButtons(softButtons(device.controlGroups), Problem::Where::Device, device.id, name);
+        checkDeviceStates(device, name);
+    }
+
+    /// Нет команд; две одноимённые команды (кнопки ссылаются по имени — неясно, какая уйдёт).
+    void checkCommandNames(const model::Device& device, const std::string& name) {
         if (device.commands.empty()) {
             warning(Problem::Where::Device, device.id, say(name),
                     say("the device has no IR commands: its buttons do nothing"));
         }
-        // Кнопки ссылаются на команду по имени: из двух одноимённых неясно, какая уйдёт.
         std::set<std::string> seen;
         std::set<std::string> reported;
         for (const auto& command : device.commands) {
@@ -238,10 +274,13 @@ private:
                           {command.name}));
             }
         }
+    }
 
+    /// Аппаратные кнопки устройства: только свои и существующие команды.
+    void checkDeviceKeys(const model::Device& device, const std::string& name) {
         for (const model::Button* button : hardButtons(device.controlGroups)) {
             if (isMacroAction(button->actionId)) {
-                continue; // шаги макроса проверяет check()
+                continue; // шаги макроса проверяет checkMacros()
             }
             const ActionRef action = splitAction(button->actionId);
             if (action.device != device.id) {
@@ -258,10 +297,10 @@ private:
                 problems_.back().fix = Problem::Fix::FreeHardKey;
             }
         }
-        checkSoftButtons(softButtons(device.controlGroups), Problem::Where::Device, device.id,
-                         name);
+    }
 
-        // Питание и входы: команды, которые пульт шлёт, включая и переключая устройство.
+    /// Питание и входы: команды, которые пульт шлёт, включая и переключая устройство.
+    void checkDeviceStates(const model::Device& device, const std::string& name) {
         const pugi::xml_node node = detail::findById(root_, "Device", device.id);
 
         // Прошивка (State.lua) читает RelativeActions и только иначе — DiscreteActions:
@@ -313,7 +352,7 @@ private:
                 problem.softPosition = button->position;
             }
             if (isMacroAction(button->actionId)) {
-                continue; // шаги макроса проверяет check()
+                continue; // шаги макроса проверяет checkMacros()
             }
             const ActionRef action = splitAction(button->actionId);
             if (config_.findDevice(action.device) == nullptr) {
@@ -335,136 +374,59 @@ private:
 
     void checkActivity(const model::Activity& activity) {
         const std::string& name = activity.label;
-        const std::string& id = activity.id;
-        std::set<std::string> used; // устройства, которым шлют команды кнопки
-
+        std::set<std::string> used;    // устройства, которым шлют команды кнопки
+        std::set<std::string> powered; // устройства, которые активность включает
+        std::set<std::string> listed;  // устройства, про которые сказано «вкл» или «выкл»
         if (!activity.isPowerOff()) {
-            const auto hard = hardButtons(activity.controlGroups);
-            const auto soft = softButtons(activity.controlGroups);
-            for (const model::Button* button : hard) {
-                if (isMacroAction(button->actionId)) {
-                    continue; // шаги макроса проверяет check()
-                }
-                const ActionRef action = splitAction(button->actionId);
-                const Message place = say("%1 · %2", {name, button->name});
-                if (config_.findDevice(action.device) == nullptr) {
-                    Problem& problem = error(Problem::Where::Activity, id, place,
-                                             say("the key sends to a deleted device"));
-                    problem.hardKey = button->name;
-                    problem.fix = Problem::Fix::FreeHardKey;
-                    continue;
-                }
-                used.insert(action.device);
-                if (!hasCommand(action.device, action.command)) {
-                    Problem& problem = error(Problem::Where::Activity, id, place,
-                                             say("the key sends “%1”, %2 has no such command",
-                                                 {action.command, deviceName(action.device)}));
-                    problem.hardKey = button->name;
-                    problem.fix = Problem::Fix::FreeHardKey;
-                }
-            }
-            for (const model::Button* button : soft) {
-                const ActionRef action = splitAction(button->actionId);
-                if (config_.findDevice(action.device) != nullptr) {
-                    used.insert(action.device);
-                }
-            }
-            checkSoftButtons(soft, Problem::Where::Activity, id, name);
-            if (hard.empty() && soft.empty()) {
-                warning(Problem::Where::Activity, id, say(name),
-                        say("the activity has no buttons: it only switches devices"));
-            }
+            checkActivityButtons(activity, name, used);
         }
-
         checkStartSteps(activity, name);
-
-        // Питание: кого включает и выключает.
-        std::set<std::string> powered;
-        std::set<std::string> listed;
-        bool reportedDeleted = false;
-        auto deleted = [&](const std::string& device, Message what) {
-            if (config_.findDevice(device) == nullptr) {
-                if (!reportedDeleted) {
-                    error(Problem::Where::Activity, id, say("%1 · power", {name}), std::move(what))
-                        .fix = Problem::Fix::RemoveDeleted;
-                    reportedDeleted = true;
-                }
-                return true;
-            }
-            return false;
-        };
-        for (const auto& device : activity.powerOn) {
-            listed.insert(device);
-            if (!deleted(device, say("switches on a device that was deleted"))) {
-                powered.insert(device);
-            }
-        }
-        for (const auto& device : activity.powerOff) {
-            listed.insert(device);
-            deleted(device, say("switches off a device that was deleted"));
-        }
-
-        // Роли: DEFAULT есть в каждой активности, роль — у одного устройства.
+        checkPowerLists(activity, name, powered, listed);
         if (!activity.isPowerOff()) {
-            std::set<std::string> roles;
-            for (const auto& role : activity.roles) {
-                if (!roles.insert(role.name).second) {
-                    error(Problem::Where::Activity, id, say("%1 · %2", {name, role.name}),
-                          say("the role is given to more than one device"));
-                }
-                if (config_.findDevice(role.deviceId) == nullptr) {
-                    error(Problem::Where::Activity, id, say("%1 · %2", {name, role.name}),
-                          say("the role belongs to a device that was deleted"))
-                        .fix = Problem::Fix::RemoveDeleted;
-                }
-            }
-            if (!roles.contains("DEFAULT")) {
-                warning(Problem::Where::Activity, id, say("%1 · DEFAULT", {name}),
-                        say("no device has the main role (DEFAULT): keys without an assignment do "
-                            "nothing"));
-            }
+            checkRoles(activity, name);
         }
+        checkPowerMap(activity, name, listed);
+        checkUsedDevices(activity, name, used, powered);
+    }
 
-        // Каждое устройство: включено или выключено (иначе пульт не знает, что с ним делать).
-        std::vector<std::string> unset;
-        for (const auto& device : config_.devices) {
-            if (!listed.contains(device.id)) {
-                unset.push_back(device.displayName());
+    /// Кнопки активности; @p used пополняется устройствами, которым они шлют команды.
+    void checkActivityButtons(const model::Activity& activity, const std::string& name,
+                              std::set<std::string>& used) {
+        const std::string& id = activity.id;
+        const auto hard = hardButtons(activity.controlGroups);
+        const auto soft = softButtons(activity.controlGroups);
+        for (const model::Button* button : hard) {
+            if (isMacroAction(button->actionId)) {
+                continue; // шаги макроса проверяет checkMacros()
+            }
+            const ActionRef action = splitAction(button->actionId);
+            const Message place = say("%1 · %2", {name, button->name});
+            if (config_.findDevice(action.device) == nullptr) {
+                Problem& problem = error(Problem::Where::Activity, id, place,
+                                         say("the key sends to a deleted device"));
+                problem.hardKey = button->name;
+                problem.fix = Problem::Fix::FreeHardKey;
+                continue;
+            }
+            used.insert(action.device);
+            if (!hasCommand(action.device, action.command)) {
+                Problem& problem = error(Problem::Where::Activity, id, place,
+                                         say("the key sends “%1”, %2 has no such command",
+                                             {action.command, deviceName(action.device)}));
+                problem.hardKey = button->name;
+                problem.fix = Problem::Fix::FreeHardKey;
             }
         }
-        if (!unset.empty()) {
-            std::string list;
-            for (const auto& device : unset) {
-                list += (list.empty() ? "" : ", ") + device;
-            }
-            warning(Problem::Where::Activity, id, say("%1 · power", {name}),
-                    say("not set whether these devices are on or off: %1", {list}))
-                .fix = Problem::Fix::CompletePowerMap;
-        }
-
-        // Кнопки шлют устройству, которое активность не включает.
-        for (const auto& [device, input] : activity.inputs) {
-            const model::Device* target = config_.findDevice(device);
-            if (target != nullptr && !target->inputs.empty() &&
-                std::ranges::find(target->inputs, input) == target->inputs.end()) {
-                warning(Problem::Where::Activity, id, say("%1 · inputs", {name}),
-                        say("switches %1 to input “%2”, which the device does not have",
-                            {target->displayName(), input}));
-            }
-            if (target != nullptr) {
-                used.insert(device);
+        for (const model::Button* button : soft) {
+            const ActionRef action = splitAction(button->actionId);
+            if (config_.findDevice(action.device) != nullptr) {
+                used.insert(action.device);
             }
         }
-        for (const auto& device : used) {
-            const model::Device* target = config_.findDevice(device);
-            if (target != nullptr && target->powerControlled && !powered.contains(device)) {
-                Problem& problem =
-                    warning(Problem::Where::Activity, id, say("%1 · power", {name}),
-                            say("%1 is used by the activity but not switched on by it",
-                                {target->displayName()}));
-                problem.fix = Problem::Fix::PowerOnDevice;
-                problem.fixDevice = device;
-            }
+        checkSoftButtons(soft, Problem::Where::Activity, id, name);
+        if (hard.empty() && soft.empty()) {
+            warning(Problem::Where::Activity, id, say(name),
+                    say("the activity has no buttons: it only switches devices"));
         }
     }
 
@@ -495,6 +457,205 @@ private:
         }
     }
 
+    /**
+     * @brief Питание: кого активность включает и выключает; удалённые устройства — одна ошибка.
+     * @param powered [out] Включаемые существующие устройства.
+     * @param listed [out] Все устройства из списков «вкл» и «выкл».
+     */
+    void checkPowerLists(const model::Activity& activity, const std::string& name,
+                         std::set<std::string>& powered, std::set<std::string>& listed) {
+        bool reportedDeleted = false;
+        auto deleted = [&](const std::string& device, Message what) {
+            if (config_.findDevice(device) == nullptr) {
+                if (!reportedDeleted) {
+                    error(Problem::Where::Activity, activity.id, say("%1 · power", {name}), std::move(what))
+                        .fix = Problem::Fix::RemoveDeleted;
+                    reportedDeleted = true;
+                }
+                return true;
+            }
+            return false;
+        };
+        for (const auto& device : activity.powerOn) {
+            listed.insert(device);
+            if (!deleted(device, say("switches on a device that was deleted"))) {
+                powered.insert(device);
+            }
+        }
+        for (const auto& device : activity.powerOff) {
+            listed.insert(device);
+            deleted(device, say("switches off a device that was deleted"));
+        }
+    }
+
+    /// Роли: DEFAULT есть в каждой активности, роль — у одного существующего устройства.
+    void checkRoles(const model::Activity& activity, const std::string& name) {
+        const std::string& id = activity.id;
+        std::set<std::string> roles;
+        for (const auto& role : activity.roles) {
+            if (!roles.insert(role.name).second) {
+                error(Problem::Where::Activity, id, say("%1 · %2", {name, role.name}),
+                      say("the role is given to more than one device"));
+            }
+            if (config_.findDevice(role.deviceId) == nullptr) {
+                error(Problem::Where::Activity, id, say("%1 · %2", {name, role.name}),
+                      say("the role belongs to a device that was deleted"))
+                    .fix = Problem::Fix::RemoveDeleted;
+            }
+        }
+        if (!roles.contains("DEFAULT")) {
+            warning(Problem::Where::Activity, id, say("%1 · DEFAULT", {name}),
+                    say("no device has the main role (DEFAULT): keys without an assignment do "
+                        "nothing"));
+        }
+    }
+
+    /// Каждое устройство: включено или выключено (иначе пульт не знает, что с ним делать).
+    void checkPowerMap(const model::Activity& activity, const std::string& name,
+                       const std::set<std::string>& listed) {
+        std::vector<std::string> unset;
+        for (const auto& device : config_.devices) {
+            if (!listed.contains(device.id)) {
+                unset.push_back(device.displayName());
+            }
+        }
+        if (!unset.empty()) {
+            std::string list;
+            for (const auto& device : unset) {
+                list += (list.empty() ? "" : ", ") + device;
+            }
+            warning(Problem::Where::Activity, activity.id, say("%1 · power", {name}),
+                    say("not set whether these devices are on or off: %1", {list}))
+                .fix = Problem::Fix::CompletePowerMap;
+        }
+    }
+
+    /**
+     * @brief Входы, которых нет у устройства; устройства, которым шлют команды, но не включают.
+     * @param used Устройства кнопок; пополняется устройствами из входов активности.
+     */
+    void checkUsedDevices(const model::Activity& activity, const std::string& name, std::set<std::string>& used,
+                          const std::set<std::string>& powered) {
+        const std::string& id = activity.id;
+        for (const auto& [device, input] : activity.inputs) {
+            const model::Device* target = config_.findDevice(device);
+            if (target != nullptr && !target->inputs.empty() &&
+                std::ranges::find(target->inputs, input) == target->inputs.end()) {
+                warning(Problem::Where::Activity, id, say("%1 · inputs", {name}),
+                        say("switches %1 to input “%2”, which the device does not have",
+                            {target->displayName(), input}));
+            }
+            if (target != nullptr) {
+                used.insert(device);
+            }
+        }
+        for (const auto& device : used) {
+            const model::Device* target = config_.findDevice(device);
+            if (target != nullptr && target->powerControlled && !powered.contains(device)) {
+                Problem& problem =
+                    warning(Problem::Where::Activity, id, say("%1 · power", {name}),
+                            say("%1 is used by the activity but not switched on by it",
+                                {target->displayName()}));
+                problem.fix = Problem::Fix::PowerOnDevice;
+                problem.fixDevice = device;
+            }
+        }
+    }
+
+    // --- ИК-данные, макросы, RF -----------------------------------------------------
+
+    /**
+     * @brief ИК-данные команд устройства: сигнал собирается и не пуст.
+     *
+     * Документ хаба можно править без ИК-кодов: их нет у команд Bluetooth, сети и Home Assistant,
+     * а у ИК-команд стокового хаба есть только имя — там одно предупреждение на устройство.
+     * На 900 команда без кода не сработает.
+     */
+    void checkIrData(const model::Device& device) {
+        const bool hubDocument = document_.backend()->format() != ConfigFormat::Harmony900;
+        std::vector<std::string> withoutCode;
+        for (const auto& command : device.commands) {
+            if (hubDocument && command.code.empty()) {
+                // Команду без ИК-данных нечего исполнять: таблицы IrProto/SsIr здесь ни при чём.
+                if (command.transport == model::Transport::Ir || command.transport == model::Transport::Unknown) {
+                    withoutCode.push_back(command.name);
+                }
+                continue;
+            }
+            const Message place = say("%1 · %2", {device.displayName(), command.name});
+            auto details = document_.commandDetails(device.id, command.name);
+            if (!details || details->signal.durations.empty()) {
+                error(Problem::Where::Device, device.id, place,
+                      details ? say("the command produces an empty IR signal") : details.error());
+            } else if (details->learned && details->decoded &&
+                       (details->decoded->protocol.starts_with("RC5") || details->decoded->protocol.starts_with("RC6"))) {
+                // Записанный сигнал — с одним значением бита переключения: два нажатия
+                // подряд устройство примет за удержание.
+                warning(Problem::Where::Device, device.id, place,
+                        say("%1 is stored as a recorded signal: its toggle bit never changes, so the "
+                            "device may take two presses in a row for one long press",
+                            {details->decoded->protocol}));
+            }
+        }
+        if (!withoutCode.empty()) {
+            // Одно предупреждение на устройство, а не ошибка на каждую команду.
+            warning(Problem::Where::Device, device.id, say(device.displayName()),
+                    say("%1 of %2 commands have no IR code yet; pick the device model in the IR database",
+                        {std::to_string(withoutCode.size()), std::to_string(device.commands.size())}));
+        }
+    }
+
+    /// Кнопки-макросы: шаги шлют существующие команды существующим устройствам (одна ошибка на кнопку).
+    void checkMacros(Problem::Where where, const std::string& ownerId, const std::string& ownerName,
+                     const std::vector<model::ControlGroup>& groups) {
+        for (const auto& group : groups) {
+            for (const auto& button : group.buttons) {
+                if (!isMacroAction(button.actionId)) {
+                    continue;
+                }
+                std::optional<Message> what;
+                const auto steps = document_.macro(button.actionId);
+                if (!steps) {
+                    what = say("the button runs a macro that is missing from ActionLists.xml");
+                } else {
+                    for (const MacroStep& step : *steps) {
+                        const model::Device* device = config_.findDevice(step.deviceId);
+                        if (device == nullptr) {
+                            what = say("a macro step is addressed to a device that was deleted");
+                        } else if (step.step.kind == StateStep::Kind::Command &&
+                                   device->findCommand(step.step.command) == nullptr) {
+                            what = say("a macro step sends “%1”, %2 has no such command",
+                                       {step.step.command, device->displayName()});
+                        }
+                        if (what) {
+                            break;
+                        }
+                    }
+                }
+                if (!what) {
+                    continue;
+                }
+                const std::string title = !button.name.empty() ? button.name : button.label;
+                Problem& problem = error(where, ownerId, say("%1 · %2", {ownerName, title}), std::move(*what));
+                if (!button.name.empty()) {
+                    problem.hardKey = button.name;
+                    problem.fix = Problem::Fix::FreeHardKey;
+                }
+            }
+        }
+    }
+
+    /// Устройства, не назначенные RF-бластеру пульта, у которого он есть.
+    void checkRfBlaster() {
+        for (const std::string& id : document_.devicesOutsideRf()) {
+            const model::Device* device = config_.findDevice(id);
+            warning(Problem::Where::Device, id, say(device != nullptr ? device->displayName() : id),
+                    say("the remote has an RF blaster, but this device is not assigned to it: commands go "
+                        "from the remote's front IR. Assign it on the remote: Options → RF Receiver Settings"));
+        }
+    }
+
+    const ConfigDocument& document_;
     const model::RemoteConfig& config_;
     pugi::xml_node root_;
     std::vector<Problem> problems_;
@@ -538,119 +699,7 @@ std::vector<Problem> ConfigDocument::check() const {
     if (!detail::loadDom(dom, impl_->xml)) {
         return {}; // документ открылся, значит XML разбирается; сюда не попадаем
     }
-    auto problems = Checker(impl_->model, dom.child("Root")).run();
-    // Документ хаба можно править без ИК-кодов: их нет у команд Bluetooth, сети и Home Assistant,
-    // а у ИК-команд стокового хаба есть только имя. На 900 команда без кода не сработает.
-    const bool hubDocument = backend()->format() != ConfigFormat::Harmony900;
-    for (const auto& device : impl_->model.devices) {
-        std::vector<std::string> withoutCode;
-        for (const auto& command : device.commands) {
-            if (hubDocument && command.code.empty()) {
-                // Команду без ИК-данных нечего исполнять: таблицы IrProto/SsIr здесь ни при чём.
-                if (command.transport == model::Transport::Ir || command.transport == model::Transport::Unknown) {
-                    withoutCode.push_back(command.name);
-                }
-                continue;
-            }
-            auto details = commandDetails(device.id, command.name);
-            if (!details || details->signal.durations.empty()) {
-                Problem problem;
-                problem.severity = Problem::Severity::Error;
-                problem.where = Problem::Where::Device;
-                problem.id = device.id;
-                problem.place = say("%1 · %2", {device.displayName(), command.name});
-                problem.what = details ? say("the command produces an empty IR signal") : details.error();
-                problems.push_back(std::move(problem));
-            } else if (details->learned && details->decoded &&
-                       (details->decoded->protocol.starts_with("RC5") || details->decoded->protocol.starts_with("RC6"))) {
-                // Записанный сигнал — с одним значением бита переключения: два нажатия
-                // подряд устройство примет за удержание.
-                Problem problem;
-                problem.severity = Problem::Severity::Warning;
-                problem.where = Problem::Where::Device;
-                problem.id = device.id;
-                problem.place = say("%1 · %2", {device.displayName(), command.name});
-                problem.what = say("%1 is stored as a recorded signal: its toggle bit never changes, so the "
-                                   "device may take two presses in a row for one long press",
-                                   {details->decoded->protocol});
-                problems.push_back(std::move(problem));
-            }
-        }
-        if (!withoutCode.empty()) {
-            // Одно предупреждение на устройство, а не ошибка на каждую команду.
-            Problem problem;
-            problem.severity = Problem::Severity::Warning;
-            problem.where = Problem::Where::Device;
-            problem.id = device.id;
-            problem.place = say(device.displayName());
-            problem.what = say("%1 of %2 commands have no IR code yet; pick the device model in the IR database",
-                               {std::to_string(withoutCode.size()), std::to_string(device.commands.size())});
-            problems.push_back(std::move(problem));
-        }
-    }
-    // Кнопки-макросы: шаги шлют существующие команды существующим устройствам.
-    auto checkMacros = [&](Problem::Where where, const std::string& ownerId, const std::string& ownerName,
-                           const std::vector<model::ControlGroup>& groups) {
-        for (const auto& group : groups) {
-            for (const auto& button : group.buttons) {
-                if (!isMacroAction(button.actionId)) {
-                    continue;
-                }
-                const std::string title = !button.name.empty() ? button.name : button.label;
-                Problem problem;
-                problem.severity = Problem::Severity::Error;
-                problem.where = where;
-                problem.id = ownerId;
-                problem.place = say("%1 · %2", {ownerName, title});
-                if (!button.name.empty()) {
-                    problem.hardKey = button.name;
-                    problem.fix = Problem::Fix::FreeHardKey;
-                }
-                const auto steps = macro(button.actionId);
-                if (!steps) {
-                    problem.what = say("the button runs a macro that is missing from ActionLists.xml");
-                    problems.push_back(problem);
-                    continue;
-                }
-                for (const MacroStep& step : *steps) {
-                    const model::Device* device = impl_->model.findDevice(step.deviceId);
-                    if (device == nullptr) {
-                        problem.what = say("a macro step is addressed to a device that was deleted");
-                    } else if (step.step.kind == StateStep::Kind::Command &&
-                               device->findCommand(step.step.command) == nullptr) {
-                        problem.what = say("a macro step sends “%1”, %2 has no such command",
-                                           {step.step.command, device->displayName()});
-                    } else {
-                        continue;
-                    }
-                    problems.push_back(problem);
-                    break;
-                }
-            }
-        }
-    };
-    for (const auto& device : impl_->model.devices) {
-        checkMacros(Problem::Where::Device, device.id, device.displayName(), device.controlGroups);
-    }
-    for (const auto& activity : impl_->model.activities) {
-        checkMacros(Problem::Where::Activity, activity.id, activity.label, activity.controlGroups);
-    }
-
-    for (const std::string& id : devicesOutsideRf()) {
-        const model::Device* device = impl_->model.findDevice(id);
-        Problem problem;
-        problem.severity = Problem::Severity::Warning;
-        problem.where = Problem::Where::Device;
-        problem.id = id;
-        problem.place = say(device != nullptr ? device->displayName() : id);
-        problem.what = say("the remote has an RF blaster, but this device is not assigned to it: commands go "
-                           "from the remote's front IR. Assign it on the remote: Options → RF Receiver Settings");
-        problems.push_back(std::move(problem));
-    }
-    std::ranges::stable_sort(problems, [](const Problem& a, const Problem& b) {
-        return a.severity == Problem::Severity::Error && b.severity != Problem::Severity::Error;
-    });
-    return problems;
+    return Checker(*this, dom.child("Root")).run();
 }
 
 Result<void> ConfigDocument::fixProblem(const Problem& problem) {
