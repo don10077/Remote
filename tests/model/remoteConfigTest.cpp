@@ -25,8 +25,8 @@ RemoteConfig makeConfig() {
     tv.manufacturer = "Samsung";
     tv.model = "UE55";
     tv.label = "Телевизор";
-    tv.commands = {{.name = "PowerOn", .protocol = 1, .code = "0x01"},
-                   {.name = "VolumeUp", .protocol = 1, .code = "0x02"}};
+    tv.commands = {{.name = "PowerOn", .protocol = 1, .code = "0x01", .protocolName = {}, .native = {}},
+                   {.name = "VolumeUp", .protocol = 1, .code = "0x02", .protocolName = {}, .native = {}}};
     config.devices.push_back(tv);
 
     Device receiver; // без подписи — имя берётся из производителя и модели
