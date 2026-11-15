@@ -145,7 +145,16 @@ using Change = std::function<Result<void>(pugi::xml_node root, IrData& ir)>;
  */
 inline constexpr std::size_t kMaxRawIndex = 0xFF;
 
-/// Наибольший номер записи IrProto.bin для нового протокола (номер — и в <Protocol>, и в начале <Code>).
+/**
+ * @brief Наибольший номер записи IrProto.bin, который можно выдать новому протоколу.
+ *
+ * Номер пишется в <Protocol> и в первые два байта <Code> (младший, старший; ir::codeText()),
+ * формат допускает до 0xFFFF. На пульте проверены только номера в один байт: читает ли
+ * прошивка старший байт, неизвестно. Предел взят с запасом по аналогии с kMaxRawIndex,
+ * а не подтверждён на пульте. На практике до него не доходит: одинаковые протоколы
+ * хранятся один раз. Не поместившаяся команда записывается сигналом в SsIr.bin
+ * (tryInternProtocol(), setProtocolCommand()). Чтение существующих номеров не меняется.
+ */
 inline constexpr std::size_t kMaxProtocolIndex = 0xFF;
 
 /**

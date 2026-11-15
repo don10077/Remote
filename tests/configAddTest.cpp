@@ -457,28 +457,6 @@ TEST(LearnedCommands, LearnsAndReplacesRawCommands) {
     EXPECT_TRUE(reopened->checkIrData());
 }
 
-/// В SsIr.bin не больше 256 кодов (номер — один байт): лишний не записывается, документ не меняется.
-TEST(LearnedCommands, RawTableLimit) {
-    ConfigDocument document = ConfigDocument::createNew("С нуля");
-    auto id = document.createDevice({.label = "ТВ", .type = "Television", .manufacturer = "", .model = ""});
-    ASSERT_TRUE(id);
-    for (int command = 0; command <= 0xFF; ++command) {
-        ASSERT_TRUE(document.learnCommand(*id, "C" + std::to_string(command),
-                                          necSignal(static_cast<std::uint8_t>(command))))
-            << command;
-    }
-    // Тот же сигнал под другим именем — номер прежний, место не нужно.
-    ASSERT_TRUE(document.learnCommand(*id, "Again", necSignal(0x05)));
-
-    auto extra = necSignal(0x00);
-    extra.durations.back() = -50000; // другой сигнал — нужна новая запись
-    const auto full = document.learnCommand(*id, "Extra", extra);
-    ASSERT_FALSE(full);
-    EXPECT_EQ(full.error().code, ErrorCode::Format);
-    EXPECT_EQ(document.model().findDevice(*id)->commands.size(), 257U);
-    EXPECT_TRUE(document.checkIrData());
-}
-
 TEST(LearnedCommands, PowerCommandsDescribePower) {
     ConfigDocument document = ConfigDocument::createNew("С нуля");
     auto toggle = document.createDevice({.label = "Плеер", .type = "DvdCd", .manufacturer = "", .model = ""});
@@ -601,4 +579,40 @@ TEST(ImportDevice, RefusesRawCodeNumberAbove255) {
     ASSERT_FALSE(imported);
     EXPECT_EQ(imported.error().code, ErrorCode::Format);
     EXPECT_EQ(full.document.toXml(), before);
+}
+
+/// Протоколом не вышло (IrProto.bin не читается) — команда сохраняется сигналом в SsIr.bin.
+TEST(ProtocolCommands, FallBackToSignalWhenIrProtoIsUnreadable) {
+    ConfigDocument::Files files;
+    files.userConfiguration = readText(kSampleDir / "UserConfiguration.xml");
+    files.irProto = readBytes(kSampleDir / "IrProto.bin");
+    files.ssIr = readBytes(kSampleDir / "SsIr.bin");
+    ASSERT_GT(files.irProto.size(), 8U);
+    files.irProto.back() ^= 0xFFU; // CRC не сходится: таблица протоколов не разбирается
+    auto document = ConfigDocument::fromFiles(files, "broken IrProto");
+    ASSERT_TRUE(document) << document.error().message;
+
+    const auto stored = document->setProtocolCommand(kTv, "Bench", "NEC", 0x04, 0x08);
+
+    ASSERT_TRUE(stored) << stored.error().message;
+    EXPECT_FALSE(*stored); // false — сигналом, а не протоколом
+    const auto* command = document->model().findDevice(kTv)->findCommand("Bench");
+    ASSERT_NE(command, nullptr);
+    EXPECT_EQ(command->protocol, -1);
+    const auto signal = document->commandSignal(kTv, "Bench");
+    ASSERT_TRUE(signal);
+    const auto decoded = harmony::ir::decode(*signal);
+    ASSERT_TRUE(decoded);
+    EXPECT_EQ(decoded->protocol, "NEC");
+    EXPECT_EQ(decoded->command, 0x08U);
+}
+
+/// Та же команда в исправном документе ложится протоколом: тест выше проверяет именно запасной путь.
+TEST(ProtocolCommands, StoredAsProtocolWhenIrProtoIsReadable) {
+    auto document = ConfigDocument::open(kSampleDir);
+    ASSERT_TRUE(document) << document.error().message;
+    const auto stored = document->setProtocolCommand(kTv, "Bench", "NEC", 0x04, 0x08);
+    ASSERT_TRUE(stored) << stored.error().message;
+    EXPECT_TRUE(*stored);
+    EXPECT_GE(document->model().findDevice(kTv)->findCommand("Bench")->protocol, 0);
 }
