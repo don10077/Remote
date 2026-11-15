@@ -6,10 +6,9 @@
 #   macOS   — Harmony-<версия>-macos.dmg (универсальный: Apple Silicon и Intel).
 # Тег v* (например, v0.2.0) — ещё и релиз на GitHub с этими файлами.
 #
-# Сторонние actions закреплены по полному SHA коммита (owner/action@<sha40> # vX.Y.Z):
-#   softprops/action-gh-release — v3.0.3, jurplel/install-qt-action — v4.5.0.
-#   Обновляет их Dependabot (.github/dependabot.yml) — SHA и комментарий вместе.
-# TODO: закрепить msys2/setup-msys2 и actions/* так же (полный SHA — git ls-remote <repo> refs/tags/<тег>).
+# Все actions закреплены по полному SHA коммита (owner/action@<sha40> # vX.Y.Z),
+#   SHA сверены через git ls-remote --tags. Обновляет их Dependabot
+#   (.github/dependabot.yml) — SHA и комментарий вместе, одним PR.
 #
 # Кэш: ccache (.ccache в рабочей папке) и исходники FetchContent (build/<пресет>/_deps) — через actions/cache.
 # Ключ зависит от файлов, где объявлены FetchContent: cmake/Dependencies.cmake и
@@ -44,12 +43,12 @@ jobs:
     name: Core (GCC, -Werror)
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Пакеты
         run: |
           sudo apt-get update
           sudo apt-get install -y ninja-build ccache libudev-dev libzip-dev pkg-config libgtest-dev libpugixml-dev nlohmann-json3-dev zlib1g-dev
-      - uses: actions/cache@v6
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
             .ccache
@@ -71,12 +70,12 @@ jobs:
     name: Core (Clang, libc++)
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Пакеты
         run: |
           sudo apt-get update
           sudo apt-get install -y ninja-build ccache libudev-dev libzip-dev pkg-config clang libc++-dev libc++abi-dev
-      - uses: actions/cache@v6
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
             .ccache
@@ -102,12 +101,12 @@ jobs:
     name: Core (ASan + UBSan)
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Пакеты
         run: |
           sudo apt-get update
           sudo apt-get install -y ninja-build ccache libudev-dev libzip-dev pkg-config libgtest-dev libpugixml-dev nlohmann-json3-dev zlib1g-dev
-      - uses: actions/cache@v6
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
             .ccache
@@ -128,14 +127,14 @@ jobs:
     name: Fuzz (libFuzzer, 60 s)
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       # Для Clang 19 нужны также clang-scan-deps (CMake/Ninja) и compiler-rt (libFuzzer).
       - name: Пакеты
         run: |
           sudo apt-get update
           sudo apt-get install -y ninja-build ccache libudev-dev libzip-dev pkg-config \
             clang-19 clang-tools-19 libclang-rt-19-dev libpugixml-dev nlohmann-json3-dev zlib1g-dev
-      - uses: actions/cache@v6
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
             .ccache
@@ -151,7 +150,7 @@ jobs:
       - name: Прогон
         run: bash fuzz/run.sh build/fuzz 60
       # Входы, на которых упало: скачать и воспроизвести — build/fuzz/fuzz/fuzz_<цель> <файл>.
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: failure()
         with:
           name: fuzz-crashes
@@ -163,7 +162,7 @@ jobs:
     name: Linux (AppImage)
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Пакеты
         # libxcb-*, libxkbcommon-x11: зависимости плагина xcb, которые linuxdeploy кладёт в AppImage.
         run: |
@@ -177,7 +176,7 @@ jobs:
         with:
           version: ${{ env.QT_VERSION }}
           cache: true
-      - uses: actions/cache@v6
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
             .ccache
@@ -190,7 +189,7 @@ jobs:
         run: cmake --preset release
       - name: Сборка
         run: cmake --build --preset release
-      - uses: actions/setup-python@v7
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: '3.12'
           pip-install: opencv-python-headless==4.12.0.88
@@ -198,7 +197,7 @@ jobs:
         run: ctest --preset release
       - name: AppImage
         run: bash tools/make-appimage.sh build/release dist
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: harmony-linux
           path: dist/*.AppImage
@@ -212,8 +211,8 @@ jobs:
       run:
         shell: msys2 {0}
     steps:
-      - uses: actions/checkout@v7
-      - uses: msys2/setup-msys2@v2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: msys2/setup-msys2@ec48f7c5447b3140e2b088413ae3a55687bccb6e # v2.33.0
         id: msys2
         with:
           msystem: MINGW64
@@ -235,7 +234,7 @@ jobs:
             mingw-w64-x86_64-pugixml
             mingw-w64-x86_64-nsis
       # ccache из MSYS2 находит корневой CMakeLists.txt (HARMONY_USE_CCACHE), CCACHE_DIR — из env.
-      - uses: actions/cache@v6
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
             .ccache
@@ -253,7 +252,7 @@ jobs:
       # Попадания в кэш: со второго прогона hits должно быть большинство.
       - name: Статистика ccache
         run: ccache --show-stats
-      - uses: actions/setup-python@v7
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: '3.12'
           pip-install: opencv-python-headless==4.12.0.88
@@ -272,7 +271,7 @@ jobs:
           bash tools/make-installer-win.sh build/release dist/win dist
           version="$(sed -n 's/^CMAKE_PROJECT_VERSION:STATIC=//p' build/release/CMakeCache.txt | tr -d '\r')"
           (cd dist/win && zip -qr "../Harmony-$version-windows-portable.zip" .)
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: harmony-windows
           path: |
@@ -285,7 +284,7 @@ jobs:
     name: macOS (DMG)
     runs-on: macos-15
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Пакеты
         run: brew install ninja ccache
       # Официальная сборка Qt — универсальная (arm64 + x86_64), в отличие от Homebrew.
@@ -293,7 +292,7 @@ jobs:
         with:
           version: ${{ env.QT_VERSION }}
           cache: true
-      - uses: actions/cache@v6
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
             .ccache
@@ -306,7 +305,7 @@ jobs:
         run: cmake --preset release -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64"
       - name: Сборка
         run: cmake --build --preset release
-      - uses: actions/setup-python@v7
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: '3.12'
           pip-install: opencv-python-headless==4.12.0.88
@@ -314,7 +313,7 @@ jobs:
         run: ctest --preset release
       - name: Бандл и DMG
         run: bash tools/make-macos.sh build/release dist
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: harmony-macos
           path: dist/*.dmg
@@ -329,7 +328,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Check release version
         shell: bash
         run: |
@@ -338,7 +337,7 @@ jobs:
             echo "Tag $GITHUB_REF_NAME does not match project version v$version"
             exit 1
           }
-      - uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           path: packages
           merge-multiple: true

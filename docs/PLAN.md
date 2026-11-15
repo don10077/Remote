@@ -140,7 +140,7 @@
 Локальной сборкой эти пункты не проверить: результат покажет прогон CI (macOS, Windows, Dependabot).
 
 - [x] Закрепить Actions по SHA, в первую очередь `softprops/action-gh-release` (v3.0.3); заодно `jurplel/install-qt-action` (v4.5.0). Включён Dependabot (`.github/dependabot.yml`, еженедельно, одним PR).
-  - [ ] Осталось: `msys2/setup-msys2` и `actions/*` — полный SHA найти не удалось (нет доступа к GitHub), стоят теги. Узнать: `git ls-remote <repo> refs/tags/<тег>`.
+  - [x] После PR #2 от Dependabot закреплены и `msys2/setup-msys2` (v2.33.0), и `actions/*` (checkout v7.0.1, cache v6.1.0, upload-artifact v7.0.2, download-artifact v8.0.2, setup-python v7.1.0); SHA сверены через `git ls-remote --tags`.
 - [x] sha256 hidapi вписан (`cmake/Dependencies.cmake`); hidapi теперь качается архивом, git — только с `-DHARMONY_HIDAPI_FROM_GIT=ON`. Хеш взят из Buildroot/Flathub/Ubuntu, хеш подтверждён локальной сборкой win-release (hidapi скачан архивом, проверка прошла).
 - [x] «ignoring duplicate libraries» на macOS: прямое подключение `harmony::core` убрано из `app`, `cli`, `harmony_tests`, `harmony_gui_tests` (приходит через `harmony::transport`, PUBLIC). Проверка — лог линковки macOS.
 - [x] libconcord под clang: `-Wno-inconsistent-missing-override` для `harmony_concord`.
