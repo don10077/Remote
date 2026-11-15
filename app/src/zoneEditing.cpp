@@ -27,11 +27,13 @@ QString tr(const char* text) { return QCoreApplication::translate("zoneEditing",
 struct Span {
     qsizetype begin = -1;
     qsizetype end = -1;
+    bool operator==(const Span&) const = default;
 };
 
-/// Член объекта: ключ и границы значения.
+/// Член объекта: ключ, начало ключа и границы значения.
 struct Member {
     QString key;
+    qsizetype keyBegin = -1; ///< позиция открывающей кавычки ключа
     Span value;
 };
 
@@ -99,6 +101,7 @@ std::optional<QList<Member>> members(const QByteArray& t, qsizetype open) {
     qsizetype i = skipSpace(t, open + 1);
     if (i < t.size() && t[i] == '}') return result;
     while (i < t.size() && t[i] == '"') {
+        const qsizetype keyBegin = i;
         const qsizetype keyEnd = skipString(t, i);
         if (keyEnd < 0) return std::nullopt;
         const auto key = QJsonDocument::fromJson("[" + t.mid(i, keyEnd - i) + "]").array().at(0).toString();
@@ -107,7 +110,7 @@ std::optional<QList<Member>> members(const QByteArray& t, qsizetype open) {
         i = skipSpace(t, i + 1);
         const qsizetype end = skipValue(t, i);
         if (end < 0) return std::nullopt;
-        result.append({key, {i, end}});
+        result.append({key, keyBegin, {i, end}});
         i = skipSpace(t, end);
         if (i >= t.size()) return std::nullopt;
         if (t[i] == '}') return result;
@@ -205,7 +208,14 @@ QByteArray jsonValue(const QJsonValue& value) {
         for (const auto& item : value.toArray()) parts.append(jsonValue(item));
         return "[" + parts.join(", ") + "]";
     }
-    if (value.isObject()) return QJsonDocument(value.toObject()).toJson(QJsonDocument::Compact);
+    if (value.isObject()) {
+        // В одну строку, с пробелами, как зоны в файлах ресурсов: {"color": "#fff", "image": "…"}.
+        const QJsonObject object = value.toObject();
+        QByteArrayList parts;
+        for (auto it = object.begin(); it != object.end(); ++it)
+            parts.append(jsonValue(QJsonValue(it.key())) + ": " + jsonValue(it.value()));
+        return "{" + parts.join(", ") + "}";
+    }
     const auto compact = QJsonDocument(QJsonArray{value}).toJson(QJsonDocument::Compact);
     return compact.mid(1, compact.size() - 2);
 }
@@ -218,6 +228,35 @@ QByteArray rectText(const QRectF& r, bool multiline, const QByteArray& nl, const
 
 QByteArray replaced(const QByteArray& t, Span span, const QByteArray& value) {
     return t.left(span.begin) + value + t.mid(span.end);
+}
+
+/**
+ * Дописать член `"key": value` последним в объект, начинающийся в `open`.
+ * Отступ — как у последнего члена; у пустого объекта член ставится в ту же строку.
+ */
+QByteArray withMember(const QByteArray& t, qsizetype open, const QList<Member>& list, const QString& key,
+                      const QByteArray& value) {
+    const QByteArray member = jsonValue(QJsonValue(key)) + ": " + value;
+    if (list.isEmpty()) return replaced(t, {open, skipValue(t, open)}, "{" + member + "}");
+    const Member& last = list.last();
+    // Многострочный объект — перевод строки между `{` и первым ключом; вложенные значения не в счёт.
+    const bool multiline = t.mid(open, list.first().keyBegin - open).contains('\n');
+    const QByteArray separator = multiline ? "," + newline(t) + lineIndent(t, last.keyBegin) : QByteArray(", ");
+    return t.left(last.value.end) + separator + member + t.mid(last.value.end);
+}
+
+/// Убрать член номер `index` вместе с запятой; последний член оставляет пустой объект `{}`.
+QByteArray withoutMember(const QByteArray& t, qsizetype open, const QList<Member>& list, qsizetype index) {
+    if (list.size() == 1) return replaced(t, {open, skipValue(t, open)}, "{}");
+    if (index > 0) return t.left(list[index - 1].value.end) + t.mid(list[index].value.end);
+    return t.left(list[0].keyBegin) + t.mid(list[1].keyBegin);
+}
+
+/// Порядок ключей нового экрана: как в штатных файлах, ячейки последними.
+const QStringList& screenKeyOrder() {
+    static const QStringList order{"id", "role", "ref", "grid", "background", "cell", "panel",
+                                   "centerLastRow", "compose", "layers", "cells"};
+    return order;
 }
 
 /// Доля площади пересечения от меньшей из зон.
@@ -438,18 +477,123 @@ std::optional<QByteArray> patchZones(const QByteArray& text, const QString& scre
     return replaced(text, *zones, arrayText(text, *zones, lines));
 }
 
-std::optional<QByteArray> patchGrid(const QByteArray& text, const QString& screenId, int cols, int rows) {
+std::optional<QByteArray> patchGrid(const QByteArray& text, const QString& screenId, int cols, int rows,
+                                    std::optional<qreal> gap) {
     const auto screen = screenSpan(text, screenId);
     if (!screen) return std::nullopt;
     const auto grid = memberValue(text, screen->begin, QStringLiteral("grid"));
     if (!grid) return text; // у экрана нет сетки: файл не меняется
-    // Прежний зазор сохраняется; остальные поля сетки — только cols и rows.
+    // Остальные поля сетки — только cols, rows и gap; без нового зазора сохраняется прежний.
     const auto old = QJsonDocument::fromJson("[" + text.mid(grid->begin, grid->end - grid->begin) + "]")
                          .array().at(0).toObject();
+    const bool hadGap = old.contains(QStringLiteral("gap"));
     QByteArray value = "{\"cols\": " + QByteArray::number(cols) + ", \"rows\": " + QByteArray::number(rows);
-    if (old.contains(QStringLiteral("gap"))) value += ", \"gap\": " + number(old.value(QStringLiteral("gap")).toDouble());
+    if (gap && (hadGap || round2(*gap) != kDefaultGap)) value += ", \"gap\": " + number(*gap);
+    else if (!gap && hadGap) value += ", \"gap\": " + number(old.value(QStringLiteral("gap")).toDouble());
+    // Зона плиток пишется отдельно (patchValue), здесь она только сохраняется.
+    if (old.contains(QStringLiteral("area"))) value += ", \"area\": " + jsonValue(old.value(QStringLiteral("area")));
     value += "}";
     return replaced(text, *grid, value);
+}
+
+std::optional<QByteArray> patchValue(const QByteArray& text, const QString& screenId, const QStringList& keys,
+                                     const QJsonValue& value) {
+    if (keys.isEmpty()) return std::nullopt;
+    qsizetype open = rootStart(text);
+    if (!screenId.isEmpty()) {
+        const auto screen = screenSpan(text, screenId);
+        if (!screen) return std::nullopt;
+        open = screen->begin;
+    }
+    // Объекты на пути: начало объекта, его члены и номер нужного члена (-1 — ключа нет).
+    struct Level {
+        qsizetype open;
+        QList<Member> list;
+        qsizetype index;
+    };
+    QList<Level> path;
+    for (qsizetype k = 0; k < keys.size(); ++k) {
+        const auto list = members(text, open);
+        if (!list) return std::nullopt;
+        qsizetype index = -1;
+        for (qsizetype i = 0; i < list->size(); ++i)
+            if (list->at(i).key == keys[k]) index = i;
+        path.append({open, *list, index});
+        if (index < 0) break;
+        if (k + 1 < keys.size()) open = list->at(index).value.begin;
+    }
+    const Level& last = path.last();
+    const bool found = path.size() == keys.size() && last.index >= 0;
+
+    if (value.isUndefined()) {
+        if (!found) return text; // удалять нечего
+        // Опустевший вложенный объект убирается вместе с ключом: {"panel": {"color": …}} → без "panel".
+        qsizetype depth = path.size() - 1;
+        while (depth > 0 && path[depth].list.size() == 1) --depth;
+        return withoutMember(text, path[depth].open, path[depth].list, path[depth].index);
+    }
+    if (found) return replaced(text, last.list[last.index].value, jsonValue(value));
+    // Ключа нет: дописать его в последний найденный объект, недостающие уровни — вложенными объектами.
+    const qsizetype depth = path.size() - 1;
+    QJsonValue nested = value;
+    for (qsizetype j = keys.size() - 1; j > depth; --j) nested = QJsonObject{{keys[j], nested}};
+    return withMember(text, last.open, last.list, keys[depth], jsonValue(nested));
+}
+
+std::optional<QByteArray> appendScreen(const QByteArray& text, const QJsonObject& screen) {
+    const auto screens = memberValue(text, rootStart(text), QStringLiteral("screens"));
+    if (!screens || text[screens->begin] != '[') return std::nullopt;
+    const auto list = elements(text, screens->begin);
+    if (!list) return std::nullopt;
+    const QByteArray nl = newline(text);
+    // Отступы файла: у элементов массива и шаг вложенности (у штатных файлов — один пробел).
+    const QByteArray outer = lineIndent(text, screens->begin);
+    const QByteArray element = list->isEmpty() ? outer + "  " : lineIndent(text, list->first().begin);
+    const QByteArray step = element.startsWith(outer) && element.size() > outer.size() ? element.mid(outer.size())
+                                                                                        : QByteArray("  ");
+    const QByteArray inner = element + step;
+
+    QStringList keys = screen.keys();
+    std::stable_sort(keys.begin(), keys.end(), [](const QString& a, const QString& b) {
+        const auto rank = [](const QString& key) {
+            const auto i = screenKeyOrder().indexOf(key);
+            return i < 0 ? screenKeyOrder().size() - 1 : i; // неизвестные ключи — перед ячейками
+        };
+        return rank(a) < rank(b);
+    });
+    QByteArrayList parts;
+    for (const QString& key : keys) {
+        const QJsonValue item = screen.value(key);
+        QByteArray value;
+        if (key == QLatin1String("cells") || key == QLatin1String("layers")) {
+            // Ячейки и слои — по одной в строке, как в штатных файлах.
+            QByteArrayList lines;
+            for (const auto& entry : item.toArray()) lines.append(inner + step + zoneLine(entry.toObject()));
+            value = lines.isEmpty() ? QByteArray("[]") : "[" + nl + lines.join("," + nl) + nl + inner + "]";
+        } else {
+            value = jsonValue(item);
+        }
+        parts.append(inner + jsonValue(QJsonValue(key)) + ": " + value);
+    }
+    const QByteArray object = "{" + nl + parts.join("," + nl) + nl + element + "}";
+    if (list->isEmpty())
+        return replaced(text, *screens, "[" + nl + element + object + nl + outer + "]");
+    const qsizetype end = list->last().end;
+    return text.left(end) + "," + nl + element + object + text.mid(end);
+}
+
+std::optional<QByteArray> removeScreen(const QByteArray& text, const QString& screenId) {
+    const auto screens = memberValue(text, rootStart(text), QStringLiteral("screens"));
+    if (!screens) return std::nullopt;
+    const auto list = elements(text, screens->begin);
+    const auto screen = screenSpan(text, screenId);
+    if (!list || !screen) return std::nullopt;
+    const qsizetype index = list->indexOf(*screen);
+    if (index < 0) return std::nullopt;
+    if (list->size() == 1) return replaced(text, *screens, "[]");
+    // Вместе с запятой: у первого экрана — следующей за ним, у остальных — перед ним.
+    if (index > 0) return text.left(list->at(index - 1).end) + text.mid(list->at(index).end);
+    return text.left(list->at(0).begin) + text.mid(list->at(1).begin);
 }
 
 std::optional<QByteArray> patchDisplay(const QByteArray& text, const std::optional<QRectF>& rect) {

@@ -85,6 +85,8 @@ public:
     [[nodiscard]] bool drawMode() const { return drawMode_; }
     void setSnapping(bool on) { snapping_ = on; }
     void setShowIds(bool on);
+    /// Подпись рамки (элемент SCREEN_ITEM): «Область экрана» на корпусе, «Зона плиток» на экране.
+    void setFrameCaption(const QString& caption);
 
     /// Вписать слой в окно.
     void fitView();
@@ -165,6 +167,7 @@ private:
 
     QJsonArray zones_;
     std::optional<QRectF> screen_;
+    QString frameCaption_; ///< подпись рамки; пусто — «Область экрана»
     QList<Context> context_;
     QHash<int, zoneEditing::Issue::Level> marks_;
     QList<int> selection_;

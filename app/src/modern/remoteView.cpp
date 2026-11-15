@@ -296,6 +296,60 @@ QColor panelTextColor(const QJsonObject& layout) {
     return colour.isValid() ? colour : QColor(Qt::white);
 }
 
+/**
+ * @brief Нарисовать подложку `ScreenPanel` экрана без спрайтов заливкой `panel.color`.
+ *
+ * Форма — по `role` ячейки: `band` — прямоугольная полоса, `oval` — кольцо (эллипс без заливки),
+ * `side` и остальные — скруглённая панель с радиусом ячейки.
+ * @param fallback Цвет, если `panel.color` не задан или некорректен.
+ */
+void paintScreenPanel(QPainter& p, const QJsonObject& layout, const QJsonObject& zone, const QRectF& rect,
+                      const QColor& fallback) {
+    QColor colour(layout.value("panel").toObject().value("color").toString());
+    if (!colour.isValid()) colour = fallback;
+    const QString role = zone.value("role").toString();
+    p.save();
+    if (role == "oval") {
+        const qreal width = std::max<qreal>(1.0, std::min(rect.width(), rect.height()) * 0.08);
+        p.setPen(QPen(colour, width));
+        p.setBrush(Qt::NoBrush);
+        p.drawEllipse(rect.adjusted(width / 2, width / 2, -width / 2, -width / 2));
+    } else if (role == "band") {
+        p.fillRect(rect, colour);
+    } else {
+        const qreal radius = zone.value("radius").toDouble(6);
+        p.setPen(Qt::NoPen);
+        p.setBrush(colour);
+        p.drawRoundedRect(rect, radius, radius);
+    }
+    p.restore();
+}
+
+/**
+ * @brief Значок батареи в ячейке `Battery`: корпус с контактом и три деления.
+ *
+ * Значок вписывается по центру ячейки в пропорции 2:1, одним цветом.
+ */
+void paintBattery(QPainter& p, const QRectF& rect, const QColor& colour) {
+    const qreal h = std::min(rect.height() * 0.8, rect.width() / 2.2);
+    if (h <= 0) return;
+    const qreal w = h * 2.0;
+    const QRectF body(rect.center().x() - w / 2, rect.center().y() - h / 2, w * 0.9, h);
+    const QRectF tip(body.right(), body.center().y() - h * 0.2, w * 0.1, h * 0.4);
+    const qreal pen = std::max<qreal>(0.6, h * 0.1);
+    p.save();
+    p.setPen(QPen(colour, pen));
+    p.setBrush(Qt::NoBrush);
+    p.drawRoundedRect(body.adjusted(pen / 2, pen / 2, -pen / 2, -pen / 2), h * 0.15, h * 0.15);
+    p.fillRect(tip, colour);
+    const QRectF inner = body.adjusted(pen * 1.6, pen * 1.6, -pen * 1.6, -pen * 1.6);
+    const qreal gap = pen * 0.8;
+    const qreal segment = (inner.width() - 2 * gap) / 3;
+    for (int i = 0; i < 3 && segment > 0; ++i)
+        p.fillRect(QRectF(inner.left() + i * (segment + gap), inner.top(), segment, inner.height()), colour);
+    p.restore();
+}
+
 /** Текст с подбором размера и, если нужно, тенью под ним. */
 void drawStyledText(QPainter& p, const QRectF& rect, const QString& text, const QColor& colour,
                     bool bold, bool shadow, qreal opacity, qreal startFactor, qreal minFactor,
@@ -518,6 +572,7 @@ void RemoteView::setRemoteProfile(const QString& id) {
     allZones.clear();
     modes = {};
     tiles = {};
+    touchScreen = false;
     activityPage = softPage = otherPage = 0;
     screenHits.clear();
     hoverId.clear();
@@ -545,6 +600,7 @@ void RemoteView::setRemoteProfile(const QString& id) {
             if (!modes.contains("devices") && !modes.isEmpty())
                 modes.insert("devices", modes.value(modes.contains("activities") ? "activities" : "command"));
             tiles = remote.value("tiles").toObject();
+            touchScreen = remote.value("capabilities").toObject().value("touch").toBool();
             const auto display = remote.value("display").toObject();
             screenTint = QColor(display.value("tint").toString()); // пусто: цвет по умолчанию
             const QRectF screen = readRect(display.value("rect"));
@@ -1020,27 +1076,10 @@ void RemoteView::paintEvent(QPaintEvent*) {
     paintZones(p);
 }
 
-void RemoteView::overrideLayout(const QString& mode, const QSizeF& ref, const QJsonArray& zones,
-                                const QString& cellColor, const QString& title) {
-    QJsonObject screen = modes.value(mode).toObject();
-    if (!modes.contains(mode)) {
-        // Новый экран наследует фон и оформление ячеек от экранов этого пульта.
-        for (auto it = modes.begin(); it != modes.end(); ++it) {
-            const QJsonObject donor = it.value().toObject();
-            if (!donor.contains("background")) continue;
-            for (const char* field : {"background", "cell", "compact", "panel"})
-                if (donor.contains(field)) screen.insert(field, donor.value(field));
-            break;
-        }
-        screen.insert("id", mode);
-    }
-    screen.insert("ref", QJsonArray{ref.width(), ref.height()});
-    screen.insert("cells", zones);
-    // Заголовок в шапке нужен только черновику экрана в редакторе, в remote.json его нет.
-    if (!title.isEmpty()) screen.insert("title", title);
-    // Цвет из редактора перекрашивает плитки всего пульта (блок tiles), фон экрана не меняется.
-    if (QColor(cellColor).isValid()) tiles.insert("color", cellColor);
-    modes.insert(mode, screen);
+void RemoteView::overrideScreen(const QJsonObject& screen) {
+    const QString mode = screen.value("id").toString();
+    if (mode.isEmpty()) return;
+    modes.insert(mode, resources::normalizeScreen(screen, tiles.value("area")));
 }
 
 QPixmap RemoteView::screenPreview(const QSize& size) {
@@ -1128,6 +1167,21 @@ void RemoteView::paintModernScreen(QPainter& p) {
     paintGridScreen(p, layout);
 }
 
+QString RemoteView::serviceText(const QString& id, const QJsonObject& layout) const {
+    const bool activityScreen = isListScreen();
+    if (id == "Caption" || id == "Title") {
+        const QString title = layout.value("title").toString();
+        return !title.isEmpty() ? title : currentScreen == Screen::Devices ? tr("Devices") : softTitle;
+    }
+    if (id == "Heading")
+        return activityScreen ? (currentScreen == Screen::Devices ? tr("Devices") : tr("What would you like to do?")) : QString();
+    if (id == "Page" || id == "PageLabel")
+        return activityScreen || currentScreen == Screen::SoftButtons
+                   ? tr("%1 of %2").arg(currentPage() + 1).arg(pageCount()) : QString();
+    if (id == "Clock") return QLocale::system().toString(QTime::currentTime(), QLocale::ShortFormat);
+    return {};
+}
+
 void RemoteView::paintGridScreen(QPainter& p, const QJsonObject& layout) {
     // Единый рендерер экранов remote.json: фон — картинка или заливка цветом,
     // плитки — картинка или «таблетка» цветом с рамкой (по умолчанию #0b3442 и белая).
@@ -1161,7 +1215,7 @@ void RemoteView::paintGridScreen(QPainter& p, const QJsonObject& layout) {
     p.setRenderHint(QPainter::SmoothPixmapTransform);
     const QImage& bgImage = image(background.value("image").toString());
     // Как на реальном пульте 900: «стеклянный» фон с подсветкой в центре, если нет картинки.
-    const bool glass = !background.contains("image") && !layout.value("compact").toBool();
+    const bool glass = !background.contains("image");
     if (!bgImage.isNull()) p.drawImage(QRectF(0, 0, refW, refH), bgImage);
     else if (glass) {
         if (bgColor == QColor("#0b3442")) paintLcdBackdrop(p, refW, refH);
@@ -1180,6 +1234,14 @@ void RemoteView::paintGridScreen(QPainter& p, const QJsonObject& layout) {
     const bool softScreen = currentScreen == Screen::SoftButtons;
     int slot = 0;
     const auto gridZones = layout.value("cells").toArray();
+    // Подложки ScreenPanel — сразу над фоном, под шапкой и плитками: заливка panel.color
+    // (по умолчанию темнее фона) по форме роли. На собранных экранах они нарисованы на спрайтах.
+    for (const auto& value : gridZones) {
+        const auto zone = value.toObject();
+        const QRectF rect = readRect(zone.value("rect"));
+        if (!rect.isEmpty() && zone.value("kind").toString() == "ScreenPanel")
+            paintScreenPanel(p, layout, zone, rect, bgColor.darker(160));
+    }
     if (glass) {
         // Стеклянный фон 900: общие шапка и подвал экрана.
         const QString layoutTitle = layout.value("title").toString();
@@ -1188,50 +1250,46 @@ void RemoteView::paintGridScreen(QPainter& p, const QJsonObject& layout) {
         paintLcdHeader(p, font(), refW, titleText, tr("p. %1/%2").arg(currentPage() + 1).arg(pageCount()));
         paintLcdFooter(p, font(), refW, refH, tr("Options"), tr("Devices"));
     }
-    // Экран 600–700: спрайт фона модели, белая шапка и вкладка Devices; плитки как у 900.
-    const bool compact = layout.value("compact").toBool();
-    if (compact) {
-        QRectF band;
-        for (const auto& value : gridZones) {
-            const auto zone = value.toObject();
-            if (zone.value("kind").toString() == "ScreenLabel") band = band.united(readRect(zone.value("rect")));
-        }
-        if (!band.isEmpty()) p.fillRect(QRectF(0, 0, refW, band.bottom()), Qt::white);
-    }
     for (const auto& value : gridZones) {
         const auto zone = value.toObject();
         const QRectF rect = readRect(zone.value("rect"));
         if (rect.isEmpty()) continue;
         const QString zoneKind = zone.value("kind").toString("ScreenSlot");
+        if (zoneKind == "ScreenPanel") continue; // подложки уже нарисованы под шапкой и плитками
         if (glass && (zoneKind == "ScreenLabel" || zoneKind == "ScreenSide")) {
             // Служебные зоны уже нарисованы общей шапкой и подвалом.
             continue;
         }
-        if (compact && zoneKind != "ScreenSlot") {
+        if (zoneKind == "ScreenLabel" || zoneKind == "ScreenSide") {
+            // Надписи поверх фона (шапка, вкладки и панели — на картинке фона), а не плитки:
+            // служебная подпись (заголовок, страница, часы), значок батареи или название кнопки у экрана.
             const QString id = zone.value("id").toString();
-            if (zoneKind == "ScreenLabel") {
-                QString text;
-                int align = Qt::AlignVCenter;
-                QRectF box = rect;
-                if (id == "Title") {
-                    text = !layout.value("title").toString().isEmpty() ? layout.value("title").toString()
-                           : currentScreen == Screen::Devices ? tr("Devices") : softTitle;
-                    align |= Qt::AlignLeft;
+            const QColor ink = panelTextColor(layout);
+            if (id == "Battery") {
+                paintBattery(p, rect, ink);
+                continue;
+            }
+            QString text;
+            int align = Qt::AlignCenter;
+            QRectF box = rect;
+            if (zoneKind == "ScreenSide") {
+                text = keyName(zone.value("key").toString(id));
+            } else {
+                text = serviceText(id, layout);
+                if (id == "Title" || id == "Caption") {
+                    align = Qt::AlignLeft | Qt::AlignVCenter;
                     box.adjust(4, 0, 0, 0);
-                } else if (id == "Page") {
-                    text = QStringLiteral("%1/%2").arg(currentPage() + 1).arg(pageCount());
-                    align |= Qt::AlignRight;
+                } else if (id == "Page" || id == "PageLabel") {
+                    align = Qt::AlignRight | Qt::AlignVCenter;
                     box.adjust(0, 0, -4, 0);
                 }
-                drawSingleLine(p, box, text, QColor("#111111"), true, 1.0, 0.68, align);
-            } else if (zoneKind == "ScreenSide" && id == "Devices") {
-                QPainterPath tab;
-                tab.addRoundedRect(rect.adjusted(0, 0, 0, rect.height()), 6, 6);
-                p.setPen(Qt::NoPen);
-                p.setBrush(Qt::white);
-                p.drawPath(tab);
-                drawSingleLine(p, rect, tr("Devices"), QColor("#111111"), true, 1.0, 0.72);
             }
+            // Тень — только у светлых надписей: под тёмными на светлой шапке она пачкает.
+            if (ink.lightness() > 140) {
+                const qreal d = std::max<qreal>(0.6, box.height() * 0.06);
+                drawSingleLine(p, box.translated(d, d), text, QColor(0, 0, 0, 160), true, 1.0, 0.72, align);
+            }
+            drawSingleLine(p, box, text, ink, true, 1.0, 0.72, align);
             continue;
         }
         const qreal radius = zone.value("radius").toDouble(cellStyle.value("radius").toDouble(6));
@@ -1266,9 +1324,10 @@ void RemoteView::paintGridScreen(QPainter& p, const QJsonObject& layout) {
         }
         if (!label.isEmpty()) {
             // Те же размеры шрифта и расположение, что у классических списков и команд.
-            const bool rows = activityScreen && !compact; // на узком экране 600–700 подписи по центру
+            // Подпись со значком слева — только на широкой плитке списка (как у 900); на узкой — по центру.
+            const bool rows = activityScreen && rect.width() >= refW * 0.6;
             QFont tileFont = font();
-            tileFont.setPixelSize(rows ? 17 : compact ? 12 : 14);
+            tileFont.setPixelSize(rows ? 17 : std::clamp(static_cast<int>(std::lround(rect.width() * 0.14)), 10, 14));
             tileFont.setBold(true);
             p.setFont(tileFont);
             p.setPen(Qt::white);
@@ -1299,7 +1358,7 @@ void RemoteView::paintGridScreen(QPainter& p, const QJsonObject& layout) {
                 for (const auto& key : modelZones)
                     if (key.id == button) screenHits.append({key.rect, index});
             }
-            if (layout.value("touch").toBool()) screenHits.append({screenToPhoto(rect), index});
+            if (touchScreen) screenHits.append({screenToPhoto(rect), index});
         }
     }
     p.restore();
@@ -1473,20 +1532,15 @@ bool RemoteView::paintComposedScreen(QPainter& p, const QJsonObject& layout) {
                 for (const auto& key : modelZones)
                     if (key.id == button) screenHits.append({key.rect, index});
             }
-            if (layout.value("touch").toBool()) screenHits.append({screenToPhoto(rect), index});
+            if (touchScreen) screenHits.append({screenToPhoto(rect), index});
         } else if (kind == "ScreenLabel") {
             // Подписи из конфигурации и заголовок экрана активностей рисуются поверх картинок.
-            QString text;
-            if (id == "Caption" || id == "Title") {
-                text = currentScreen == Screen::Devices ? tr("Devices") : softTitle;
-            } else if (id == "Heading") {
-                if (activityScreen) text = currentScreen == Screen::Devices ? tr("Devices") : tr("What would you like to do?");
-            } else if (id == "Page" || id == "PageLabel") {
-                if (activityScreen || softScreen)
-                    text = tr("%1 of %2").arg(currentPage() + 1).arg(pageCount());
-            } else if (id == "Clock") {
-                text = QLocale::system().toString(QTime::currentTime(), QLocale::ShortFormat);
-            } else if (id == "PageWord") {
+            if (id == "Battery") {
+                paintBattery(p, rect, Qt::white);
+                continue;
+            }
+            const QString text = serviceText(id, layout);
+            if (id == "PageWord") {
                 // надпись на стрелке листания 1000 (кнопки UpArrow/DownArrow), цвет панели
                 drawSingleLine(p, rect, tr("Page"), panelTextColor(layout), true, 1.0, 0.80);
                 continue;

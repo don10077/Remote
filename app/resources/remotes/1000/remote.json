@@ -207,7 +207,6 @@
     "cols": 3,
     "rows": 2
    },
-   "touch": true,
    "background": {
     "color": "#0b3442",
     "image": "sprites/background_1000.png"
@@ -390,7 +389,6 @@
     "cols": 3,
     "rows": 2
    },
-   "touch": true,
    "background": {
     "color": "#0b3442",
     "image": "sprites/background_1000.png"
@@ -573,7 +571,6 @@
     "cols": 3,
     "rows": 2
    },
-   "touch": true,
    "background": {
     "color": "#0b3442",
     "image": "sprites/background_1000.png"
@@ -916,7 +913,6 @@
     "cols": 3,
     "rows": 2
    },
-   "touch": true,
    "background": {
     "color": "#0b3442",
     "image": "sprites/background_1000.png"
@@ -1255,7 +1251,6 @@
     320,
     240
    ],
-   "touch": true,
    "background": {
     "color": "#0b3442",
     "image": "sprites/background_1000.png"
@@ -1629,7 +1624,6 @@
     320,
     240
    ],
-   "touch": true,
    "background": {
     "color": "#0b3442",
     "image": "sprites/background_1000.png"

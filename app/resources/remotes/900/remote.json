@@ -570,7 +570,6 @@
     "cols": 1,
     "rows": 3
    },
-   "touch": true,
    "background": {
     "color": "#0b3442"
    },
@@ -678,7 +677,6 @@
     "cols": 1,
     "rows": 3
    },
-   "touch": true,
    "background": {
     "color": "#0b3442"
    },
@@ -786,7 +784,6 @@
     "cols": 2,
     "rows": 3
    },
-   "touch": true,
    "background": {
     "color": "#0b3442"
    },

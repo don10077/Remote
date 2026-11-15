@@ -228,6 +228,105 @@ TEST(ZoneEditing, PatchGridWritesColsRowsAndKeepsGap) {
     EXPECT_FALSE(ze::patchGrid(kRemote, "Nope", 2, 2).has_value());
 }
 
+TEST(ZoneEditing, PatchGridWritesNewGapOnlyWhenNotDefault) {
+    QByteArray text = kRemote;
+    text.replace(R"("id": "Home",)", R"("id": "Home", "grid": {"cols": 2, "rows": 1},)");
+    const auto gridOf = [](const QByteArray& patched) {
+        return QJsonDocument::fromJson(patched).object()["screens"].toArray()[0].toObject()["grid"].toObject();
+    };
+    // Зазор по умолчанию в файл не дописывается.
+    const auto same = ze::patchGrid(text, "Home", 2, 1, ze::kDefaultGap);
+    ASSERT_TRUE(same.has_value());
+    EXPECT_FALSE(gridOf(*same).contains("gap"));
+    const auto wider = ze::patchGrid(text, "Home", 2, 1, 6.5);
+    ASSERT_TRUE(wider.has_value());
+    EXPECT_DOUBLE_EQ(gridOf(*wider)["gap"].toDouble(), 6.5);
+}
+
+TEST(ZoneEditing, PatchGridKeepsTileArea) {
+    QByteArray text = kRemote;
+    text.replace(R"("id": "Home",)", R"("id": "Home", "grid": {"cols": 2, "rows": 1, "area": [10, 20, 100, 50]},)");
+    const auto patched = ze::patchGrid(text, "Home", 3, 2);
+    ASSERT_TRUE(patched.has_value());
+    const auto grid = QJsonDocument::fromJson(*patched).object()["screens"].toArray()[0].toObject()["grid"].toObject();
+    EXPECT_EQ(grid["cols"].toInt(), 3);
+    EXPECT_EQ(grid["area"].toArray(), (QJsonArray{10, 20, 100, 50}));
+    // Зона пишется отдельно, внутрь существующего grid.
+    const auto area = ze::patchValue(*patched, "Home", {"grid", "area"}, QJsonArray{0, 0, 50, 50});
+    ASSERT_TRUE(area.has_value());
+    const auto changed = QJsonDocument::fromJson(*area).object()["screens"].toArray()[0].toObject()["grid"].toObject();
+    EXPECT_EQ(changed["area"].toArray(), (QJsonArray{0, 0, 50, 50}));
+    EXPECT_EQ(changed["rows"].toInt(), 2);
+}
+
+TEST(ZoneEditing, PatchValueReplacesAddsAndRemovesKeepingTheRest) {
+    // Существующее значение заменяется на месте, остальной текст байт в байт тот же.
+    const auto tint = ze::patchValue(kRemote, {}, {"display", "tint"}, "#123456");
+    ASSERT_TRUE(tint.has_value());
+    QByteArray expected = kRemote;
+    expected.replace(R"("tint": "#ffffff")", R"("tint": "#123456")");
+    EXPECT_EQ(*tint, expected);
+
+    // Отсутствующий ключ дописывается в многострочный объект с отступом соседей.
+    const auto name = ze::patchValue(kRemote, {}, {"name"}, "Custom");
+    ASSERT_TRUE(name.has_value());
+    EXPECT_TRUE(name->contains("\n    \"name\": \"Custom\"\n}"));
+    EXPECT_EQ(QJsonDocument::fromJson(*name).object()["name"].toString(), "Custom");
+
+    // Недостающие объекты на пути создаются.
+    const auto tiles = ze::patchValue(kRemote, {}, {"tiles", "border"}, "#000000");
+    ASSERT_TRUE(tiles.has_value());
+    EXPECT_EQ(QJsonDocument::fromJson(*tiles).object()["tiles"].toObject()["border"].toString(), "#000000");
+
+    // Удаление последнего ключа убирает и опустевший объект; отсутствующий ключ — без изменений.
+    const auto removed = ze::patchValue(*tiles, {}, {"tiles", "border"}, QJsonValue(QJsonValue::Undefined));
+    ASSERT_TRUE(removed.has_value());
+    EXPECT_EQ(*removed, kRemote);
+    const auto nothing = ze::patchValue(kRemote, {}, {"panel", "color"}, QJsonValue(QJsonValue::Undefined));
+    ASSERT_TRUE(nothing.has_value());
+    EXPECT_EQ(*nothing, kRemote);
+}
+
+TEST(ZoneEditing, PatchValueInsideOneScreen) {
+    const auto patched = ze::patchValue(kRemote, "Menu", {"panel", "color"}, "#202020");
+    ASSERT_TRUE(patched.has_value());
+    const auto screens = QJsonDocument::fromJson(*patched).object()["screens"].toArray();
+    EXPECT_FALSE(screens[0].toObject().contains("panel"));
+    EXPECT_EQ(screens[1].toObject()["panel"].toObject()["color"].toString(), "#202020");
+    // Удаление ключа в середине объекта убирает его вместе с запятой.
+    const auto noRef = ze::patchValue(kRemote, "Home", {"ref"}, QJsonValue(QJsonValue::Undefined));
+    ASSERT_TRUE(noRef.has_value());
+    const auto home = QJsonDocument::fromJson(*noRef).object()["screens"].toArray()[0].toObject();
+    EXPECT_FALSE(home.contains("ref"));
+    EXPECT_EQ(home["cells"].toArray().size(), 2);
+    EXPECT_FALSE(ze::patchValue(kRemote, "Nope", {"ref"}, 1).has_value());
+    // На пути стоит не объект — ошибка, а не порча файла.
+    EXPECT_FALSE(ze::patchValue(kRemote, {}, {"screens", "x"}, 1).has_value());
+}
+
+TEST(ZoneEditing, AppendAndRemoveScreen) {
+    const QJsonObject screen{{"id", "Extra"}, {"ref", QJsonArray{240, 320}}, {"role", "numpad"},
+                             {"cells", QJsonArray{QJsonObject{{"id", "S"}, {"rect", QJsonArray{1, 2, 3, 4}}, {"kind", "ScreenSlot"}}}}};
+    const auto added = ze::appendScreen(kRemote, screen);
+    ASSERT_TRUE(added.has_value());
+    const auto screens = QJsonDocument::fromJson(*added).object()["screens"].toArray();
+    ASSERT_EQ(screens.size(), 3);
+    EXPECT_EQ(screens[2].toObject(), screen);
+    // Прежние экраны текстом не тронуты, ячейки нового — по одной в строке.
+    EXPECT_TRUE(added->startsWith(kRemote.left(kRemote.lastIndexOf("}\n    ]"))));
+    EXPECT_TRUE(added->contains(R"({"id": "S", "rect": [1, 2, 3, 4], "kind": "ScreenSlot"})"));
+
+    const auto removed = ze::removeScreen(*added, "Extra");
+    ASSERT_TRUE(removed.has_value());
+    EXPECT_EQ(*removed, kRemote);
+    const auto first = ze::removeScreen(kRemote, "Home");
+    ASSERT_TRUE(first.has_value());
+    const auto left = QJsonDocument::fromJson(*first).object()["screens"].toArray();
+    ASSERT_EQ(left.size(), 1);
+    EXPECT_EQ(left[0].toObject()["id"].toString(), "Menu");
+    EXPECT_FALSE(ze::removeScreen(kRemote, "Nope").has_value());
+}
+
 TEST(ZoneEditing, PatchDisplayChangesRect) {
     const auto patched = ze::patchDisplay(kRemote, QRectF(120, 60, 180, 140));
     ASSERT_TRUE(patched.has_value());

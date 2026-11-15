@@ -61,16 +61,20 @@ quint64 revision() { return generation; }
 QStringList skipped() { return skippedModels; }
 QStringList migratedByReload() { return migratedFiles; }
 
-QJsonObject normalizeScreen(QJsonObject screen) {
+QJsonObject normalizeScreen(QJsonObject screen, const QJsonValue& defaultArea) {
     const auto grid = screen.value("grid").toObject();
     const auto ref = screen.value("ref").toArray();
     const int cols = grid.value("cols").toInt();
     const int rows = grid.value("rows").toInt();
     if (cols <= 0 || rows <= 0 || ref.size() != 2) return screen;
-    // Ячейки без rect ставятся по сетке: col/row (с нуля), colSpan/rowSpan (по умолчанию 1).
+    // Ячейки без rect ставятся по сетке: col/row (с нуля), colSpan/rowSpan (по умолчанию 1),
+    // внутри зоны плиток grid.area, а без неё — по всему экрану.
     const qreal gap = grid.value("gap").toDouble(4);
-    const qreal cw = (ref[0].toDouble() - gap * (cols + 1)) / cols;
-    const qreal ch = (ref[1].toDouble() - gap * (rows + 1)) / rows;
+    QRectF area(0, 0, ref[0].toDouble(), ref[1].toDouble());
+    if (const QRectF given = rect(grid.value("area")); given.isValid()) area = given;
+    else if (const QRectF common = rect(defaultArea); common.isValid()) area = common;
+    const qreal cw = (area.width() - gap * (cols + 1)) / cols;
+    const qreal ch = (area.height() - gap * (rows + 1)) / rows;
     const auto round2 = [](qreal v) { return std::round(v * 100) / 100; };
     QJsonArray cells = screen.value("cells").toArray();
     bool changed = false;
@@ -81,7 +85,7 @@ QJsonObject normalizeScreen(QJsonObject screen) {
         const int row = cell.value("row").toInt();
         const int cs = std::max(1, cell.value("colSpan").toInt(1));
         const int rs = std::max(1, cell.value("rowSpan").toInt(1));
-        cell.insert("rect", QJsonArray{round2(gap + col * (cw + gap)), round2(gap + row * (ch + gap)),
+        cell.insert("rect", QJsonArray{round2(area.x() + gap + col * (cw + gap)), round2(area.y() + gap + row * (ch + gap)),
                                        round2(cw * cs + gap * (cs - 1)), round2(ch * rs + gap * (rs - 1))});
         if (!cell.contains("kind")) cell.insert("kind", "ScreenSlot");
         cells[i] = cell;
@@ -93,7 +97,9 @@ QJsonObject normalizeScreen(QJsonObject screen) {
 
 QJsonObject normalizeRemote(QJsonObject remote) {
     QJsonArray screens = remote.value("screens").toArray();
-    for (int i = 0; i < screens.size(); ++i) screens[i] = normalizeScreen(screens[i].toObject());
+    // Своя зона экрана (grid.area) главнее общей зоны пульта (tiles.area).
+    const QJsonValue common = remote.value("tiles").toObject().value("area");
+    for (int i = 0; i < screens.size(); ++i) screens[i] = normalizeScreen(screens[i].toObject(), common);
     if (remote.contains("screens")) remote.insert("screens", screens);
     return remote;
 }
@@ -106,6 +112,37 @@ QJsonObject remote(const QString& modelId) {
         return normalizeRemote(QJsonDocument::fromJson(file.readAll()).object());
     }
     return remotes.value(modelId);
+}
+
+RemoteFile readRemote(const QString& modelId, const QString& root) {
+    RemoteFile file;
+    file.path = "remotes/" + modelId + "/remote.json";
+    QFile input(QDir(root).filePath(file.path));
+    if (!input.open(QIODevice::ReadOnly)) input.setFileName(kPrefix + file.path);
+    if (!input.isOpen() && !input.open(QIODevice::ReadOnly)) {
+        file.error = file.path + ": " + input.errorString();
+        return file;
+    }
+    file.text = input.readAll();
+    QJsonParseError parseError;
+    const auto document = QJsonDocument::fromJson(file.text, &parseError);
+    if (parseError.error != QJsonParseError::NoError || !document.isObject()) {
+        file.error = file.path + ": " +
+                     (parseError.error != QJsonParseError::NoError ? parseError.errorString() : QStringLiteral("invalid JSON structure"));
+        file.current = file.text;
+        return file;
+    }
+    QJsonObject remote = document.object();
+    file.current = migrateRemote(remote, modelId) ? QJsonDocument(remote).toJson(QJsonDocument::Indented) : file.text;
+    file.remote = normalizeRemote(remote);
+    return file;
+}
+
+QByteArray currentSchema(const QByteArray& text, const QString& modelId) {
+    const auto document = QJsonDocument::fromJson(text);
+    if (!document.isObject()) return text;
+    QJsonObject remote = document.object();
+    return migrateRemote(remote, modelId) ? QJsonDocument(remote).toJson(QJsonDocument::Indented) : text;
 }
 
 bool migrateRemote(QJsonObject& remote, const QString& modelId) {
@@ -131,7 +168,33 @@ bool migrateRemote(QJsonObject& remote, const QString& modelId) {
         changed = true;
     }
 
-    // Поле style экранов: вид 600-серии и цвет подписей панелей теперь заданы данными.
+    // Поле touch экранов: сенсорность — свойство пульта (capabilities.touch), а не экрана.
+    {
+        QJsonArray screens = remote.value("screens").toArray();
+        bool touch = false;
+        bool found = false;
+        for (int i = 0; i < screens.size(); ++i) {
+            QJsonObject screen = screens[i].toObject();
+            if (!screen.contains("touch")) continue;
+            // take() отдельно: в `touch || take()` поле не убиралось бы после первого `true`.
+            const bool screenTouch = screen.take("touch").toBool();
+            touch = touch || screenTouch;
+            found = true;
+            screens[i] = screen;
+        }
+        if (found) {
+            remote.insert("screens", screens);
+            QJsonObject capabilities = remote.value("capabilities").toObject();
+            if (!capabilities.contains("touch")) {
+                capabilities.insert("touch", touch);
+                remote.insert("capabilities", capabilities);
+            }
+            changed = true;
+        }
+    }
+
+    // Поля style и compact экранов: вид 600-серии (белая шапка, вкладка Devices) теперь нарисован на картинке
+    // фона, цвет надписей — panel.text. Картинка и цвет берутся у встроенного экрана; своя картинка остаётся.
     QHash<QString, QJsonObject> builtinScreens;
     for (const auto& value : builtin.value("screens").toArray())
         builtinScreens.insert(value.toObject().value("id").toString(), value.toObject());
@@ -139,15 +202,23 @@ bool migrateRemote(QJsonObject& remote, const QString& modelId) {
     bool screensChanged = false;
     for (int i = 0; i < screens.size(); ++i) {
         QJsonObject screen = screens[i].toObject();
-        if (!screen.contains("style")) continue;
-        const QString style = screen.take("style").toString();
+        if (!screen.contains("style") && !screen.contains("compact")) continue;
+        const bool h600 = screen.take("style").toString() == "h600";
+        const bool compactFlag = screen.take("compact").toBool();
+        const bool compact = h600 || compactFlag;
         const QJsonObject fresh = builtinScreens.value(screen.value("id").toString());
-        if (style == "h600") {
-            screen.insert("compact", true);
+        if (compact) {
             QJsonObject background = screen.value("background").toObject();
+            const QString image = background.value("image").toString();
             const auto freshImage = fresh.value("background").toObject().value("image");
-            if (!background.contains("image") && freshImage.isString()) background.insert("image", freshImage);
+            // Прежние картинки фона 600–700 были без шапки: их заменяет картинка с шапкой.
+            const bool oldImage = image.isEmpty() || image == "sprites/background_600.png" ||
+                                  image == "sprites/background_650.png";
+            if (oldImage && freshImage.isString()) background.insert("image", freshImage);
             screen.insert("background", background);
+            QJsonObject panel = screen.value("panel").toObject();
+            if (!panel.contains("text")) panel.insert("text", QStringLiteral("#111111")); // тёмные надписи на белой шапке
+            screen.insert("panel", panel);
         }
         if (fresh.contains("panel") && !screen.contains("panel")) screen.insert("panel", fresh.value("panel"));
         screens[i] = screen;

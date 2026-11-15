@@ -26,12 +26,14 @@
 #include <QStringList>
 #include <QUndoStack>
 
+#include <functional>
 #include <optional>
 
 class QAction;
 class QCheckBox;
 class QComboBox;
 class QDoubleSpinBox;
+class QFormLayout;
 class QLineEdit;
 class QListWidget;
 class QPushButton;
@@ -71,7 +73,9 @@ public:
     /// Содержимое слоя: зоны и рамка экрана (рамка есть только у корпуса).
     struct State {
         QJsonArray zones;
-        std::optional<QRectF> screen;
+        std::optional<QRectF> screen; ///< корпус: область экрана на фото; экран: зона плиток (`grid.area`)
+        qreal gap = zoneEditing::kDefaultGap; ///< зазор плиток экрана (`grid.gap`); у корпуса не используется
+        bool ownArea = false; ///< у экрана своя зона плиток (`grid.area`), иначе общая зона пульта (`tiles.area`)
         bool operator==(const State&) const = default;
     };
 
@@ -102,10 +106,9 @@ private:
         QString layout;    ///< id экрана в remote.json (у черновика — его временный ключ); пусто у корпуса
         QStringList modes; ///< режимы экрана модели, показывающие эту раскладку
         QString caption;
-        QString background; ///< цвет фона экрана из remote.json; пусто — цвет по умолчанию (у корпуса не используется)
         QString role;       ///< роль экрана из remote.json
-        QJsonObject backgroundStyle; ///< фон экрана-образца для нового экрана (цвет, картинка)
-        QJsonObject cellStyle;       ///< оформление ячеек экрана-образца
+        /// Экран из remote.json без `cells` (ячейки — в current); у черновика — оформление образца.
+        QJsonObject screen;
         bool draft = false; ///< новый экран, ещё не записанный в remote.json (живёт только в редакторе)
         QSizeF ref;        ///< единицы слоя: размер фото или `ref` раскладки
         State original;    ///< как в файле
@@ -115,10 +118,18 @@ private:
     };
     enum class Align { Left, Right, Top, Bottom, CentreX, CentreY, Width, Height };
 
-    /// Прочитать модель из папки ресурсов; false — модель не прочитана, прежнее состояние сохранено.
+    /// Прочитать модель (remoteResources::readRemote); false — модель не прочитана, прежнее состояние сохранено.
     bool loadModel(const QString& model);
+    /**
+     * @brief Перечитать снимок ресурсов и модель, показать слой.
+     * @param target Слой (Layer::key), который показать; не найден — корпус.
+     * @param keepDrafts Вернуть черновик нового экрана (он живёт только в редакторе).
+     */
+    void reloadModel(QString target, bool keepDrafts = true);
     /// Текст файла папки ресурсов, а если его нет — из загруженного снимка.
     static QByteArray readResource(const QString& relative);
+    /// `remotes/<id>/remote.json` открытой модели, путь от корня папки ресурсов.
+    [[nodiscard]] QString remotePath() const;
 
     [[nodiscard]] bool hasLayer() const { return current_ >= 0 && current_ < layers_.size(); }
     Layer& layer() { return layers_[current_]; }
@@ -140,6 +151,8 @@ private:
     void refreshProperties();
     void refreshContext();
     void refreshCheck();
+    /// Обновить вкладку «Пульт»: название, подключение, формат, касания, плитки.
+    void refreshRemote();
     void updateTitle();
     void note(const QString& text);
 
@@ -164,26 +177,80 @@ private:
     void applyId();
     void applyKind(int index);
     void applyRadius(double value);
-    void applyFields();
+    /// Применить роль подложки `ScreenPanel` (band, oval, side) из списка.
+    void applyPanelRole(int index);
     /// Применить действие экранной зоны из обычных полей формы.
     void applyAction();
 
     /// Сохранить все изменённые слои модели; false — отменено или ошибка (показана).
     bool save();
-    /// Обновить вкладку «Экраны»: список экранов модели, выбранный экран и его цвет фона.
+    /// Обновить вкладку «Экраны»: список экранов модели и параметры открытого экрана.
     void refreshScreens();
-    /// Прочитать remote.json модели; false — ошибка уже показана пользователю.
-    bool readRemoteJson(QJsonObject& remote, QByteArray& text);
+    /// Правка текста remote.json: текущий текст (в текущей схеме) → новый; nullopt — структура не распознана.
+    using TextChange = std::function<std::optional<QByteArray>(const QByteArray&)>;
     /**
-     * @brief Записать remote.json, перечитать модель и показать экран.
-     * @param original Текст файла, с которым сверяется запись (защита от правки извне).
-     * @param remote Новое содержимое файла.
-     * @param screenId Экран, который нужно показать после перезагрузки; пусто — корпус.
-     * @return false — запись не удалась (ошибка показана).
+     * @brief Сразу изменить remote.json и перечитать модель.
+     *
+     * Несохранённые правки зон — сначала вопрос (сохранить, отбросить, отмена). Правка
+     * применяется к тексту файла на диске в текущей схеме (remoteResources::currentSchema),
+     * поэтому внешние изменения не теряются, а файл старой схемы записывается в новой.
+     * @param change Правка текста.
+     * @param target Слой (Layer::key), который показать после перезагрузки; пусто — корпус.
+     * @param keepDrafts Вернуть черновик нового экрана после перезагрузки.
+     * @return false — отменено или ошибка (показана).
      */
-    bool writeRemoteJson(const QByteArray& original, const QJsonObject& remote, const QString& screenId);
-    /// Разложить плитки открытого экрана сеткой «колонки × ряды» одной отменяемой правкой.
+    bool modifyRemote(const TextChange& change, QString target, bool keepDrafts = true);
+    /**
+     * @brief Сразу записать одно значение remote.json (zoneEditing::patchValue).
+     * @param screenId Экран, внутри которого путь; пусто — от корня файла.
+     * @param keys Путь ключей, например `{"tiles", "color"}`.
+     * @param value Новое значение; `QJsonValue::Undefined` — удалить ключ.
+     * @param target Слой, который показать после перезагрузки.
+     * @return false — запись не удалась или отменена (ошибка показана).
+     */
+    bool writeField(const QString& screenId, const QStringList& keys, const QJsonValue& value, QString target);
+    /// Значение поля пульта: сразу в файл.
+    void setRemoteField(const QStringList& keys, const QJsonValue& value);
+    /// Значение поля открытого экрана: у черновика — в памяти, иначе сразу в файл.
+    void setScreenField(const QStringList& keys, const QJsonValue& value);
+    /// Показать на экране вводимый цвет поля экрана, не записывая файл; некорректный цвет не показывается.
+    void previewScreenField(const QStringList& keys, const QString& text);
+    /// Показать на экране вводимый цвет плиток пульта (`tiles.<key>`), не записывая файл.
+    void previewTiles(const QString& key, const QString& text);
+    /// Значение поля цвета: пусто — Undefined (удалить ключ); nullopt — цвет некорректен (замечание показано).
+    std::optional<QJsonValue> colourValue(QLineEdit* input);
+    /// Значение поля картинки: путь от папки ресурсов; nullopt — файла нет (замечание показано).
+    std::optional<QJsonValue> imageValue(QLineEdit* input);
+    /// Выбрать картинку в папке ресурсов и записать её путь в поле; false — отменено или файл вне папки.
+    bool browseImage(QLineEdit* input);
+    /// Разложить плитки открытого экрана сеткой из полей «колонки × ряды» и «зазор».
     void applyGrid();
+    /**
+     * @brief Разложить плитки открытого экрана сеткой одной отменяемой правкой.
+     * @param gap Зазор между плитками и от краёв области плиток, в единицах `ref`.
+     */
+    void arrange(int cols, int rows, qreal gap, const QString& text, const QString& mergeKey);
+    /**
+     * @brief Состояние экрана с плитками, разложенными сеткой внутри зоны.
+     * @param area Зона плиток; плитки отступают от её краёв и друг от друга на `gap`.
+     * @return Новое состояние: лишние плитки убраны, недостающие добавлены, служебные зоны не тронуты.
+     */
+    [[nodiscard]] State laidOut(const State& state, int cols, int rows, qreal gap, const QRectF& area) const;
+    /**
+     * @brief Показать или убрать служебный элемент открытого экрана (заголовок, страница, часы, батарея).
+     * @param index Номер элемента в списке флажков; правка отменяемая и сохраняется вместе с зонами.
+     */
+    void setService(int index, bool on);
+    /// Своя зона плиток у открытого экрана (on) либо общая зона пульта; отменяемая правка.
+    void setOwnArea(bool on);
+    /**
+     * @brief Общая зона плиток пульта: зона первого экрана без своей зоны (черновики не в счёт).
+     * @param original Как в файле (true) или с правками.
+     * @param skip Экран, который не учитывать.
+     */
+    [[nodiscard]] std::optional<QRectF> commonArea(bool original, int skip = -1) const;
+    /// Состояние после правки: если зона плиток сдвинута, плитки разложены в ней той же сеткой.
+    [[nodiscard]] State followArea(const Layer& layer, State next) const;
     /// Начать новый экран: черновик сразу показывается на холсте, параметры правятся вживую.
     void beginNewScreen();
     /// Оставить в списке типов только экраны, которых у пульта ещё нет.
@@ -194,8 +261,6 @@ private:
     void cancelNewScreen();
     /// Удалить экран, который сейчас открыт в редакторе.
     void removeScreen();
-    /// Применить цвет фона из поля ввода к открытому экрану.
-    void applyBackground();
     /// Нет несохранённых правок либо пользователь их сохранил или отбросил.
     bool confirmDiscard();
 
@@ -223,8 +288,30 @@ private:
     QSpinBox* arrangeColsBox_ = nullptr;     ///< колонок плиток открытого экрана
     QSpinBox* arrangeRowsBox_ = nullptr;     ///< рядов плиток открытого экрана
     QPushButton* removeScreenButton_ = nullptr;
-    QLineEdit* backgroundEdit_ = nullptr;    ///< цвет фона открытого экрана
-    QPushButton* pickButton_ = nullptr;
+    QDoubleSpinBox* gapBox_ = nullptr;          ///< grid.gap открытого экрана
+    QLineEdit* backgroundColorEdit_ = nullptr;  ///< background.color
+    QLineEdit* backgroundImageEdit_ = nullptr;  ///< background.image
+    QLineEdit* cellImageEdit_ = nullptr;        ///< cell.image
+    QLineEdit* panelColorEdit_ = nullptr;       ///< panel.color
+    QLineEdit* panelTextEdit_ = nullptr;        ///< panel.text
+    QCheckBox* centerLastRowCheck_ = nullptr;   ///< centerLastRow
+    QCheckBox* ownAreaCheck_ = nullptr;         ///< своя зона плиток у открытого экрана
+    QList<QCheckBox*> serviceChecks_;           ///< служебные элементы экрана: заголовок, страница, часы, батарея
+    QLabel* screenHint_ = nullptr;              ///< что из оформления экрана перекрыто картинками
+    QList<QWidget*> screenWidgets_;             ///< поля экрана: доступны, пока на холсте экран
+    // Вкладка «Пульт»: поля remote.json, общие для пульта.
+    QJsonObject remote_;                        ///< описание открытой модели (readRemote)
+    std::optional<QJsonObject> liveScreen_;     ///< открытый экран с вводимым, ещё не записанным цветом
+    std::optional<QJsonObject> liveTiles_;      ///< блок tiles с вводимым, ещё не записанным цветом
+    QLineEdit* nameEdit_ = nullptr;             ///< name
+    QComboBox* driverBox_ = nullptr;            ///< connection.driver
+    QComboBox* formatBox_ = nullptr;            ///< connection.format
+    QLabel* connectionHint_ = nullptr;          ///< что программа умеет с этой парой
+    QCheckBox* touchCheck_ = nullptr;           ///< capabilities.touch
+    QLineEdit* tileColorEdit_ = nullptr;        ///< tiles.color
+    QLineEdit* tileBorderEdit_ = nullptr;       ///< tiles.border
+    QLabel* tilesHint_ = nullptr;               ///< на каких экранах цвет плиток не виден
+    bool writing_ = false;                      ///< идёт запись remote.json (повторный editingFinished не пишет)
     QListWidget* zoneList_ = nullptr;
     QLineEdit* idEdit_ = nullptr;
     QComboBox* kindBox_ = nullptr;
@@ -233,7 +320,8 @@ private:
     QDoubleSpinBox* wBox_ = nullptr;
     QDoubleSpinBox* hBox_ = nullptr;
     QDoubleSpinBox* radiusBox_ = nullptr;
-    QLineEdit* fieldsEdit_ = nullptr;
+    QComboBox* panelRoleBox_ = nullptr;         ///< role подложки ScreenPanel
+    QFormLayout* propsForm_ = nullptr;          ///< форма свойств зоны (строки прячутся по виду зоны)
     QWidget* actionPanel_ = nullptr;
     QComboBox* actionBox_ = nullptr;
     QComboBox* commandBox_ = nullptr;

@@ -106,11 +106,40 @@ QJsonArray parseZones(const QByteArray& text);
 /// Заменить массив зон корпуса (`screenId` пуст) или ячеек экрана строками `lines`; nullopt — массива нет.
 std::optional<QByteArray> patchZones(const QByteArray& text, const QString& screenId,
                                      const QList<QByteArray>& lines);
+/// Зазор между плитками по умолчанию (`grid.gap`), в единицах `ref`.
+inline constexpr qreal kDefaultGap = 4;
+
 /**
- * @brief Записать в `grid` экрана `screenId` число колонок и рядов плиток (зазор `gap` сохраняется).
+ * @brief Записать в `grid` экрана `screenId` число колонок и рядов плиток и зазор (зона `area` сохраняется).
+ * @param gap Зазор между плитками; nullopt — прежний `gap` сохраняется. Зазор по умолчанию
+ *        (kDefaultGap) не дописывается, если его в файле не было.
  * @return Новый текст; исходный, если у экрана нет `grid`; nullopt — экрана нет.
  */
-std::optional<QByteArray> patchGrid(const QByteArray& text, const QString& screenId, int cols, int rows);
+std::optional<QByteArray> patchGrid(const QByteArray& text, const QString& screenId, int cols, int rows,
+                                    std::optional<qreal> gap = std::nullopt);
+/**
+ * @brief Записать одно значение remote.json, не трогая остальной текст.
+ *
+ * Существующее значение заменяется на месте; отсутствующий ключ дописывается последним членом
+ * объекта в его оформлении (с новой строки, если объект многострочный), недостающие
+ * промежуточные объекты создаются. Удаление убирает член вместе с запятой.
+ * @param screenId Экран (`screens[].id`), внутри которого путь; пусто — от корня файла.
+ * @param keys Путь ключей, например `{"tiles", "color"}`.
+ * @param value Новое значение; `QJsonValue::Undefined` — удалить ключ (его отсутствие не ошибка).
+ * @return Новый текст; nullopt — нет экрана либо на пути стоит не объект.
+ */
+std::optional<QByteArray> patchValue(const QByteArray& text, const QString& screenId, const QStringList& keys,
+                                     const QJsonValue& value);
+/**
+ * @brief Дописать экран в конец `screens` с отступами файла; ячейки — по одной в строке.
+ * @return Новый текст; nullopt — в файле нет массива `screens`.
+ */
+std::optional<QByteArray> appendScreen(const QByteArray& text, const QJsonObject& screen);
+/**
+ * @brief Убрать экран `screenId` из `screens`, не трогая остальной текст.
+ * @return Новый текст; nullopt — такого экрана нет.
+ */
+std::optional<QByteArray> removeScreen(const QByteArray& text, const QString& screenId);
 /// Заменить `display.rect` (nullopt — `null`); nullopt — ключа нет.
 std::optional<QByteArray> patchDisplay(const QByteArray& text, const std::optional<QRectF>& rect);
 

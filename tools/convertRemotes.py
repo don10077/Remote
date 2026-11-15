@@ -49,12 +49,11 @@ def convert(model_dir: Path, layouts: dict) -> dict:
             "role": ROLE.get(mode, mode),
             "layout": layout_id,                       # исходная раскладка (для отладки миграции)
             "ref": layout["ref"],
-            "touch": layout.get("touch", False),
             "background": {"color": DEFAULT_BG},
             "cell": {"color": DEFAULT_CELL, "border": DEFAULT_BORDER},
             "cells": layout["zones"],                  # у каждой ячейки явный rect в единицах ref
         }
-        for key in ("compact", "panel", "centerLastRow", "compose"):
+        for key in ("panel", "centerLastRow", "compose"):
             if key in layout:
                 screen[key] = layout[key]
         if "tile" in layout:

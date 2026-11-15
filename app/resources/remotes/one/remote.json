@@ -1,876 +1,873 @@
 {
- "schemaVersion": 1,
- "id": "one",
- "name": "Harmony One",
- "capabilities": {
-  "touch": true
- },
- "connection": {
-  "driver": "usb-hid",
-  "format": "gspm"
- },
- "hardware": {
-  "image": "photo.png",
-  "size": [
-   450,
-   1500
-  ],
-  "zones": [
-   {
-    "id": "Off",
-    "rect": [
-     77,
-     46,
-     38,
-     38
-    ],
-    "radius": -0.5,
-    "kind": "System"
-   },
-   {
-    "id": "PageLeft",
-    "rect": [
-     79,
-     288,
-     24,
-     46
-    ],
-    "radius": 4.0,
-    "kind": "PagePrev"
-   },
-   {
-    "id": "PageRight",
-    "rect": [
-     348,
-     286,
-     24,
-     46
-    ],
-    "radius": 4.0,
-    "kind": "PageNext"
-   },
-   {
-    "id": "Options",
-    "rect": [
-     107,
-     420,
-     110,
-     18
-    ],
-    "radius": 5.0,
-    "kind": "ScreenSoft"
-   },
-   {
-    "id": "Devices",
-    "rect": [
-     233,
-     420,
-     113,
-     18
-    ],
-    "radius": 5.0,
-    "kind": "ScreenSoft"
-   },
-   {
-    "id": "Activities",
-    "rect": [
-     65,
-     497,
-     166,
-     42
-    ],
-    "radius": 12.0,
-    "kind": "ScreenActs"
-   },
-   {
-    "id": "Help",
-    "rect": [
-     233,
-     497,
-     153,
-     42
-    ],
-    "radius": 12.0,
-    "kind": "System"
-   },
-   {
-    "id": "Menu",
-    "rect": [
-     65,
-     562,
-     108,
-     42
-    ],
-    "radius": 12.0,
-    "kind": "Key"
-   },
-   {
-    "id": "Info",
-    "rect": [
-     280,
-     562,
-     108,
-     42
-    ],
-    "radius": 12.0,
-    "kind": "Key"
-   },
-   {
-    "id": "UpArrow",
-    "rect": [
-     197,
-     560,
-     58,
-     54
-    ],
-    "radius": 14.0,
-    "kind": "Key"
-   },
-   {
-    "id": "DownArrow",
-    "rect": [
-     197,
-     614,
-     58,
-     54
-    ],
-    "radius": 14.0,
-    "kind": "Key"
-   },
-   {
-    "id": "Exit",
-    "rect": [
-     65,
-     624,
-     108,
-     42
-    ],
-    "radius": 12.0,
-    "kind": "Key"
-   },
-   {
-    "id": "Guide",
-    "rect": [
-     275,
-     624,
-     111,
-     42
-    ],
-    "radius": 12.0,
-    "kind": "Key"
-   },
-   {
-    "id": "VolumeUp",
-    "rect": [
-     75,
-     692,
-     70,
-     81
-    ],
-    "radius": 14.0,
-    "kind": "Key"
-   },
-   {
-    "id": "VolumeDown",
-    "rect": [
-     77,
-     773,
-     70,
-     84
-    ],
-    "radius": 14.0,
-    "kind": "Key"
-   },
-   {
-    "id": "ChannelUp",
-    "rect": [
-     306,
-     692,
-     72,
-     81
-    ],
-    "radius": 14.0,
-    "kind": "Key"
-   },
-   {
-    "id": "ChannelDown",
-    "rect": [
-     306,
-     773,
-     72,
-     84
-    ],
-    "radius": 14.0,
-    "kind": "Key"
-   },
-   {
-    "id": "DirectionUp",
-    "rect": [
-     193,
-     696,
-     64,
-     46
-    ],
-    "radius": 8.0,
-    "kind": "Key"
-   },
-   {
-    "id": "DirectionLeft",
-    "rect": [
-     145,
-     746,
-     54,
-     63
-    ],
-    "radius": 8.0,
-    "kind": "Key"
-   },
-   {
-    "id": "Select",
-    "rect": [
-     201,
-     753,
-     48,
-     48
-    ],
-    "radius": -0.5,
-    "kind": "Key"
-   },
-   {
-    "id": "DirectionRight",
-    "rect": [
-     253,
-     746,
-     55,
-     63
-    ],
-    "radius": 8.0,
-    "kind": "Key"
-   },
-   {
-    "id": "DirectionDown",
-    "rect": [
-     193,
-     809,
-     64,
-     46
-    ],
-    "radius": 8.0,
-    "kind": "Key"
-   },
-   {
-    "id": "VolumeMute",
-    "rect": [
-     147,
-     871,
-     54,
-     38
-    ],
-    "radius": 8.0,
-    "kind": "Key"
-   },
-   {
-    "id": "PrevChannel",
-    "rect": [
-     253,
-     871,
-     55,
-     38
-    ],
-    "radius": 8.0,
-    "kind": "Key"
-   },
-   {
-    "id": "Rewind",
-    "rect": [
-     75,
-     935,
-     92,
-     38
-    ],
-    "radius": 12.0,
-    "kind": "Key"
-   },
-   {
-    "id": "FastForward",
-    "rect": [
-     288,
-     935,
-     90,
-     38
-    ],
-    "radius": 12.0,
-    "kind": "Key"
-   },
-   {
-    "id": "Play",
-    "rect": [
-     189,
-     937,
-     76,
-     84
-    ],
-    "radius": 16.0,
-    "kind": "Key"
-   },
-   {
-    "id": "Pause",
-    "rect": [
-     195,
-     1021,
-     64,
-     76
-    ],
-    "radius": 16.0,
-    "kind": "Key"
-   },
-   {
-    "id": "SkipBack",
-    "rect": [
-     73,
-     999,
-     100,
-     40
-    ],
-    "radius": 12.0,
-    "kind": "Key"
-   },
-   {
-    "id": "SkipForward",
-    "rect": [
-     284,
-     999,
-     100,
-     40
-    ],
-    "radius": 12.0,
-    "kind": "Key"
-   },
-   {
-    "id": "Record",
-    "rect": [
-     77,
-     1057,
-     98,
-     42
-    ],
-    "radius": 12.0,
-    "kind": "Key"
-   },
-   {
-    "id": "Stop",
-    "rect": [
-     275,
-     1057,
-     99,
-     42
-    ],
-    "radius": 12.0,
-    "kind": "Key"
-   },
-   {
-    "id": "Number1",
-    "rect": [
-     97,
-     1120,
-     60,
-     58
-    ],
-    "radius": -0.4,
-    "kind": "Key"
-   },
-   {
-    "id": "Number2",
-    "rect": [
-     195,
-     1129,
-     62,
-     58
-    ],
-    "radius": -0.4,
-    "kind": "Key"
-   },
-   {
-    "id": "Number3",
-    "rect": [
-     294,
-     1120,
-     60,
-     58
-    ],
-    "radius": -0.4,
-    "kind": "Key"
-   },
-   {
-    "id": "Number4",
-    "rect": [
-     99,
-     1192,
-     62,
-     59
-    ],
-    "radius": -0.4,
-    "kind": "Key"
-   },
-   {
-    "id": "Number5",
-    "rect": [
-     195,
-     1200,
-     62,
-     59
-    ],
-    "radius": -0.4,
-    "kind": "Key"
-   },
-   {
-    "id": "Number6",
-    "rect": [
-     290,
-     1192,
-     60,
-     59
-    ],
-    "radius": -0.4,
-    "kind": "Key"
-   },
-   {
-    "id": "Number7",
-    "rect": [
-     99,
-     1264,
-     62,
-     58
-    ],
-    "radius": -0.4,
-    "kind": "Key"
-   },
-   {
-    "id": "Number8",
-    "rect": [
-     195,
-     1276,
-     62,
-     58
-    ],
-    "radius": -0.4,
-    "kind": "Key"
-   },
-   {
-    "id": "Number9",
-    "rect": [
-     290,
-     1265,
-     60,
-     58
-    ],
-    "radius": -0.4,
-    "kind": "Key"
-   },
-   {
-    "id": "NumberPlus",
-    "rect": [
-     109,
-     1338,
-     60,
-     58
-    ],
-    "radius": -0.4,
-    "kind": "Key"
-   },
-   {
-    "id": "Number0",
-    "rect": [
-     195,
-     1350,
-     62,
-     58
-    ],
-    "radius": -0.4,
-    "kind": "Key"
-   },
-   {
-    "id": "NumberEnter",
-    "rect": [
-     275,
-     1338,
-     59,
-     58
-    ],
-    "radius": -0.4,
-    "kind": "Key"
-   }
-  ]
- },
- "display": {
-  "rect": [
-   105,
-   115,
-   243,
-   295
-  ]
- },
- "tiles": {
-  "color": "#0b3442",
-  "border": "#ffffff"
- },
- "screens": [
-  {
-   "id": "devices",
-   "role": "devices",
-   "ref": [
-    232,
-    290
-   ],
-   "grid": {
-    "cols": 1,
-    "rows": 3
-   },
-   "touch": true,
-   "background": {
-    "color": "#0b3442"
-   },
-   "cells": [
-    {
-     "id": "Title",
-     "rect": [
-      4,
-      3,
-      130,
-      18
-     ],
-     "radius": 0,
-     "kind": "ScreenLabel"
+    "capabilities": {
+        "touch": true
     },
-    {
-     "id": "Page",
-     "rect": [
-      4,
-      28,
-      60,
-      14
-     ],
-     "radius": 0,
-     "kind": "ScreenLabel"
+    "connection": {
+        "driver": "usb-hid",
+        "format": "gspm"
     },
-    {
-     "id": "Clock",
-     "rect": [
-      180,
-      28,
-      48,
-      14
-     ],
-     "radius": 0,
-     "kind": "ScreenLabel"
+    "display": {
+        "rect": [
+            105,
+            115,
+            243,
+            295
+        ]
     },
-    {
-     "id": "Slot1",
-     "rect": [
-      10,
-      60,
-      212,
-      62
-     ],
-     "radius": 6,
-     "kind": "ScreenSlot"
+    "hardware": {
+        "image": "photo.png",
+        "size": [
+            450,
+            1500
+        ],
+        "zones": [
+            {
+                "id": "Off",
+                "kind": "System",
+                "radius": -0.5,
+                "rect": [
+                    77,
+                    46,
+                    38,
+                    38
+                ]
+            },
+            {
+                "id": "PageLeft",
+                "kind": "PagePrev",
+                "radius": 4,
+                "rect": [
+                    79,
+                    288,
+                    24,
+                    46
+                ]
+            },
+            {
+                "id": "PageRight",
+                "kind": "PageNext",
+                "radius": 4,
+                "rect": [
+                    348,
+                    286,
+                    24,
+                    46
+                ]
+            },
+            {
+                "id": "Options",
+                "kind": "ScreenSoft",
+                "radius": 5,
+                "rect": [
+                    107,
+                    420,
+                    110,
+                    18
+                ]
+            },
+            {
+                "id": "Devices",
+                "kind": "ScreenSoft",
+                "radius": 5,
+                "rect": [
+                    233,
+                    420,
+                    113,
+                    18
+                ]
+            },
+            {
+                "id": "Activities",
+                "kind": "ScreenActs",
+                "radius": 12,
+                "rect": [
+                    65,
+                    497,
+                    166,
+                    42
+                ]
+            },
+            {
+                "id": "Help",
+                "kind": "System",
+                "radius": 12,
+                "rect": [
+                    233,
+                    497,
+                    153,
+                    42
+                ]
+            },
+            {
+                "id": "Menu",
+                "kind": "Key",
+                "radius": 12,
+                "rect": [
+                    65,
+                    562,
+                    108,
+                    42
+                ]
+            },
+            {
+                "id": "Info",
+                "kind": "Key",
+                "radius": 12,
+                "rect": [
+                    280,
+                    562,
+                    108,
+                    42
+                ]
+            },
+            {
+                "id": "UpArrow",
+                "kind": "Key",
+                "radius": 14,
+                "rect": [
+                    197,
+                    560,
+                    58,
+                    54
+                ]
+            },
+            {
+                "id": "DownArrow",
+                "kind": "Key",
+                "radius": 14,
+                "rect": [
+                    197,
+                    614,
+                    58,
+                    54
+                ]
+            },
+            {
+                "id": "Exit",
+                "kind": "Key",
+                "radius": 12,
+                "rect": [
+                    65,
+                    624,
+                    108,
+                    42
+                ]
+            },
+            {
+                "id": "Guide",
+                "kind": "Key",
+                "radius": 12,
+                "rect": [
+                    275,
+                    624,
+                    111,
+                    42
+                ]
+            },
+            {
+                "id": "VolumeUp",
+                "kind": "Key",
+                "radius": 14,
+                "rect": [
+                    75,
+                    692,
+                    70,
+                    81
+                ]
+            },
+            {
+                "id": "VolumeDown",
+                "kind": "Key",
+                "radius": 14,
+                "rect": [
+                    77,
+                    773,
+                    70,
+                    84
+                ]
+            },
+            {
+                "id": "ChannelUp",
+                "kind": "Key",
+                "radius": 14,
+                "rect": [
+                    306,
+                    692,
+                    72,
+                    81
+                ]
+            },
+            {
+                "id": "ChannelDown",
+                "kind": "Key",
+                "radius": 14,
+                "rect": [
+                    306,
+                    773,
+                    72,
+                    84
+                ]
+            },
+            {
+                "id": "DirectionUp",
+                "kind": "Key",
+                "radius": 8,
+                "rect": [
+                    193,
+                    696,
+                    64,
+                    46
+                ]
+            },
+            {
+                "id": "DirectionLeft",
+                "kind": "Key",
+                "radius": 8,
+                "rect": [
+                    145,
+                    746,
+                    54,
+                    63
+                ]
+            },
+            {
+                "id": "Select",
+                "kind": "Key",
+                "radius": -0.5,
+                "rect": [
+                    201,
+                    753,
+                    48,
+                    48
+                ]
+            },
+            {
+                "id": "DirectionRight",
+                "kind": "Key",
+                "radius": 8,
+                "rect": [
+                    253,
+                    746,
+                    55,
+                    63
+                ]
+            },
+            {
+                "id": "DirectionDown",
+                "kind": "Key",
+                "radius": 8,
+                "rect": [
+                    193,
+                    809,
+                    64,
+                    46
+                ]
+            },
+            {
+                "id": "VolumeMute",
+                "kind": "Key",
+                "radius": 8,
+                "rect": [
+                    147,
+                    871,
+                    54,
+                    38
+                ]
+            },
+            {
+                "id": "PrevChannel",
+                "kind": "Key",
+                "radius": 8,
+                "rect": [
+                    253,
+                    871,
+                    55,
+                    38
+                ]
+            },
+            {
+                "id": "Rewind",
+                "kind": "Key",
+                "radius": 12,
+                "rect": [
+                    75,
+                    935,
+                    92,
+                    38
+                ]
+            },
+            {
+                "id": "FastForward",
+                "kind": "Key",
+                "radius": 12,
+                "rect": [
+                    288,
+                    935,
+                    90,
+                    38
+                ]
+            },
+            {
+                "id": "Play",
+                "kind": "Key",
+                "radius": 16,
+                "rect": [
+                    189,
+                    937,
+                    76,
+                    84
+                ]
+            },
+            {
+                "id": "Pause",
+                "kind": "Key",
+                "radius": 16,
+                "rect": [
+                    195,
+                    1021,
+                    64,
+                    76
+                ]
+            },
+            {
+                "id": "SkipBack",
+                "kind": "Key",
+                "radius": 12,
+                "rect": [
+                    73,
+                    999,
+                    100,
+                    40
+                ]
+            },
+            {
+                "id": "SkipForward",
+                "kind": "Key",
+                "radius": 12,
+                "rect": [
+                    284,
+                    999,
+                    100,
+                    40
+                ]
+            },
+            {
+                "id": "Record",
+                "kind": "Key",
+                "radius": 12,
+                "rect": [
+                    77,
+                    1057,
+                    98,
+                    42
+                ]
+            },
+            {
+                "id": "Stop",
+                "kind": "Key",
+                "radius": 12,
+                "rect": [
+                    275,
+                    1057,
+                    99,
+                    42
+                ]
+            },
+            {
+                "id": "Number1",
+                "kind": "Key",
+                "radius": -0.4,
+                "rect": [
+                    97,
+                    1120,
+                    60,
+                    58
+                ]
+            },
+            {
+                "id": "Number2",
+                "kind": "Key",
+                "radius": -0.4,
+                "rect": [
+                    195,
+                    1129,
+                    62,
+                    58
+                ]
+            },
+            {
+                "id": "Number3",
+                "kind": "Key",
+                "radius": -0.4,
+                "rect": [
+                    294,
+                    1120,
+                    60,
+                    58
+                ]
+            },
+            {
+                "id": "Number4",
+                "kind": "Key",
+                "radius": -0.4,
+                "rect": [
+                    99,
+                    1192,
+                    62,
+                    59
+                ]
+            },
+            {
+                "id": "Number5",
+                "kind": "Key",
+                "radius": -0.4,
+                "rect": [
+                    195,
+                    1200,
+                    62,
+                    59
+                ]
+            },
+            {
+                "id": "Number6",
+                "kind": "Key",
+                "radius": -0.4,
+                "rect": [
+                    290,
+                    1192,
+                    60,
+                    59
+                ]
+            },
+            {
+                "id": "Number7",
+                "kind": "Key",
+                "radius": -0.4,
+                "rect": [
+                    99,
+                    1264,
+                    62,
+                    58
+                ]
+            },
+            {
+                "id": "Number8",
+                "kind": "Key",
+                "radius": -0.4,
+                "rect": [
+                    195,
+                    1276,
+                    62,
+                    58
+                ]
+            },
+            {
+                "id": "Number9",
+                "kind": "Key",
+                "radius": -0.4,
+                "rect": [
+                    290,
+                    1265,
+                    60,
+                    58
+                ]
+            },
+            {
+                "id": "NumberPlus",
+                "kind": "Key",
+                "radius": -0.4,
+                "rect": [
+                    109,
+                    1338,
+                    60,
+                    58
+                ]
+            },
+            {
+                "id": "Number0",
+                "kind": "Key",
+                "radius": -0.4,
+                "rect": [
+                    195,
+                    1350,
+                    62,
+                    58
+                ]
+            },
+            {
+                "id": "NumberEnter",
+                "kind": "Key",
+                "radius": -0.4,
+                "rect": [
+                    275,
+                    1338,
+                    59,
+                    58
+                ]
+            }
+        ]
     },
-    {
-     "id": "Slot2",
-     "rect": [
-      10,
-      130,
-      212,
-      60
-     ],
-     "radius": 6,
-     "kind": "ScreenSlot"
-    },
-    {
-     "id": "Slot3",
-     "rect": [
-      10,
-      200,
-      212,
-      62
-     ],
-     "radius": 6,
-     "kind": "ScreenSlot"
-    },
-    {
-     "id": "Options",
-     "rect": [
-      10,
-      272,
-      100,
-      16
-     ],
-     "radius": 0,
-     "kind": "ScreenSide",
-     "button": "Options"
-    },
-    {
-     "id": "Devices",
-     "rect": [
-      122,
-      272,
-      100,
-      16
-     ],
-     "radius": 0,
-     "kind": "ScreenSide",
-     "button": "Devices"
+    "id": "one",
+    "name": "Harmony One",
+    "schemaVersion": 1,
+    "screens": [
+        {
+            "background": {
+                "color": "#0b3442"
+            },
+            "cells": [
+                {
+                    "id": "Title",
+                    "kind": "ScreenLabel",
+                    "radius": 0,
+                    "rect": [
+                        4,
+                        3,
+                        130,
+                        18
+                    ]
+                },
+                {
+                    "id": "Page",
+                    "kind": "ScreenLabel",
+                    "radius": 0,
+                    "rect": [
+                        4,
+                        28,
+                        60,
+                        14
+                    ]
+                },
+                {
+                    "id": "Clock",
+                    "kind": "ScreenLabel",
+                    "radius": 0,
+                    "rect": [
+                        180,
+                        28,
+                        48,
+                        14
+                    ]
+                },
+                {
+                    "id": "Slot1",
+                    "kind": "ScreenSlot",
+                    "radius": 6,
+                    "rect": [
+                        10,
+                        60,
+                        212,
+                        62
+                    ]
+                },
+                {
+                    "id": "Slot2",
+                    "kind": "ScreenSlot",
+                    "radius": 6,
+                    "rect": [
+                        10,
+                        130,
+                        212,
+                        60
+                    ]
+                },
+                {
+                    "id": "Slot3",
+                    "kind": "ScreenSlot",
+                    "radius": 6,
+                    "rect": [
+                        10,
+                        200,
+                        212,
+                        62
+                    ]
+                },
+                {
+                    "button": "Options",
+                    "id": "Options",
+                    "kind": "ScreenSide",
+                    "radius": 0,
+                    "rect": [
+                        10,
+                        272,
+                        100,
+                        16
+                    ]
+                },
+                {
+                    "button": "Devices",
+                    "id": "Devices",
+                    "kind": "ScreenSide",
+                    "radius": 0,
+                    "rect": [
+                        122,
+                        272,
+                        100,
+                        16
+                    ]
+                }
+            ],
+            "grid": {
+                "cols": 1,
+                "rows": 3
+            },
+            "id": "devices",
+            "ref": [
+                232,
+                290
+            ],
+            "role": "devices"
+        },
+        {
+            "background": {
+                "color": "#0b3442"
+            },
+            "cells": [
+                {
+                    "id": "Title",
+                    "kind": "ScreenLabel",
+                    "radius": 0,
+                    "rect": [
+                        4,
+                        3,
+                        130,
+                        18
+                    ]
+                },
+                {
+                    "id": "Page",
+                    "kind": "ScreenLabel",
+                    "radius": 0,
+                    "rect": [
+                        4,
+                        28,
+                        60,
+                        14
+                    ]
+                },
+                {
+                    "id": "Clock",
+                    "kind": "ScreenLabel",
+                    "radius": 0,
+                    "rect": [
+                        180,
+                        28,
+                        48,
+                        14
+                    ]
+                },
+                {
+                    "id": "Slot1",
+                    "kind": "ScreenSlot",
+                    "radius": 6,
+                    "rect": [
+                        10,
+                        60,
+                        212,
+                        62
+                    ]
+                },
+                {
+                    "id": "Slot2",
+                    "kind": "ScreenSlot",
+                    "radius": 6,
+                    "rect": [
+                        10,
+                        130,
+                        212,
+                        60
+                    ]
+                },
+                {
+                    "id": "Slot3",
+                    "kind": "ScreenSlot",
+                    "radius": 6,
+                    "rect": [
+                        10,
+                        200,
+                        212,
+                        62
+                    ]
+                },
+                {
+                    "button": "Options",
+                    "id": "Options",
+                    "kind": "ScreenSide",
+                    "radius": 0,
+                    "rect": [
+                        10,
+                        272,
+                        100,
+                        16
+                    ]
+                },
+                {
+                    "button": "Devices",
+                    "id": "Devices",
+                    "kind": "ScreenSide",
+                    "radius": 0,
+                    "rect": [
+                        122,
+                        272,
+                        100,
+                        16
+                    ]
+                }
+            ],
+            "grid": {
+                "cols": 1,
+                "rows": 3
+            },
+            "id": "activities",
+            "ref": [
+                232,
+                290
+            ],
+            "role": "activity"
+        },
+        {
+            "background": {
+                "color": "#0b3442"
+            },
+            "cells": [
+                {
+                    "id": "Title",
+                    "kind": "ScreenLabel",
+                    "radius": 0,
+                    "rect": [
+                        4,
+                        3,
+                        130,
+                        18
+                    ]
+                },
+                {
+                    "id": "Page",
+                    "kind": "ScreenLabel",
+                    "radius": 0,
+                    "rect": [
+                        4,
+                        28,
+                        60,
+                        14
+                    ]
+                },
+                {
+                    "id": "Clock",
+                    "kind": "ScreenLabel",
+                    "radius": 0,
+                    "rect": [
+                        180,
+                        28,
+                        48,
+                        14
+                    ]
+                },
+                {
+                    "id": "Slot1",
+                    "kind": "ScreenSlot",
+                    "radius": 6,
+                    "rect": [
+                        10,
+                        60,
+                        102,
+                        62
+                    ]
+                },
+                {
+                    "id": "Slot2",
+                    "kind": "ScreenSlot",
+                    "radius": 6,
+                    "rect": [
+                        120,
+                        60,
+                        102,
+                        62
+                    ]
+                },
+                {
+                    "id": "Slot3",
+                    "kind": "ScreenSlot",
+                    "radius": 6,
+                    "rect": [
+                        10,
+                        130,
+                        102,
+                        60
+                    ]
+                },
+                {
+                    "id": "Slot4",
+                    "kind": "ScreenSlot",
+                    "radius": 6,
+                    "rect": [
+                        120,
+                        130,
+                        102,
+                        60
+                    ]
+                },
+                {
+                    "id": "Slot5",
+                    "kind": "ScreenSlot",
+                    "radius": 6,
+                    "rect": [
+                        10,
+                        200,
+                        102,
+                        62
+                    ]
+                },
+                {
+                    "id": "Slot6",
+                    "kind": "ScreenSlot",
+                    "radius": 6,
+                    "rect": [
+                        120,
+                        200,
+                        102,
+                        62
+                    ]
+                },
+                {
+                    "button": "Options",
+                    "id": "Options",
+                    "kind": "ScreenSide",
+                    "radius": 0,
+                    "rect": [
+                        10,
+                        272,
+                        100,
+                        16
+                    ]
+                },
+                {
+                    "button": "Devices",
+                    "id": "Devices",
+                    "kind": "ScreenSide",
+                    "radius": 0,
+                    "rect": [
+                        122,
+                        272,
+                        100,
+                        16
+                    ]
+                }
+            ],
+            "grid": {
+                "cols": 2,
+                "rows": 3
+            },
+            "id": "command",
+            "ref": [
+                232,
+                290
+            ],
+            "role": "command"
+        }
+    ],
+    "tiles": {
+        "border": "#ffffff",
+        "color": "#1c84a7"
     }
-   ]
-  },
-  {
-   "id": "activities",
-   "role": "activity",
-   "ref": [
-    232,
-    290
-   ],
-   "grid": {
-    "cols": 1,
-    "rows": 3
-   },
-   "touch": true,
-   "background": {
-    "color": "#0b3442"
-   },
-   "cells": [
-    {
-     "id": "Title",
-     "rect": [
-      4,
-      3,
-      130,
-      18
-     ],
-     "radius": 0,
-     "kind": "ScreenLabel"
-    },
-    {
-     "id": "Page",
-     "rect": [
-      4,
-      28,
-      60,
-      14
-     ],
-     "radius": 0,
-     "kind": "ScreenLabel"
-    },
-    {
-     "id": "Clock",
-     "rect": [
-      180,
-      28,
-      48,
-      14
-     ],
-     "radius": 0,
-     "kind": "ScreenLabel"
-    },
-    {
-     "id": "Slot1",
-     "rect": [
-      10,
-      60,
-      212,
-      62
-     ],
-     "radius": 6,
-     "kind": "ScreenSlot"
-    },
-    {
-     "id": "Slot2",
-     "rect": [
-      10,
-      130,
-      212,
-      60
-     ],
-     "radius": 6,
-     "kind": "ScreenSlot"
-    },
-    {
-     "id": "Slot3",
-     "rect": [
-      10,
-      200,
-      212,
-      62
-     ],
-     "radius": 6,
-     "kind": "ScreenSlot"
-    },
-    {
-     "id": "Options",
-     "rect": [
-      10,
-      272,
-      100,
-      16
-     ],
-     "radius": 0,
-     "kind": "ScreenSide",
-     "button": "Options"
-    },
-    {
-     "id": "Devices",
-     "rect": [
-      122,
-      272,
-      100,
-      16
-     ],
-     "radius": 0,
-     "kind": "ScreenSide",
-     "button": "Devices"
-    }
-   ]
-  },
-  {
-   "id": "command",
-   "role": "command",
-   "ref": [
-    232,
-    290
-   ],
-   "grid": {
-    "cols": 2,
-    "rows": 3
-   },
-   "touch": true,
-   "background": {
-    "color": "#0b3442"
-   },
-   "cells": [
-    {
-     "id": "Title",
-     "rect": [
-      4,
-      3,
-      130,
-      18
-     ],
-     "radius": 0,
-     "kind": "ScreenLabel"
-    },
-    {
-     "id": "Page",
-     "rect": [
-      4,
-      28,
-      60,
-      14
-     ],
-     "radius": 0,
-     "kind": "ScreenLabel"
-    },
-    {
-     "id": "Clock",
-     "rect": [
-      180,
-      28,
-      48,
-      14
-     ],
-     "radius": 0,
-     "kind": "ScreenLabel"
-    },
-    {
-     "id": "Slot1",
-     "rect": [
-      10,
-      60,
-      102,
-      62
-     ],
-     "radius": 6,
-     "kind": "ScreenSlot"
-    },
-    {
-     "id": "Slot2",
-     "rect": [
-      120,
-      60,
-      102,
-      62
-     ],
-     "radius": 6,
-     "kind": "ScreenSlot"
-    },
-    {
-     "id": "Slot3",
-     "rect": [
-      10,
-      130,
-      102,
-      60
-     ],
-     "radius": 6,
-     "kind": "ScreenSlot"
-    },
-    {
-     "id": "Slot4",
-     "rect": [
-      120,
-      130,
-      102,
-      60
-     ],
-     "radius": 6,
-     "kind": "ScreenSlot"
-    },
-    {
-     "id": "Slot5",
-     "rect": [
-      10,
-      200,
-      102,
-      62
-     ],
-     "radius": 6,
-     "kind": "ScreenSlot"
-    },
-    {
-     "id": "Slot6",
-     "rect": [
-      120,
-      200,
-      102,
-      62
-     ],
-     "radius": 6,
-     "kind": "ScreenSlot"
-    },
-    {
-     "id": "Options",
-     "rect": [
-      10,
-      272,
-      100,
-      16
-     ],
-     "radius": 0,
-     "kind": "ScreenSide",
-     "button": "Options"
-    },
-    {
-     "id": "Devices",
-     "rect": [
-      122,
-      272,
-      100,
-      16
-     ],
-     "radius": 0,
-     "kind": "ScreenSide",
-     "button": "Devices"
-    }
-   ]
-  }
- ]
 }

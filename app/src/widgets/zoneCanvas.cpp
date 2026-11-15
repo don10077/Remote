@@ -121,6 +121,11 @@ void ZoneCanvas::setDrawMode(bool on) {
     emit drawModeChanged(on);
 }
 
+void ZoneCanvas::setFrameCaption(const QString& caption) {
+    frameCaption_ = caption;
+    update();
+}
+
 void ZoneCanvas::setShowIds(bool on) {
     showIds_ = on;
     update();
@@ -646,7 +651,7 @@ bool ZoneCanvas::event(QEvent* event) {
             return true;
         }
         const QRectF r = itemRect(item);
-        const QString name = item == SCREEN_ITEM ? tr("Screen area")
+        const QString name = item == SCREEN_ITEM ? (frameCaption_.isEmpty() ? tr("Screen area") : frameCaption_)
                                                  : zones_[item].toObject().value("id").toString() + " · " +
                                                        zones_[item].toObject().value("kind").toString();
         QToolTip::showText(help->globalPos(),
@@ -769,7 +774,7 @@ void ZoneCanvas::paintEvent(QPaintEvent*) {
             p.setPen(QPen(Qt::white, 1, Qt::DashLine));
             p.drawRoundedRect(r.adjusted(-3, -3, 3, 3), radius + 3, radius + 3);
         }
-        const QString text = item == SCREEN_ITEM ? tr("Screen area") : id;
+        const QString text = item == SCREEN_ITEM ? (frameCaption_.isEmpty() ? tr("Screen area") : frameCaption_) : id;
         if (showIds_ && r.width() > 16 && r.height() > 9 && !text.isEmpty()) {
             const QString shown = metrics.elidedText(text, Qt::ElideRight, r.width() - 4);
             if (shown.size() > 1) {

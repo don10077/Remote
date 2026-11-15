@@ -7,7 +7,13 @@
 #include <QComboBox>
 #include <QCheckBox>
 #include <QDebug>
+#include <QDoubleSpinBox>
+#include <QFile>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QLabel>
+#include <QLineEdit>
+#include <QScopeGuard>
 #include <QMouseEvent>
 #include <QUndoStack>
 #include <QTemporaryDir>
@@ -182,6 +188,158 @@ TEST(ZoneEditorDialog, AutoZonesActionOnlyOnBodyLayer) {
     EXPECT_FALSE(action->isEnabled());
     layer->setCurrentIndex(0);
     EXPECT_TRUE(action->isEnabled());
+}
+
+TEST(ZoneEditorDialog, RemoteFieldsAreWrittenToFileRightAway) {
+    // Редактор пишет в рабочую папку рядом с exe: подготовить её и вернуть штатный файл в конце.
+    ASSERT_TRUE(harmony::app::remoteResources::reload().isEmpty());
+    const QString path = QDir(harmony::app::remoteResources::folder()).filePath("remotes/600/remote.json");
+    QFile in(path);
+    ASSERT_TRUE(in.open(QIODevice::ReadOnly));
+    const QByteArray previous = in.readAll();
+    in.close();
+    const auto restore = qScopeGuard([&] {
+        QFile out(path);
+        if (out.open(QIODevice::WriteOnly)) out.write(previous);
+        out.close();
+        harmony::app::remoteResources::reload();
+    });
+    // В рабочей папке мог остаться файл прошлой версии: начинаем со штатного.
+    QFile builtin(":/res/remotes/600/remote.json");
+    ASSERT_TRUE(builtin.open(QIODevice::ReadOnly));
+    const QByteArray original = builtin.readAll();
+    {
+        QFile out(path);
+        ASSERT_TRUE(out.open(QIODevice::WriteOnly));
+        ASSERT_EQ(out.write(original), original.size());
+    }
+    ASSERT_TRUE(harmony::app::remoteResources::reload().isEmpty());
+
+    harmony::app::ZoneEditorDialog dialog("600");
+    auto* touch = dialog.findChild<QCheckBox*>("zoneTouch");
+    auto* format = dialog.findChild<QComboBox*>("zoneFormat");
+    ASSERT_NE(touch, nullptr);
+    ASSERT_NE(format, nullptr);
+    EXPECT_FALSE(touch->isChecked());
+    EXPECT_EQ(format->currentData().toString(), "arch14");
+    touch->setChecked(true);
+    QFile after(path);
+    ASSERT_TRUE(after.open(QIODevice::ReadOnly));
+    const QByteArray text = after.readAll();
+    const auto remote = QJsonDocument::fromJson(text).object();
+    EXPECT_TRUE(remote["capabilities"].toObject().value("touch").toBool());
+    // Точечная правка: изменилась одна строка, остальной файл тот же.
+    QByteArray expected = original;
+    expected.replace("\"touch\": false", "\"touch\": true");
+    EXPECT_EQ(text, expected);
+}
+
+TEST(ZoneEditorDialog, PanelRoleIsChosenFromList) {
+    QTemporaryDir resources;
+    ASSERT_TRUE(harmony::app::remoteResources::reload(resources.path()).isEmpty());
+    harmony::app::ZoneEditorDialog dialog("1100");
+    auto* layer = dialog.findChild<QComboBox*>("zoneLayer");
+    auto* canvas = dialog.findChild<harmony::app::ZoneCanvas*>();
+    auto* role = dialog.findChild<QComboBox*>("zonePanelRole");
+    ASSERT_NE(role, nullptr);
+    int selected = -1;
+    for (int l = 1; l < layer->count() && selected < 0; ++l) {
+        layer->setCurrentIndex(l);
+        for (int i = 0; i < canvas->zones().size(); ++i)
+            if (canvas->zones()[i].toObject().value("kind") == "ScreenPanel") { selected = i; break; }
+    }
+    ASSERT_GE(selected, 0);
+    canvas->setSelection({selected});
+    const QString before = canvas->zones()[selected].toObject().value("role").toString();
+    EXPECT_EQ(role->currentData().toString(), before);
+    const int other = role->findData(before == "side" ? "band" : "side");
+    ASSERT_GE(other, 0);
+    role->setCurrentIndex(other);
+    ASSERT_TRUE(QMetaObject::invokeMethod(role, "activated", Qt::DirectConnection, Q_ARG(int, other)));
+    EXPECT_EQ(canvas->zones()[selected].toObject().value("role").toString(), role->itemData(other).toString());
+}
+
+TEST(ZoneEditorDialog, TilesFollowTileAreaAndServiceItemsToggle) {
+    QTemporaryDir resources;
+    ASSERT_TRUE(harmony::app::remoteResources::reload(resources.path()).isEmpty());
+    harmony::app::ZoneEditorDialog dialog("900");
+    auto* layer = dialog.findChild<QComboBox*>("zoneLayer");
+    auto* canvas = dialog.findChild<harmony::app::ZoneCanvas*>();
+    ASSERT_NE(layer, nullptr);
+    layer->setCurrentIndex(1);
+    // На экране рамка — зона плиток; по умолчанию она обнимает плитки.
+    ASSERT_TRUE(canvas->screen().has_value());
+    const QRectF area = *canvas->screen();
+    const auto tileRects = [canvas] {
+        QList<QRectF> rects;
+        for (const auto& value : canvas->zones())
+            if (value.toObject().value("kind") == "ScreenSlot")
+                rects.append(harmony::app::zoneEditing::rectOf(value.toObject()));
+        return rects;
+    };
+    for (const QRectF& r : tileRects()) EXPECT_TRUE(area.contains(r));
+
+    // Зона плиток уменьшена полями X, Y, W, H: плитки сразу ложатся в неё.
+    canvas->setSelection({harmony::app::ZoneCanvas::SCREEN_ITEM});
+    const QRectF smaller = area.adjusted(10, 20, -10, -10);
+    const QList<qreal> values{smaller.x(), smaller.y(), smaller.width(), smaller.height()};
+    for (int i = 0; i < 4; ++i) {
+        auto* box = dialog.findChild<QDoubleSpinBox*>(QStringLiteral("zoneRect%1").arg(i));
+        ASSERT_NE(box, nullptr);
+        box->setValue(values[i]);
+    }
+    auto* width = dialog.findChild<QDoubleSpinBox*>("zoneRect2");
+    ASSERT_TRUE(QMetaObject::invokeMethod(width, "editingFinished", Qt::DirectConnection));
+    ASSERT_TRUE(canvas->screen().has_value());
+    EXPECT_EQ(*canvas->screen(), smaller);
+    for (const QRectF& r : tileRects()) EXPECT_TRUE(smaller.contains(r)) << r.x() << " " << r.y();
+
+    // Батарея: флажок добавляет ячейку Battery, снятый — убирает.
+    auto* battery = dialog.findChild<QCheckBox*>("zoneServiceBattery");
+    ASSERT_NE(battery, nullptr);
+    EXPECT_FALSE(battery->isChecked());
+    const auto count = [canvas] {
+        int n = 0;
+        for (const auto& value : canvas->zones()) n += value.toObject().value("id") == "Battery";
+        return n;
+    };
+    battery->setChecked(true);
+    EXPECT_EQ(count(), 1);
+    battery->setChecked(false);
+    EXPECT_EQ(count(), 0);
+}
+
+TEST(ZoneEditorDialog, CommonTileAreaMovesTilesOnAllScreens) {
+    QTemporaryDir resources;
+    ASSERT_TRUE(harmony::app::remoteResources::reload(resources.path()).isEmpty());
+    harmony::app::ZoneEditorDialog dialog("900"); // у всех экранов 900 одна зона плиток
+    auto* layer = dialog.findChild<QComboBox*>("zoneLayer");
+    auto* canvas = dialog.findChild<harmony::app::ZoneCanvas*>();
+    auto* own = dialog.findChild<QCheckBox*>("zoneOwnArea");
+    ASSERT_NE(own, nullptr);
+    ASSERT_GE(layer->count(), 3);
+    layer->setCurrentIndex(1);
+    EXPECT_FALSE(own->isChecked());
+    ASSERT_TRUE(canvas->screen().has_value());
+    const QRectF smaller = canvas->screen()->adjusted(0, 20, 0, 0);
+    canvas->setSelection({harmony::app::ZoneCanvas::SCREEN_ITEM});
+    auto* y = dialog.findChild<QDoubleSpinBox*>("zoneRect1");
+    auto* h = dialog.findChild<QDoubleSpinBox*>("zoneRect3");
+    y->setValue(smaller.y());
+    h->setValue(smaller.height());
+    ASSERT_TRUE(QMetaObject::invokeMethod(h, "editingFinished", Qt::DirectConnection));
+    // Другой экран без своей зоны получил ту же зону.
+    layer->setCurrentIndex(2);
+    ASSERT_TRUE(canvas->screen().has_value());
+    EXPECT_EQ(*canvas->screen(), smaller);
+    // Своя зона: правка открытого экрана других не трогает.
+    own->setChecked(true);
+    canvas->setSelection({harmony::app::ZoneCanvas::SCREEN_ITEM});
+    y->setValue(smaller.y() + 10);
+    h->setValue(smaller.height() - 10);
+    ASSERT_TRUE(QMetaObject::invokeMethod(h, "editingFinished", Qt::DirectConnection));
+    layer->setCurrentIndex(1);
+    EXPECT_EQ(*canvas->screen(), smaller);
 }
 
 TEST(ZoneEditorDialog, SelectAllSelectsEveryZoneOfLayer) {

@@ -71,15 +71,16 @@ public:
     QPixmap screenPreview(const QSize& size);
     /**
      * @brief Подменить экран несохранёнными правками редактора зон; новый экран создаёт.
-     * @param mode id экрана пульта (его ячейки подменяются) либо новый id экрана.
-     * @param ref Единицы экрана.
-     * @param zones Ячейки вместо записанных в remote.json.
-     * @param cellColor Цвет плиток пульта (`tiles.color`); пусто — как в remote.json. Фон не меняется.
-     * @param title Заголовок экрана в шапке; пусто — как у готовых экранов.
+     *
+     * Экран берётся целиком, как объект из `screens` remote.json; ячейки без `rect` ставятся
+     * по сетке (remoteResources::normalizeScreen). Поле `title`, которого нет в remote.json,
+     * задаёт заголовок в шапке черновика.
+     * @param screen Экран; его `id` — режим, который подменяется или создаётся. Пустой `id` — ничего не делать.
      * @note Вызывать после setRemoteProfile().
      */
-    void overrideLayout(const QString& mode, const QSizeF& ref, const QJsonArray& zones, const QString& cellColor = {},
-                        const QString& title = {});
+    void overrideScreen(const QJsonObject& screen);
+    /// Подменить оформление плиток пульта (блок `tiles` remote.json) правками редактора.
+    void overrideTiles(const QJsonObject& tileStyle) { tiles = tileStyle; }
 
     /** size of the source photo in pixels, all zones are relative to it */
     static constexpr int PHOTO_WIDTH = 400;
@@ -240,6 +241,12 @@ private:
     bool paintComposedScreen(QPainter& p, const QJsonObject& layout);
     /** Плитки (спрайт или paintPill цветом "tiles") и служебные зоны поверх фона экрана. */
     void paintGridScreen(QPainter& p, const QJsonObject& layout);
+    /**
+     * @brief Текст служебной подписи экрана (`ScreenLabel`) по её `id`.
+     * @return `Title`/`Caption` — заголовок, `Heading` — вопрос экрана активностей, `Page`/`PageLabel` —
+     *         «1 of 3», `Clock` — время; пусто — подпись не из конфигурации (или батарея: значок).
+     */
+    QString serviceText(const QString& id, const QJsonObject& layout) const;
     /// Общая раскладка списка активностей или устройств, с разными данными и действиями.
     bool isListScreen() const { return currentScreen == Screen::Activities || currentScreen == Screen::Devices; }
     const QList<ActivityItem>& listItems() const { return currentScreen == Screen::Devices ? deviceItems : activities; }
@@ -267,6 +274,7 @@ private:
     /// Экраны пульта: id → экран из remote.json (ячейки с rect); "devices" может ссылаться на экран активностей.
     QJsonObject modes;
     QJsonObject tiles; ///< общее оформление плиток пульта (блок "tiles" remote.json)
+    bool touchScreen = false; ///< экран сенсорный (`capabilities.touch` remote.json), касания по плиткам
     QString activeMode;
     QList<ActivityItem> deviceItems;
     int otherPage = 0;

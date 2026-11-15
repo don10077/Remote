@@ -40,17 +40,43 @@ QByteArray data(const QString& path);
  * @return Пустой объект — пульта нет в снимке или он пропущен из-за ошибок.
  */
 QJsonObject remote(const QString& modelId);
+
+/// remote.json пульта как файл: текст на диске и описание, разобранное из этого же текста.
+struct RemoteFile {
+    QString path;        ///< путь от корня папки ресурсов: `remotes/<id>/remote.json`
+    QByteArray text;     ///< текст файла; пусто — файла нет ни в папке, ни во встроенных ресурсах
+    QByteArray current;  ///< text в текущей схеме: сам text либо переведённый migrateRemote() файл
+    QJsonObject remote;  ///< описание, как его видит reload(): migrateRemote() и normalizeRemote()
+    QString error;       ///< ошибка чтения или разбора JSON; пусто — описание разобрано
+};
+/**
+ * @brief Прочитать remote.json пульта для правки.
+ *
+ * В отличие от remote() читает файл с диска, а не снимок: правка должна опираться на точный
+ * текст файла (точечная замена фрагментов, проверка внешних изменений). Открывает и пульты,
+ * которые reload() отклонил. Если файла в папке нет — встроенное описание.
+ * @param modelId id пульта (папка `remotes/<id>/`).
+ * @param root Корень папки ресурсов; явный путь используется в тестах.
+ */
+RemoteFile readRemote(const QString& modelId, const QString& root = folder());
+/**
+ * @brief Текст remote.json в текущей схеме.
+ * @return Сам `text`, если перевод не нужен или текст не разобран; иначе описание после
+ *         migrateRemote() с отступами (так редактор сразу записывает файл в новой схеме).
+ */
+QByteArray currentSchema(const QByteArray& text, const QString& modelId);
 /**
  * @brief Поставить ячейки экрана по сетке.
  *
  * Ячейкам без `rect`, но с `col`/`row`, вычисляется `rect` в единицах `ref` по `grid`
- * (`cols`, `rows`, `gap`, по умолчанию 4; `colSpan`/`rowSpan` — по умолчанию 1);
+ * (`cols`, `rows`, `gap`, по умолчанию 4; `colSpan`/`rowSpan` — по умолчанию 1) внутри
+ * зоны плиток `grid.area` `[x, y, w, h]`, без неё — внутри `defaultArea`, а без обеих — по всему экрану;
  * без `kind` они становятся `ScreenSlot`. Остальное не меняется.
  * @param screen Экран из `screens` remote.json.
  * @return Экран с достроенными `rect`; без сетки — как есть.
  */
-QJsonObject normalizeScreen(QJsonObject screen);
-/// normalizeScreen() для всех экранов пульта.
+QJsonObject normalizeScreen(QJsonObject screen, const QJsonValue& defaultArea = {});
+/// normalizeScreen() для всех экранов пульта; общая зона плиток — `tiles.area`.
 QJsonObject normalizeRemote(QJsonObject remote);
 /// Версия снимка для сброса кэшей изображений и геометрии.
 quint64 revision();
@@ -60,7 +86,9 @@ QStringList skipped();
 QStringList migratedByReload();
 /**
  * Переводит описание пульта прошлой версии программы на текущую схему: connection
- * (driver/configFormat/transport → driver/format) и поле style экранов (→ compact, panel).
+ * (driver/configFormat/transport → driver/format), поля style и compact экранов (→ картинка фона с шапкой
+ * и panel.text)
+ * и поле touch экранов (→ capabilities.touch пульта).
  * Недостающие значения берутся у встроенного описания того же пульта. Остальное не меняется.
  * @return true, если что-то изменилось.
  */

@@ -85,9 +85,22 @@ def cross():
     img.save(OUT / "cross_600.png")
 
 
+def screen(model):
+    """Фон экрана в remote.json: фон модели, белая шапка и вкладка Devices (ячейка [40, 160, 92, 20])."""
+    bg = Image.open(OUT / f"background_{model}.png").convert("RGBA")
+    layer = Image.new("RGBA", bg.size, (0, 0, 0, 0))
+    layer.paste(Image.open(OUT / "head_600.png").convert("RGBA"), (0, 0))
+    layer.alpha_composite(Image.open(OUT / "tab_600.png").convert("RGBA"), (40 * S, 160 * S))
+    out = Image.alpha_composite(bg, layer)
+    out.putalpha(Image.composite(out.getchannel("A"), Image.new("L", bg.size, 0), bg.getchannel("A")))
+    out.save(OUT / f"screen_{model}.png")
+
+
 if __name__ == "__main__":
     OUT.mkdir(parents=True, exist_ok=True)
     for model, tint in TINTS.items():
         background(f"background_{model}.png", tint)
     white_head(); devices_tab(); cross()
+    for model in TINTS:
+        screen(model)
     print("ok:", sorted(p.name for p in OUT.glob("*_6[05]*.png")))

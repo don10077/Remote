@@ -149,9 +149,87 @@ TEST_F(RemoteResourcesTest, OldSchemaIsMigratedKeepingUserEdits) {
     EXPECT_EQ(migrated["tiles"].toObject().value("color").toString(), "#aa0000");
     const auto first = migrated["screens"].toArray()[0].toObject();
     EXPECT_FALSE(first.contains("style"));
-    EXPECT_TRUE(first.value("compact").toBool());
-    EXPECT_EQ(first.value("background").toObject().value("image").toString(), "sprites/background_600.png");
+    EXPECT_FALSE(first.contains("compact"));
+    // Шапка 600 теперь на картинке фона, надписи на ней тёмные.
+    EXPECT_EQ(first.value("background").toObject().value("image").toString(), "sprites/screen_600.png");
+    EXPECT_EQ(first.value("panel").toObject().value("text").toString(), "#111111");
     EXPECT_FALSE(resources::migrateRemote(migrated, "600")); // второй раз менять нечего
+}
+
+TEST_F(RemoteResourcesTest, CompactScreenBecomesBackgroundPicture) {
+    // Прошлая версия: compact и картинка фона без шапки; своя картинка пользователя не заменяется.
+    auto remote = remoteOf("650");
+    auto screens = remote["screens"].toArray();
+    for (int i = 0; i < screens.size(); ++i) {
+        auto screen = screens[i].toObject();
+        screen["compact"] = true;
+        screen.remove("panel");
+        screen["background"] = QJsonObject{{"image", i == 0 ? "sprites/background_650.png" : "sprites/mine.png"}};
+        screens[i] = screen;
+    }
+    remote["screens"] = screens;
+    ASSERT_TRUE(resources::migrateRemote(remote, "650"));
+    const auto migrated = remote["screens"].toArray();
+    EXPECT_EQ(migrated[0].toObject()["background"].toObject()["image"].toString(), "sprites/screen_650.png");
+    EXPECT_EQ(migrated[1].toObject()["background"].toObject()["image"].toString(), "sprites/mine.png");
+    for (const auto& value : migrated) EXPECT_FALSE(value.toObject().contains("compact"));
+}
+
+TEST_F(RemoteResourcesTest, ScreenTouchMovesToRemoteCapabilities) {
+    // Прошлая схема: сенсорность у каждого экрана, у пульта её нет.
+    auto remote = remoteOf("900");
+    remote.remove("capabilities");
+    auto screens = remote["screens"].toArray();
+    for (int i = 0; i < screens.size(); ++i) {
+        auto screen = screens[i].toObject();
+        screen["touch"] = true;
+        screens[i] = screen;
+    }
+    remote["screens"] = screens;
+    ASSERT_TRUE(resources::migrateRemote(remote, "900"));
+    EXPECT_TRUE(remote["capabilities"].toObject().value("touch").toBool());
+    for (const auto& value : remote["screens"].toArray()) EXPECT_FALSE(value.toObject().contains("touch"));
+    // Значение пульта главнее: его не перезаписывают экраны.
+    auto touchless = remoteOf("600");
+    auto list = touchless["screens"].toArray();
+    auto first = list[0].toObject();
+    first["touch"] = true;
+    list[0] = first;
+    touchless["screens"] = list;
+    ASSERT_TRUE(resources::migrateRemote(touchless, "600"));
+    EXPECT_FALSE(touchless["capabilities"].toObject().value("touch").toBool());
+    // Штатные файлы уже в новой схеме.
+    for (const auto& profile : harmony::bundledRemoteProfiles) {
+        auto bundled = remoteOf(QString::fromStdString(profile.id));
+        EXPECT_FALSE(resources::migrateRemote(bundled, QString::fromStdString(profile.id))) << profile.id;
+    }
+}
+
+TEST_F(RemoteResourcesTest, ReadRemoteForEditingUsesDiskTextAndCurrentSchema) {
+    // Нет файла в папке — встроенное описание.
+    const auto builtinFile = resources::readRemote("900", dir.path());
+    EXPECT_TRUE(builtinFile.error.isEmpty());
+    EXPECT_EQ(builtinFile.text, resources::data(":/res/remotes/900/remote.json"));
+    EXPECT_EQ(builtinFile.current, builtinFile.text);
+    EXPECT_EQ(builtinFile.remote.value("id").toString(), "900");
+
+    // Файл старой схемы: текст как на диске, описание и current — в новой схеме.
+    auto remote = remoteOf("900");
+    remote["connection"] = QJsonObject{{"driver", "harmony900"}, {"configFormat", "harmony900"}};
+    write("remotes/900/remote.json", toBytes(remote));
+    const auto file = resources::readRemote("900", dir.path());
+    EXPECT_EQ(file.path, "remotes/900/remote.json");
+    EXPECT_EQ(file.text, toBytes(remote));
+    EXPECT_EQ(file.remote["connection"].toObject().value("driver").toString(), "usb-net");
+    EXPECT_EQ(QJsonDocument::fromJson(file.current).object()["connection"].toObject().value("format").toString(),
+              "harmony-xml");
+    EXPECT_EQ(resources::currentSchema(file.text, "900"), file.current);
+
+    // Сломанный файл: ошибка с путём, описание пустое.
+    write("remotes/900/remote.json", "{broken");
+    const auto broken = resources::readRemote("900", dir.path());
+    EXPECT_TRUE(broken.remote.isEmpty());
+    EXPECT_TRUE(broken.error.contains("remote.json"));
 }
 
 TEST_F(RemoteResourcesTest, DiscoverNewModelAndPersistProject) {
@@ -225,6 +303,17 @@ TEST_F(RemoteResourcesTest, GridScreenCellsGetRectsFromColRowAndSpans) {
     const auto onDisk = QJsonDocument::fromJson(resources::data(":/res/remotes/gridmodel/remote.json")).object();
     EXPECT_FALSE(onDisk.value("screens").toArray()[0].toObject().value("cells").toArray()[0].toObject()
                      .contains("rect"));
+}
+
+TEST(RemoteResources, GridCellsAreLaidOutInsideTileArea) {
+    // Зона плиток 80×60 со сдвигом (10, 20), зазор 0: плитки 40×30 внутри неё, а не на весь экран.
+    const QJsonObject screen{{"ref", QJsonArray{100, 100}},
+                             {"grid", QJsonObject{{"cols", 2}, {"rows", 2}, {"gap", 0}, {"area", QJsonArray{10, 20, 80, 60}}}},
+                             {"cells", QJsonArray{QJsonObject{{"id", "A"}, {"col", 0}, {"row", 0}},
+                                                  QJsonObject{{"id", "B"}, {"col", 1}, {"row", 1}}}}};
+    const auto cells = resources::normalizeScreen(screen)["cells"].toArray();
+    EXPECT_EQ(cells[0].toObject()["rect"].toArray(), (QJsonArray{10, 20, 40, 30}));
+    EXPECT_EQ(cells[1].toObject()["rect"].toArray(), (QJsonArray{50, 50, 40, 30}));
 }
 
 TEST_F(RemoteResourcesTest, LeftoverFilesOfOldSchemaAreIgnored) {
