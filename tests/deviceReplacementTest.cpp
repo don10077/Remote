@@ -197,6 +197,48 @@ TEST(DeviceReplacement, MacroWithoutMatchingCommandsIsRemoved) {
     EXPECT_TRUE(keyAction(document, activity, "Red").empty());
 }
 
+namespace {
+
+/// Отчёт одной строкой: при расхождении видны сразу все счётчики.
+std::string reportText(const DeviceReplacementReport& report) {
+    return "activities=" + std::to_string(report.activities) + " buttons=" + std::to_string(report.buttons) +
+           " steps=" + std::to_string(report.steps) + " macroSteps=" + std::to_string(report.macroSteps) +
+           " removed=" + std::to_string(report.removed) + " inputsLost=" + std::to_string(report.inputsLost) +
+           " oldRemoved=" + (report.oldRemoved ? "1" : "0");
+}
+
+} // namespace
+
+/**
+ * Точные счётчики отчёта на тестовой конфигурации. Числа сняты со старой реализации
+ * replaceDevice (до разбиения на этапы): тест сторожит, что подсчёт не изменился.
+ *
+ * Сценарий задевает все счётчики: кнопки переходят и убираются, шаг запуска Home переходит,
+ * шаги выбора входа теряются (у нового телевизора нет входов), в макросе один шаг переходит,
+ * один убирается, пауза остаётся.
+ */
+TEST(DeviceReplacement, ReportCountsEverything) {
+    ConfigDocument document = openSample();
+    const std::string activity = tvActivity(document);
+    ASSERT_FALSE(activity.empty());
+    // Макрос телевизора: «0», пауза, «1»; у нового будет «0», но не «1».
+    ASSERT_TRUE(document.setHardMacro(ButtonOwner::activity(activity), "Red",
+                                      {{kTv, StateStep::press("0")}, {kTv, StateStep::pause(500)},
+                                       {kTv, StateStep::press("1")}}));
+    const std::string id = newTv(document, {"PowerToggle", "VolumeUp", "VolumeDown", "Mute", "Home", "Menu",
+                                            "Select", "DirectionUp", "DirectionDown", "0"});
+
+    DeviceReplacement replacement;
+    replacement.oldId = kTv;
+    replacement.newId = id;
+    replacement.removeOld = true;
+    auto report = document.replaceDevice(replacement);
+
+    ASSERT_TRUE(report) << report.error().message;
+    EXPECT_EQ(reportText(*report),
+              "activities=8 buttons=26 steps=1 macroSteps=1 removed=55 inputsLost=7 oldRemoved=1");
+}
+
 TEST(DeviceReplacement, RejectsBadArguments) {
     ConfigDocument document = openSample();
     EXPECT_EQ(document.replaceDevice({kTv, "nope", {}, {}, false}).error().code, ErrorCode::NotFound);
