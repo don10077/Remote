@@ -16,9 +16,13 @@ if(NOT DEFINED FETCHCONTENT_UPDATES_DISCONNECTED)
     set(FETCHCONTENT_UPDATES_DISCONNECTED ON)
 endif()
 
-# hidapi: архив релиза с проверкой sha256 вместо git, если хеш известен.
-# TODO: вписать sha256 архива hidapi-0.14.0.tar.gz (см. URL ниже), тогда git не нужен.
-set(HARMONY_HIDAPI_SHA256 "" CACHE STRING "sha256 архива hidapi-0.14.0.tar.gz; пусто — брать из git по тегу")
+# hidapi: архив тега с проверкой sha256 вместо git.
+# Хеш архива GitHub archive/refs/tags/hidapi-0.14.0.tar.gz — тот же, что у Buildroot,
+# Flathub и Ubuntu (hidapi_0.14.0.orig.tar.gz). При несовпадении настройка падает.
+# Не кэш-переменная: иначе старые каталоги сборки сохранили бы прежнее пустое значение.
+# Вернуться к git по тегу: -DHARMONY_HIDAPI_FROM_GIT=ON.
+set(HARMONY_HIDAPI_SHA256 "a5714234abe6e1f53647dd8cba7d69f65f71c558b7896ed218864ffcf405bcbd")
+option(HARMONY_HIDAPI_FROM_GIT "Брать hidapi из git по тегу, а не архивом с sha256" OFF)
 
 # USB HID для встроенного чтения 600/650/665/700, без внешней программы.
 # Локальная область: статическая сборка HIDAPI не меняет тип остальных библиотек.
@@ -34,7 +38,7 @@ function(harmony_add_hidapi)
     set(HIDAPI_WITH_LIBUSB OFF)
     set(HIDAPI_WITH_HIDRAW ON)
     set(HIDAPI_INSTALL_TARGETS OFF)
-    if(HARMONY_HIDAPI_SHA256)
+    if(NOT HARMONY_HIDAPI_FROM_GIT)
         FetchContent_Declare(hidapi
             URL https://github.com/libusb/hidapi/archive/refs/tags/hidapi-0.14.0.tar.gz
             URL_HASH SHA256=${HARMONY_HIDAPI_SHA256}

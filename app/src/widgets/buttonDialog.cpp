@@ -7,6 +7,7 @@
 
 #include "../icons.h"
 #include "../labels.h"
+#include "../theme.h"
 #include "../modern/remotePanel.h"
 #include "../modern/remoteView.h"
 #include "harmony/core/buttonIcons.h"
@@ -188,7 +189,7 @@ ButtonDialog::ButtonDialog(const model::RemoteConfig& config, const ButtonOwner&
     device_ = new QComboBox(this);
     for (const auto& id : devices_) {
         if (const model::Device* device = config_.findDevice(id)) {
-            device_->addItem(icons::make(icons::Icon::Dot, RemotePanel::deviceColour(deviceIndex(config_, id))),
+            device_->addItem(icons::make(icons::Icon::Dot, theme::deviceColor(deviceIndex(config_, id))),
                              QString::fromStdString(device->displayName()), QString::fromStdString(id));
         }
     }

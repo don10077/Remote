@@ -8,7 +8,9 @@
 #include <QCheckBox>
 #include <QDebug>
 #include <QDoubleSpinBox>
+#include <QElapsedTimer>
 #include <QFile>
+#include <QProcess>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QLabel>
@@ -158,8 +160,14 @@ TEST(ZoneEditorDialog, AutoZonesFlowVisibleOnCanvas) {
     if (del) del->trigger();
     QApplication::processEvents();
     EXPECT_EQ(canvas->zones().size(), 0);
+    const QString idleText = action->text();
     action->trigger();
-    for (int i = 0; i < 20; ++i) QApplication::processEvents();
+    // Распознавание асинхронное: пока оно идёт, на кнопке «Остановить»; ждём возврата подписи.
+    EXPECT_NE(action->text(), idleText);
+    QElapsedTimer timer;
+    timer.start();
+    while (action->text() != idleText && timer.elapsed() < 60000) QApplication::processEvents(QEventLoop::AllEvents, 50);
+    ASSERT_EQ(action->text(), idleText) << "auto zones did not finish in 60 s";
     // Регрессия: каждая распознанная кнопка добавляется отдельной зоной.
     EXPECT_GE(canvas->zones().size(), 25);
     for (int i = 0; i < canvas->zones().size(); ++i)
@@ -172,6 +180,39 @@ TEST(ZoneEditorDialog, AutoZonesFlowVisibleOnCanvas) {
             const QRectF common = a.intersected(b);
             EXPECT_TRUE(common.isEmpty() || common.width() * common.height() == 0) << i << " " << j;
         }
+}
+
+TEST(ZoneEditorDialog, AutoZonesCanBeStopped) {
+    // Второе нажатие останавливает распознавание: процесс завершается, зоны не добавляются.
+    const auto error = harmony::app::remoteResources::reload();
+    ASSERT_TRUE(error.isEmpty()) << error.toStdString();
+    harmony::app::ZoneEditorDialog dialog("600");
+    auto* canvas = dialog.findChild<harmony::app::ZoneCanvas*>();
+    auto* action = dialog.findChild<QAction*>("autoZones");
+    auto* selectAll = dialog.findChild<QAction*>("selectAll");
+    auto* del = dialog.findChild<QAction*>("deleteZones");
+    ASSERT_NE(canvas, nullptr);
+    ASSERT_NE(action, nullptr);
+    ASSERT_NE(selectAll, nullptr);
+    ASSERT_NE(del, nullptr);
+    dialog.show();
+    QApplication::processEvents();
+    selectAll->trigger();
+    del->trigger();
+    ASSERT_EQ(canvas->zones().size(), 0);
+    const QString idleText = action->text();
+    action->trigger();
+    if (action->text() == idleText) GTEST_SKIP() << "Python is not available, nothing to stop";
+    ASSERT_NE(dialog.findChild<QProcess*>("autoZonesProcess"), nullptr);
+    action->trigger();
+    EXPECT_EQ(action->text(), idleText);
+    QElapsedTimer timer;
+    timer.start();
+    while (timer.elapsed() < 1500) QApplication::processEvents(QEventLoop::AllEvents, 50);
+    QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+    EXPECT_EQ(dialog.findChild<QProcess*>("autoZonesProcess"), nullptr);
+    EXPECT_EQ(canvas->zones().size(), 0);
+    EXPECT_TRUE(action->isEnabled());
 }
 
 TEST(ZoneEditorDialog, AutoZonesActionOnlyOnBodyLayer) {

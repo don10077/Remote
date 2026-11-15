@@ -58,6 +58,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <utility>
 
 namespace harmony::app {
 namespace {
@@ -356,8 +357,10 @@ ZoneEditorDialog::ZoneEditorDialog(const QString& model, QWidget* parent) : QDia
     autoAction_->setObjectName(QStringLiteral("autoZones"));
     autoAction_->setToolTip(tr("Recognize buttons on the photo (tools/autoZones.py, Python + opencv). "
                                "Boxes overlapping the zones already on the screen are skipped: delete them first "
-                               "(Ctrl+A, then Delete) if you want to replace them. "
-                               "Rename the added zones and fix or delete what is not needed."));
+                               "(%1, then %2) if you want to replace them. "
+                               "Rename the added zones and fix or delete what is not needed. "
+                               "Press the button again to stop recognition.")
+                                .arg(labels::shortcut(QKeySequence::SelectAll), labels::shortcut(QKeySequence::Delete)));
     autoAction_->setEnabled(false);
     connect(autoAction_, &QAction::triggered, this, &ZoneEditorDialog::runAutoZones);
 
@@ -367,7 +370,8 @@ ZoneEditorDialog::ZoneEditorDialog(const QString& model, QWidget* parent) : QDia
     auto* alignMenu = new QMenu(this);
     auto* alignButton = new QToolButton(this);
     alignButton->setText(tr("Align selected"));
-    alignButton->setToolTip(tr("Select several zones with Ctrl. The first selected zone is the reference."));
+    alignButton->setToolTip(tr("Select several zones with %1. The first selected zone is the reference.")
+                                .arg(labels::modifier(Qt::ControlModifier)));
     alignButton->setMenu(alignMenu);
     alignButton->setPopupMode(QToolButton::InstantPopup);
     toolbar->addWidget(alignButton);
@@ -979,8 +983,13 @@ void ZoneEditorDialog::applyState(const QString& layerKey, const State& state) {
     }
 }
 
+ZoneEditorDialog::~ZoneEditorDialog() {
+    stopAutoZones();
+}
+
 void ZoneEditorDialog::reject() {
     if (!confirmDiscard()) return;
+    stopAutoZones(); // окно закрывается: результат распознавания уже некуда добавить
     QDialog::reject();
 }
 
@@ -1089,6 +1098,7 @@ bool ZoneEditorDialog::loadModel(const QString& model) {
     completer->setCaseSensitivity(Qt::CaseInsensitive);
     if (auto* old = idEdit_->completer()) old->deleteLater();
     idEdit_->setCompleter(completer);
+    if (model != model_) stopAutoZones(); // распознавалось фото прежней модели
     model_ = model;
     remote_ = remote;
     liveScreen_.reset();
@@ -1247,7 +1257,7 @@ void ZoneEditorDialog::refreshAll() {
     // Рамка на корпусе — область экрана на фото, на экране — зона плиток.
     canvas_->setFrameCaption(l.body() ? QString() : l.current.ownArea ? tr("Tile area of this screen") : tr("Tile area of all screens"));
     canvas_->setZones(l.current.zones, l.current.screen);
-    autoAction_->setEnabled(l.body());
+    autoAction_->setEnabled(l.body() || autoProcess_); // идущее распознавание можно отменить с любого слоя
     screenCheck_->blockSignals(true);
     screenCheck_->setVisible(l.body());
     screenCheck_->setChecked(l.body() && l.current.screen.has_value());
@@ -1260,7 +1270,11 @@ void ZoneEditorDialog::refreshAll() {
     refreshRemote();
     updateTitle();
     saveButton_->setEnabled(isDirty());
-    noteLabel_->setFullText(tr("Arrows move, Ctrl+arrows resize, Shift ×10, Alt disables snapping, left button on empty space pans (click clears selection), Shift/Ctrl+drag selects several zones, Ctrl+wheel zooms."));
+    const QString ctrl = labels::modifier(Qt::ControlModifier);
+    const QString shift = labels::modifier(Qt::ShiftModifier);
+    noteLabel_->setFullText(tr("Arrows move, %1+arrows resize, %2 ×10, %3 disables snapping, left button on empty space "
+                               "pans (click clears selection), %2/%1+drag selects several zones, %1+wheel zooms.")
+                                .arg(ctrl, shift, labels::modifier(Qt::AltModifier)));
 }
 
 void ZoneEditorDialog::refreshList() {
@@ -1524,6 +1538,11 @@ void ZoneEditorDialog::addZone(const std::optional<QRectF>& drawn) {
 }
 
 void ZoneEditorDialog::runAutoZones() {
+    if (autoProcess_) { // повторное нажатие во время распознавания — отмена
+        stopAutoZones();
+        note(tr("Auto zones stopped."));
+        return;
+    }
     if (!hasLayer() || !layer().body()) return;
     const QString photoPath = remoteResources::folder() + QStringLiteral("/remotes/") + model_ + QStringLiteral("/photo.png");
     if (!QFileInfo::exists(photoPath)) {
@@ -1535,33 +1554,74 @@ void ZoneEditorDialog::runAutoZones() {
         note(tr("The auto-zones script was not found (tools/autoZones.py)."));
         return;
     }
-    const auto run = [](const QString& program, const QStringList& arguments, QByteArray& out, QByteArray& err) {
-        QProcess process;
-        process.start(program, arguments);
-        if (!process.waitForStarted(5000)) return false;
-        if (!process.waitForFinished(20000)) {
-            process.kill();
-            return false;
-        }
-        out = process.readAllStandardOutput();
-        err = process.readAllStandardError();
-        return process.exitStatus() == QProcess::NormalExit && process.exitCode() == 0;
-    };
-    note(tr("Recognizing zones on the photo…"));
-    QApplication::setOverrideCursor(Qt::WaitCursor);
-    QByteArray out, err;
+    // Интерпретаторы по очереди: следующий пробуется, если предыдущий не запустился или завершился с ошибкой.
     const QStringList arguments{script, photoPath, QStringLiteral("--json")};
     const QString python = qEnvironmentVariable("HARMONY_AUTO_ZONES_PYTHON");
-    const bool ok = python.isEmpty()
-        ? run(QStringLiteral("python"), arguments, out, err)
-            || run(QStringLiteral("py"), QStringList{QStringLiteral("-3")} + arguments, out, err)
-        : run(python, arguments, out, err);
-    QApplication::restoreOverrideCursor();
-    if (!ok) {
+    autoAttempts_.clear();
+    if (python.isEmpty()) {
+        autoAttempts_.append({QStringLiteral("python"), arguments});
+        autoAttempts_.append({QStringLiteral("py"), QStringList{QStringLiteral("-3")} + arguments});
+    } else {
+        autoAttempts_.append({python, arguments});
+    }
+    autoAction_->setText(tr("Stop auto zones"));
+    note(tr("Recognizing zones on the photo… The editor stays available; press “Stop auto zones” to cancel."));
+    startAutoZones();
+}
+
+void ZoneEditorDialog::startAutoZones() {
+    if (autoAttempts_.isEmpty()) {
+        resetAutoAction();
         note(tr("Auto zones did not start. Python 3 with the opencv package is required: pip install opencv-python."));
         return;
     }
-    const QJsonArray boxes = QJsonDocument::fromJson(out).array();
+    const auto [program, arguments] = autoAttempts_.takeFirst();
+    auto* process = new QProcess(this);
+    process->setObjectName(QStringLiteral("autoZonesProcess"));
+    autoProcess_ = process;
+    connect(process, &QProcess::finished, this, [this, process](int code, QProcess::ExitStatus status) {
+        if (process != autoProcess_) return; // процесс уже отменён
+        autoProcess_ = nullptr;
+        process->deleteLater();
+        if (status != QProcess::NormalExit || code != 0) {
+            startAutoZones();
+            return;
+        }
+        autoAttempts_.clear();
+        resetAutoAction();
+        applyAutoZones(process->readAllStandardOutput());
+    });
+    // FailedToStart приходит без finished(): сразу пробуем следующий интерпретатор.
+    connect(process, &QProcess::errorOccurred, this, [this, process](QProcess::ProcessError error) {
+        if (process != autoProcess_ || error != QProcess::FailedToStart) return;
+        autoProcess_ = nullptr;
+        process->deleteLater();
+        startAutoZones();
+    });
+    process->start(program, arguments);
+}
+
+void ZoneEditorDialog::stopAutoZones() {
+    autoAttempts_.clear();
+    QProcess* process = std::exchange(autoProcess_, nullptr);
+    if (!process) return;
+    process->disconnect(this);
+    process->kill();
+    process->waitForFinished(1000); // забрать завершившийся процесс, чтобы QProcess не предупреждал при удалении
+    process->deleteLater();
+    resetAutoAction();
+}
+
+void ZoneEditorDialog::resetAutoAction() {
+    autoAction_->setText(tr("Auto zones"));
+    autoAction_->setEnabled(hasLayer() && layer().body());
+}
+
+void ZoneEditorDialog::applyAutoZones(const QByteArray& output) {
+    if (!hasLayer()) return;
+    // Результат относится к корпусу: пока скрипт работал, мог открыться экран.
+    if (!layer().body()) showLayer(0);
+    const QJsonArray boxes = QJsonDocument::fromJson(output).array();
     State after = layer().current;
     const QJsonArray added = zoneEditing::autoZones(boxes, after.zones, QStringLiteral("Auto"), after.screen);
     if (added.isEmpty()) {
@@ -1569,8 +1629,9 @@ void ZoneEditorDialog::runAutoZones() {
             note(tr("No zones were recognized on the photo."));
         } else {
             note(tr("All %1 recognized zones overlap the zones already on the screen, so nothing was added. "
-                   "Delete the zones you want to replace (Ctrl+A, then Delete) and run Auto zones again.")
-                .arg(boxes.size()));
+                   "Delete the zones you want to replace (%2, then %3) and run Auto zones again.")
+                .arg(boxes.size())
+                .arg(labels::shortcut(QKeySequence::SelectAll), labels::shortcut(QKeySequence::Delete)));
         }
         return;
     }

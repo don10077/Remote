@@ -1,0 +1,16 @@
+# Dependabot: обновления GitHub Actions в .github/workflows.
+# Для actions, закреплённых по SHA, PR меняет и SHA, и комментарий « # vX.Y.Z».
+# Зависимости CMake (FetchContent) Dependabot не видит — их версии правятся вручную
+# в cmake/Dependencies.cmake и third_party/libconcord/CMakeLists.txt.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    # Все обновления actions — одним PR, чтобы не плодить мелкие.
+    groups:
+      actions:
+        patterns: ["*"]
+    commit-message:
+      prefix: "ci"

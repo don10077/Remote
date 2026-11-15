@@ -59,7 +59,19 @@ constexpr std::array kPalette = {
     Entry{Color::RemoteKeyFreeLine, "remoteKeyFreeLine", "#3a4149", "#a3adba"},
     Entry{Color::RemoteBroken, "remoteBroken", "#ff5a52", "#ff5a52"},
     Entry{Color::RemoteSelected, "remoteSelected", "#8ab8ff", "#8ab8ff"},
+    // Полупрозрачные (#AARRGGBB): ложатся на фото пульта.
+    Entry{Color::RemoteDimFill, "remoteDimFill", "#9e14161a", "#9e14161a"},
+    Entry{Color::RemoteDimLine, "remoteDimLine", "#4bffffff", "#4bffffff"},
+    Entry{Color::RemoteBrokenFill, "remoteBrokenFill", "#40e5484d", "#40e5484d"},
+    Entry{Color::RemoteSelectedGlow, "remoteSelectedGlow", "#5a8ab8ff", "#5a8ab8ff"},
+    Entry{Color::RemoteHoverLine, "remoteHoverLine", "#8cffffff", "#8cffffff"},
+    Entry{Color::RemoteBody, "remoteBody", "#15171a", "#15171a"},
 };
+
+/// Цвета устройств (deviceColor); в тёмной теме те же — они хорошо видны на обоих фонах.
+constexpr std::array kDeviceColors = {"#6f9be0", "#e0a33a", "#3fb6a8", "#a184e0",
+                                      "#d9738a", "#7cb45a", "#c98f5b", "#5bb0d9"};
+constexpr const char* kNoDeviceColor = "#9aa3ad";
 
 bool dark = false; ///< Тёмная тема применена
 
@@ -192,6 +204,13 @@ QColor color(Color role) {
         }
     }
     return {}; // недостижимо: каждая роль есть в палитре
+}
+
+QColor deviceColor(int index) {
+    if (index < 0) {
+        return QColor(QLatin1String(kNoDeviceColor));
+    }
+    return QColor(QLatin1String(kDeviceColors[static_cast<std::size_t>(index) % kDeviceColors.size()]));
 }
 
 bool isDark() {

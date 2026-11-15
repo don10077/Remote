@@ -159,12 +159,32 @@ Result<std::vector<std::uint8_t>> Harmony900Link::readConfig(const ProgressHandl
     if (!start) {
         return std::unexpected(std::move(start.error()));
     }
+    // С этого места пульт в режиме чтения: на любом выходе с ошибкой его нужно из него вывести,
+    // иначе следующие команды он отвергает до перезапуска. Ответ на ReadRegionDone при ошибке
+    // не проверяется — важнее вернуть исходную причину.
+    struct DoneGuard {
+        Harmony900Link& link;
+        bool sent = false;
+        Result<Packet> send() {
+            sent = true;
+            return Exchange::request(*link.channel_, Command::ReadRegionDone, {{kRegion}}, link.timings_.reply);
+        }
+        ~DoneGuard() {
+            if (!sent && link.channel_) {
+                (void)send();
+            }
+        }
+    } done{*this};
+
     if (start->params.empty()) {
         return makeError(ErrorCode::Remote, "the remote did not report the configuration size");
     }
     const std::size_t size = usbnet::toNumber(start->params[0]);
+    if (size == 0) {
+        // Пустой конфигурации у пульта не бывает: нулевой размер — сбой обмена, а не пустой файл.
+        return makeError(ErrorCode::Remote, "the remote reported an empty configuration");
+    }
     if (size > kMaxConfigSize) {
-        (void)Exchange::request(*channel_, Command::ReadRegionDone, {{kRegion}}, timings_.reply);
         return makeError(ErrorCode::Remote, "the remote reported an implausible configuration size: %1 bytes",
                          {std::to_string(size)});
     }
@@ -186,12 +206,11 @@ Result<std::vector<std::uint8_t>> Harmony900Link::readConfig(const ProgressHandl
         payload.insert(payload.end(), chunk->params[1].begin(),
                        chunk->params[1].begin() + static_cast<std::ptrdiff_t>(length));
         if (!report(progress, Stage::Read, payload.size(), size)) {
-            (void)Exchange::request(*channel_, Command::ReadRegionDone, {{kRegion}}, timings_.reply);
             return makeError(ErrorCode::Cancelled, "reading cancelled");
         }
     }
-    if (auto done = Exchange::request(*channel_, Command::ReadRegionDone, {{kRegion}}, timings_.reply); !done) {
-        return std::unexpected(std::move(done.error()));
+    if (auto finished = done.send(); !finished) {
+        return std::unexpected(std::move(finished.error()));
     }
     payload.resize(size);
     info_.configSize = static_cast<std::uint32_t>(size);

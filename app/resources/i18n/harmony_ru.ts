@@ -1044,8 +1044,8 @@ The configuration from %1 will be copied into this archive.</source>
     </message>
     <message>
       <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
-      <source>All %1 recognized zones overlap the zones already on the screen, so nothing was added. Delete the zones you want to replace (Ctrl+A, then Delete) and run Auto zones again.</source>
-      <translation>Все %1 распознанные зоны пересекаются с зонами, уже отображаемыми на экране, поэтому ничего не добавлено. Удалите зоны, которые хотите заменить (Ctrl+A, затем Delete), и запустите «Авто-зоны» снова.</translation>
+      <source>All %1 recognized zones overlap the zones already on the screen, so nothing was added. Delete the zones you want to replace (%2, then %3) and run Auto zones again.</source>
+      <translation>Все %1 распознанные зоны пересекаются с зонами, уже отображаемыми на экране, поэтому ничего не добавлено. Удалите зоны, которые хотите заменить (%2, затем %3), и запустите «Авто-зоны» снова.</translation>
     </message>
     <message>
       <location filename="../../../app/src/widgets/replaceDeviceDialog.cpp" />
@@ -1208,8 +1208,8 @@ Add a device?</source>
     </message>
     <message>
       <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
-      <source>Arrows move, Ctrl+arrows resize, Shift ×10, Alt disables snapping, left button on empty space pans (click clears selection), Shift/Ctrl+drag selects several zones, Ctrl+wheel zooms.</source>
-      <translation>Стрелки — перемещение; Ctrl+стрелки — размер; Shift — шаг ×10; Alt — без привязки; левая кнопка по пустому месту — сдвиг холста (щелчок снимает выделение), Shift/Ctrl + перетаскивание — выделить несколько зон; Ctrl+колесо — масштаб.</translation>
+      <source>Arrows move, %1+arrows resize, %2 ×10, %3 disables snapping, left button on empty space pans (click clears selection), %2/%1+drag selects several zones, %1+wheel zooms.</source>
+      <translation>Стрелки — перемещение; %1+стрелки — размер; %2 — шаг ×10; %3 — без привязки; левая кнопка по пустому месту — сдвиг холста (щелчок снимает выделение), %2/%1 + перетаскивание — выделить несколько зон; %1+колесо — масштаб.</translation>
     </message>
     <message>
       <location filename="../../../core/src/propertyCatalog.cpp" />
@@ -1295,6 +1295,11 @@ Add a device?</source>
       <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
       <source>Auto zones needs the photo %1, but the file was not found.</source>
       <translation>Для авто-зон нужно фото %1, но файл не найден.</translation>
+    </message>
+    <message>
+      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <source>Auto zones stopped.</source>
+      <translation>Авто-зоны остановлены.</translation>
     </message>
     <message>
       <location filename="../../../app/src/widgets/configTransferDialog.cpp" />
@@ -6165,8 +6170,8 @@ The file contains device names and models, but no IR codes, account or e-mail. Y
     </message>
     <message>
       <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
-      <source>Recognize buttons on the photo (tools/autoZones.py, Python + opencv). Boxes overlapping the zones already on the screen are skipped: delete them first (Ctrl+A, then Delete) if you want to replace them. Rename the added zones and fix or delete what is not needed.</source>
-      <translation>Распознаёт кнопки на фотографии (скрипт tools/autoZones.py, Python и пакет opencv). Рамки, пересекающиеся с зонами, уже отображаемыми на экране, пропускаются: сначала удалите их (Ctrl+A, затем Delete), если хотите заменить. Найденные зоны переименуйте, поправьте или удалите лишнее.</translation>
+      <source>Recognize buttons on the photo (tools/autoZones.py, Python + opencv). Boxes overlapping the zones already on the screen are skipped: delete them first (%1, then %2) if you want to replace them. Rename the added zones and fix or delete what is not needed. Press the button again to stop recognition.</source>
+      <translation>Распознаёт кнопки на фотографии (скрипт tools/autoZones.py, Python и пакет opencv). Рамки, пересекающиеся с зонами, уже отображаемыми на экране, пропускаются: сначала удалите их (%1, затем %2), если хотите заменить. Найденные зоны переименуйте, поправьте или удалите лишнее. Повторное нажатие останавливает распознавание.</translation>
     </message>
     <message>
       <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
@@ -6180,8 +6185,8 @@ The file contains device names and models, but no IR codes, account or e-mail. Y
     </message>
     <message>
       <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
-      <source>Recognizing zones on the photo…</source>
-      <translation>Распознавание зон на фото…</translation>
+      <source>Recognizing zones on the photo… The editor stays available; press “Stop auto zones” to cancel.</source>
+      <translation>Распознавание зон на фото… Редактором можно пользоваться; чтобы отменить, нажмите «Остановить авто-зоны».</translation>
     </message>
     <message>
       <location filename="../../../app/src/modern/remoteView.cpp" />
@@ -7031,8 +7036,8 @@ Their buttons and start steps in this activity, including input switching, will 
     </message>
     <message>
       <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
-      <source>Select several zones with Ctrl. The first selected zone is the reference.</source>
-      <translation>Выделите несколько зон с Ctrl. Выравнивание выполняется по первой выбранной зоне.</translation>
+      <source>Select several zones with %1. The first selected zone is the reference.</source>
+      <translation>Выделите несколько зон с %1. Выравнивание выполняется по первой выбранной зоне.</translation>
     </message>
     <message>
       <location filename="../../../app/src/modern/remotePanel.cpp" />
@@ -7355,6 +7360,11 @@ Their buttons and start steps in this activity, including input switching, will 
       <location filename="../../../app/src/modern/remoteView.cpp" />
       <source>Stop</source>
       <translation>Остановить</translation>
+    </message>
+    <message>
+      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <source>Stop auto zones</source>
+      <translation>Остановить авто-зоны</translation>
     </message>
     <message>
       <location filename="../../../core/src/propertyCatalog.cpp" />
@@ -8350,6 +8360,11 @@ They will not be sent to the remote either. When the device is made active again
     </message>
     <message>
       <location filename="../../../transport/src/harmony900Link.cpp" />
+      <source>the remote reported an empty configuration</source>
+      <translation>пульт сообщил, что конфигурация пустая</translation>
+    </message>
+    <message>
+      <location filename="../../../transport/src/harmony900Link.cpp" />
       <source>the remote reported an implausible configuration size: %1 bytes</source>
       <translation>пульт сообщил неправдоподобный размер конфигурации: %1 байт</translation>
     </message>
@@ -8364,6 +8379,11 @@ They will not be sent to the remote either. When the device is made active again
       <translation>пульт прислал неполную порцию конфигурации</translation>
     </message>
     <message>
+      <location filename="../../../transport/src/remoteServices.cpp" />
+      <source>the remote sent an incomplete response</source>
+      <translation>пульт прислал неполный ответ</translation>
+    </message>
+    <message>
       <location filename="../../../transport/src/harmony900Link.cpp" />
       <source>the remote sent an unexpected signal chunk</source>
       <translation>пульт прислал неожиданную порцию сигнала</translation>
@@ -8372,6 +8392,21 @@ They will not be sent to the remote either. When the device is made active again
       <location filename="../../../transport/src/harmony900Link.cpp" />
       <source>the remote sent incomplete information about itself</source>
       <translation>пульт прислал неполные сведения о себе</translation>
+    </message>
+    <message>
+      <location filename="../../../transport/src/remoteServices.cpp" />
+      <source>the remote sent too large a response: %1 bytes</source>
+      <translation>пульт прислал слишком большой ответ: %1 байт</translation>
+    </message>
+    <message>
+      <location filename="../../../transport/src/remoteServices.cpp" />
+      <source>the remote sent too large a response: over %1 bytes</source>
+      <translation>пульт прислал слишком большой ответ: больше %1 байт</translation>
+    </message>
+    <message>
+      <location filename="../../../transport/src/remoteServices.cpp" />
+      <source>the remote sent too long a response header</source>
+      <translation>пульт прислал слишком длинный заголовок ответа</translation>
     </message>
     <message>
       <location filename="../../../core/src/remotePreferences.cpp" />

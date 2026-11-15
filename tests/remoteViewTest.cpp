@@ -1,6 +1,8 @@
 #include "../app/src/modern/remoteView.h"
 #include "../app/src/modern/remotePanel.h"
 #include "../app/src/remoteResources.h"
+#include "../app/src/labels.h"
+#include "../app/src/theme.h"
 #include "harmony/core/remoteProfile.h"
 
 #include <QApplication>
@@ -516,4 +518,48 @@ TEST(RemotePanel, PreviewOmitsNotSentEntriesAndKeepsConfigurationIndices) {
     device = -1;
     click(*view, second);
     EXPECT_EQ(device, -1);
+}
+
+TEST(Theme, DeviceColoursRepeatAndNoDeviceIsGrey) {
+    // Цвет устройства один на пульте, в легенде и в списках: палитра в theme, восемь цветов по кругу.
+    namespace theme = harmony::app::theme;
+    QSet<QRgb> distinct;
+    for (int i = 0; i < 8; ++i) {
+        const QColor colour = theme::deviceColor(i);
+        ASSERT_TRUE(colour.isValid()) << i;
+        distinct.insert(colour.rgb());
+    }
+    EXPECT_EQ(distinct.size(), 8);
+    EXPECT_EQ(theme::deviceColor(8), theme::deviceColor(0));
+    EXPECT_EQ(theme::deviceColor(13), theme::deviceColor(5));
+    EXPECT_TRUE(theme::deviceColor(-1).isValid());
+    EXPECT_FALSE(distinct.contains(theme::deviceColor(-1).rgb()));
+}
+
+TEST(Theme, RemoteOverlayColoursAreTranslucent) {
+    // Подсветка кнопок ложится на фото пульта: заливки и пунктир полупрозрачные.
+    namespace theme = harmony::app::theme;
+    for (const auto role : {theme::Color::RemoteDimFill, theme::Color::RemoteDimLine, theme::Color::RemoteBrokenFill,
+                            theme::Color::RemoteSelectedGlow, theme::Color::RemoteHoverLine}) {
+        const QColor colour = theme::color(role);
+        ASSERT_TRUE(colour.isValid());
+        EXPECT_GT(colour.alpha(), 0);
+        EXPECT_LT(colour.alpha(), 255);
+    }
+    EXPECT_EQ(theme::color(theme::Color::RemoteBroken).alpha(), 255);
+}
+
+TEST(Labels, ModifierNamesHaveNoTrailingPlus) {
+    namespace labels = harmony::app::labels;
+    for (const auto key : {Qt::ControlModifier, Qt::ShiftModifier, Qt::AltModifier}) {
+        const QString text = labels::modifier(key);
+        EXPECT_FALSE(text.isEmpty());
+        EXPECT_FALSE(text.endsWith('+')) << text.toStdString();
+        EXPECT_FALSE(text.endsWith('A')) << text.toStdString();
+    }
+#ifndef Q_OS_MACOS
+    EXPECT_EQ(labels::modifier(Qt::ControlModifier), "Ctrl");
+    EXPECT_EQ(labels::modifier(Qt::ShiftModifier), "Shift");
+    EXPECT_EQ(labels::modifier(Qt::AltModifier), "Alt");
+#endif
 }

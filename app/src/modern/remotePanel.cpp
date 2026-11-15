@@ -94,17 +94,6 @@ RemotePanel::RemotePanel(QWidget* parent) : QWidget(parent) {
     refresh();
 }
 
-QColor RemotePanel::deviceColour(int index) {
-    // Спокойные, хорошо различимые оттенки разной светлоты.
-    static const QColor colours[] = {QColor("#6f9be0"), QColor("#e0a33a"), QColor("#3fb6a8"),
-                                     QColor("#a184e0"), QColor("#d9738a"), QColor("#7cb45a"),
-                                     QColor("#c98f5b"), QColor("#5bb0d9")};
-    if (index < 0) {
-        return QColor("#9aa3ad");
-    }
-    return colours[static_cast<std::size_t>(index) % std::size(colours)];
-}
-
 void RemotePanel::createView() {
     auto* layout = new QGridLayout(this);
     layout->setContentsMargins(0, 0, 0, 0);
@@ -431,7 +420,7 @@ void RemotePanel::refreshActivity() {
             if (device < 0) {
                 continue;
             }
-            colours.insert(QString::fromStdString(button.name), deviceColour(device));
+            colours.insert(QString::fromStdString(button.name), theme::deviceColor(device));
             if (!usedDevices.contains(device)) {
                 usedDevices.append(device);
             }
@@ -443,7 +432,7 @@ void RemotePanel::refreshActivity() {
         activityDevices_.append(
             {QString::fromStdString(
                  config_->devices[static_cast<std::size_t>(device)].displayName()),
-             deviceColour(device)});
+             theme::deviceColor(device)});
     }
 
     remote_->setMode(RemoteView::Mode::Activity);

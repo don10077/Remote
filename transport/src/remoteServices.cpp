@@ -10,6 +10,7 @@
 #include <cctype>
 #include <memory>
 #include <optional>
+#include <string>
 
 namespace harmony::transport {
 
@@ -29,15 +30,6 @@ Result<void> sendText(Channel& channel, std::string_view text) {
     return channel.send({reinterpret_cast<const std::uint8_t*>(text.data()), text.size()});
 }
 
-/// Читает, пока сервер не закроет соединение или не замолчит на @p timeout.
-std::string readAll(Channel& channel, std::chrono::milliseconds timeout) {
-    std::string out;
-    while (auto byte = channel.receive(1, timeout)) {
-        out.push_back(static_cast<char>((*byte)[0]));
-    }
-    return out;
-}
-
 std::string trim(std::string_view text) {
     const auto first = text.find_first_not_of(" \t\r\n");
     if (first == std::string_view::npos) {
@@ -45,6 +37,89 @@ std::string trim(std::string_view text) {
     }
     const auto last = text.find_last_not_of(" \t\r\n");
     return std::string(text.substr(first, last - first + 1));
+}
+
+/// Предел ответа службы настроек: настоящие ответы — сотни байт; больше — сбой, память не тратим.
+constexpr std::size_t kMaxHttpResponse = 1024U * 1024U;
+/// Предел заголовков ответа.
+constexpr std::size_t kMaxHttpHeaders = 16U * 1024U;
+
+/**
+ * @brief Значение Content-Length из заголовков ответа.
+ * @param headers Заголовки до пустой строки, без неё.
+ * @return Длина тела; nullopt — заголовка нет или значение не число.
+ */
+std::optional<std::size_t> contentLength(std::string_view headers) {
+    constexpr std::string_view kName = "content-length:";
+    std::size_t lineStart = 0;
+    while (lineStart < headers.size()) {
+        auto lineEnd = headers.find("\r\n", lineStart);
+        if (lineEnd == std::string_view::npos) {
+            lineEnd = headers.size();
+        }
+        const std::string_view line = headers.substr(lineStart, lineEnd - lineStart);
+        lineStart = lineEnd + 2;
+        if (line.size() < kName.size() ||
+            !std::ranges::equal(line.substr(0, kName.size()), kName, [](char a, char b) {
+                return std::tolower(static_cast<unsigned char>(a)) == b;
+            })) {
+            continue;
+        }
+        const std::string value = trim(line.substr(kName.size()));
+        if (value.empty() || !std::ranges::all_of(value, [](char c) { return c >= '0' && c <= '9'; }) ||
+            value.size() > 12) {
+            return std::nullopt;
+        }
+        return static_cast<std::size_t>(std::stoull(value));
+    }
+    return std::nullopt;
+}
+
+/**
+ * @brief Ответ HTTP целиком: заголовки, затем тело.
+ *
+ * Тело читается по Content-Length — ровно столько байт, без ожидания, пока сервер закроет
+ * соединение. Без Content-Length (и без заголовков вообще, так тоже бывает) — до закрытия
+ * соединения или паузы @p timeout. Ответ больше kMaxHttpResponse — ошибка.
+ * @return Текст ответа; пустой — сервер ничего не прислал.
+ */
+Result<std::string> readHttpResponse(Channel& channel, std::chrono::milliseconds timeout) {
+    std::string out;
+    std::optional<std::size_t> bodyStart;
+    while (!bodyStart) {
+        auto byte = channel.receive(1, timeout);
+        if (!byte) {
+            return out; // закрыто до конца заголовков: разбирают то, что есть
+        }
+        out.push_back(static_cast<char>((*byte)[0]));
+        if (out.ends_with("\r\n\r\n")) {
+            bodyStart = out.size();
+        } else if (out.size() > kMaxHttpHeaders) {
+            return makeError(ErrorCode::Remote, "the remote sent too long a response header");
+        }
+    }
+    if (const auto length = contentLength(std::string_view(out).substr(0, *bodyStart - 4))) {
+        if (*length > kMaxHttpResponse - out.size()) {
+            return makeError(ErrorCode::Remote, "the remote sent too large a response: %1 bytes",
+                             {std::to_string(*length)});
+        }
+        if (*length > 0) {
+            auto body = channel.receive(*length, timeout);
+            if (!body) {
+                return makeError(ErrorCode::Remote, "the remote sent an incomplete response");
+            }
+            out.append(body->begin(), body->end());
+        }
+        return out;
+    }
+    while (auto byte = channel.receive(1, timeout)) {
+        out.push_back(static_cast<char>((*byte)[0]));
+        if (out.size() > kMaxHttpResponse) {
+            return makeError(ErrorCode::Remote, "the remote sent too large a response: over %1 bytes",
+                             {std::to_string(kMaxHttpResponse)});
+        }
+    }
+    return out;
 }
 
 /// Код ответа HTTP («HTTP/1.0 404 …» → 404); 0 — ответ без строки статуса (так тоже бывает).
@@ -184,7 +259,11 @@ Result<std::string> readRemoteSetting(const std::string& host, std::string_view 
     if (auto sent = sendText(**channel, "GET " + std::string(endpoint) + " HTTP/1.0\r\n\r\n"); !sent) {
         return std::unexpected(std::move(sent.error()));
     }
-    const std::string response = readAll(**channel, kHttpTimeout);
+    auto read = readHttpResponse(**channel, kHttpTimeout);
+    if (!read) {
+        return std::unexpected(std::move(read.error()));
+    }
+    const std::string& response = *read;
     if (response.empty()) {
         return makeError(ErrorCode::Remote, "the remote did not answer the settings request %1", {std::string(endpoint)});
     }
@@ -208,8 +287,11 @@ Result<void> writeRemoteSetting(const std::string& host, std::string_view endpoi
     if (auto sent = sendText(**channel, request); !sent) {
         return sent;
     }
-    const std::string response = readAll(**channel, kHttpTimeout);
-    const int status = httpStatus(response);
+    auto read = readHttpResponse(**channel, kHttpTimeout);
+    if (!read) {
+        return std::unexpected(std::move(read.error()));
+    }
+    const int status = httpStatus(*read);
     if (status >= 400) {
         return makeError(ErrorCode::Remote, "the remote refused the setting %1 (HTTP %2)",
                          {std::string(endpoint), std::to_string(status)});

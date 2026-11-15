@@ -42,6 +42,8 @@ add_executable(harmony_tests
     transport/harmonyHidReaderTest.cpp
     transport/hubConfigReaderTest.cpp
     transport/remoteServicesTest.cpp
+    cliFilesTest.cpp
+    ../cli/src/cliFiles.cpp
     undo/undoStackTest.cpp
     undoEditsTest.cpp
 )
@@ -52,8 +54,8 @@ target_compile_definitions(harmony_tests PRIVATE
     HARMONY_SOURCE_DIR="${CMAKE_SOURCE_DIR}"
 )
 
+# harmony::core — через harmony::transport (PUBLIC), без дубля на строке линковки.
 target_link_libraries(harmony_tests PRIVATE
-    harmony::core
     harmony::transport
     GTest::gtest_main
     nlohmann_json::nlohmann_json
@@ -106,7 +108,7 @@ if(HARMONY_BUILD_APP)
         BASE "${PROJECT_SOURCE_DIR}/app/resources"
         FILES ${HARMONY_REMOTE_FILES} ${guiActivityIcons} "${PROJECT_SOURCE_DIR}/app/resources/i18n/harmony_ru.ts"
     )
-    target_link_libraries(harmony_gui_tests PRIVATE harmony::core harmony::transport Qt6::Widgets Qt6::Svg GTest::gtest)
+    target_link_libraries(harmony_gui_tests PRIVATE harmony::transport Qt6::Widgets Qt6::Svg GTest::gtest)
     harmony_set_warnings(harmony_gui_tests)
     add_test(NAME Gui.CommandDialog COMMAND harmony_gui_tests)
     set_tests_properties(Gui.CommandDialog PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen" TIMEOUT 900)

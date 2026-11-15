@@ -108,28 +108,44 @@
 
 ## Этап 4. Интерфейс
 
-- [ ] Автоматическая разметка зон: асинхронный `QProcess` с отменой вместо `waitForFinished(20000)` (`zoneEditorDialog.cpp:1186`).
+Сделано 15.11.2026, сборка и `ctest` прошли у владельца:
+- [x] Авто-зоны без блокировки окна: `QProcess` запускается асинхронно (`startAutoZones`), интерпретаторы пробуются по очереди (`python`, `py -3` или `HARMONY_AUTO_ZONES_PYTHON`). На время распознавания кнопка называется «Остановить авто-зоны», повторное нажатие отменяет (`stopAutoZones`). Распознавание останавливается и при закрытии окна, и при смене модели. Ограничения в 20 с больше нет. Результат всегда ложится в корпус, даже если в это время открыт экран.
 - [x] Редактор зон читает `remote.json` через `remoteResources::readRemote()`, файл разбирается один раз (этап 3a).
-- [ ] Статический кэш `shifts` (`remoteView.cpp:263`) сбрасывать по `resources::revision()`.
-- [ ] Вопрос «сохранить?» задавать после выбора файла: `mainWindow.cpp:311, 337, 425, 774, 1004`.
-- [ ] Палитру устройств (`remotePanel.cpp:99-103`) и зашитые цвета `remoteView.cpp` перенести в `theme`.
-- [ ] Ctrl в подсказках редактора зон подставлять через `labels::shortcut`.
+- [x] Кэш `shifts` в `drawCellIcon` (`remoteView.cpp`) сбрасывается по `resources::revision()`, как остальные кэши картинок.
+- [x] Вопрос «сохранить?» теперь задаётся в `openFolder()` после чтения файла, а не до выбора. Это касается меню «Недавние», окна «Открыть», стартового окна, файла из хаба и встроенного примера (`openDemo`). Если выбор отменён или файл не открылся, вопроса нет. Если пользователь сохранил правки, файл перечитывается, потому что он мог быть тем же. «Создать» уже спрашивал после выбора. «Закрыть», выход, перезапуск при смене языка и «Открыть отдельно» спрашивают сразу: выбора файла там нет.
+- [x] Цвета перенесены в `theme`:
+  - `theme::deviceColor(index)` заменил `RemotePanel::deviceColour`. Вызовы поправлены в `remotePanel`, `configView`, `activityDialog`, `buttonDialog`.
+  - Подсветка кнопок на фото: `RemoteDimFill`, `RemoteDimLine`, `RemoteBrokenFill`, `RemoteSelectedGlow`, `RemoteHoverLine`. Рамки «без команды» и «выбрана» берутся из тех же `RemoteBroken` и `RemoteSelected`, что образцы в легенде. Корпус без фото — `RemoteBody`.
+  - Цвета самого экрана пульта (градиенты 900, плитки, шапка) остались в `remoteView.cpp`: это оформление экрана, оно задаётся в `remote.json`. Значение по умолчанию вынесено в `DEFAULT_TILE_COLOUR`.
+- [x] Модификаторы в подсказках редактора зон подставляются из системы. Добавлена `labels::modifier()`: «Ctrl», «Shift», «Alt», на macOS — «⌘», «⇧», «⌥». Для «Выделить всё, затем Удалить» используется `labels::shortcut()`. Русский перевод обновлён.
+- Тесты:
+  - `ZoneEditorDialog.AutoZonesFlowVisibleOnCanvas` ждёт асинхронного завершения (до 60 с);
+  - новые: `ZoneEditorDialog.AutoZonesCanBeStopped` (без Python пропускается), `Theme.DeviceColoursRepeatAndNoDeviceIsGrey`, `Theme.RemoteOverlayColoursAreTranslucent`, `Labels.ModifierNamesHaveNoTrailingPlus`.
 
 ## Этап 5. Связь с пультом и CLI
 
-- [ ] `harmony900Link.cpp:165`: `size == 0` считать ошибкой; `ReadRegionDone` отправлять на всех путях выхода.
-- [ ] `tcpChannel.cpp:185`: повторять ожидание `connectTcp` после прерывания сигналом.
-- [ ] `remoteServices.cpp:33`: ограничение размера и чтение по `Content-Length`.
-- [ ] CLI `backup`: запись через временный файл и `rename`; суффикс к имени копии при совпадении.
+Сделано 15.11.2026, сборка и `ctest` прошли у владельца:
+- [x] `Harmony900Link::readConfig`: размер 0 — ошибка «пульт сообщил пустую конфигурацию». `ReadRegionDone` отправляет страж (`DoneGuard`) на любом выходе после `ReadRegion`: при ошибке размера, ошибке или пустой порции данных, отмене. Отправляется ровно один раз; при успехе ошибка `ReadRegionDone` по-прежнему возвращается.
+- [x] `tcpChannel.cpp`: ожидание сокета вынесено в `waitSocket()` с общим сроком. Прерванный сигналом `poll` ждёт остаток времени — и в `connectTcp`, и в `receive`. Прерванный сигналом неблокирующий `connect` (`EINTR`) ждётся так же, как `EINPROGRESS`.
+- [x] `remoteServices.cpp`: `readHttpResponse()` вместо `readAll()`. Тело читается по `Content-Length` (без ожидания закрытия соединения); без него — до закрытия или паузы, как раньше. Пределы: заголовки 16 КБ, ответ 1 МБ; больше или тело короче заявленного — ошибка.
+- [x] CLI `backup` и резервная копия перед `write`: запись через `<имя>.tmp` и `rename` (`cli/src/cliFiles.cpp`, `writeFileAtomic`). Если файл уже есть, копия получает номер: `backup-2.EZHex`, `backup-3.EZHex`…; утилита пишет, под каким именем сохранено.
+- Тесты:
+  - `Harmony900Link.ZeroConfigSizeIsAnError`, `ReadErrorMidwayLeavesReadMode`, `CancelledReadLeavesReadModeOnce`; в `ReadsConfigAsConcordanceBackup` — `ReadRegionDone` ровно один;
+  - `RemoteServices.BodyIsReadByContentLength`, `IncompleteBodyIsAnError`, `TooLargeResponseIsAnError`;
+  - `CliFiles.FreePathKeepsExistingFiles`, `WriteLeavesNoTemporaryFile`, `FailedWriteKeepsNothing` (новый `tests/cliFilesTest.cpp`).
+- Повтор `EINTR` проверить тестом нельзя (нужен настоящий сигнал во время `poll`), только чтением кода.
 
 ## Этап 6. Сборка и CI
 
-- [ ] Закрепить Actions по SHA, в первую очередь `softprops/action-gh-release`; включить Dependabot.
-- [ ] Вписать sha256 hidapi (`cmake/Dependencies.cmake:21`).
-- [ ] macOS выдаёт «ignoring duplicate libraries». Убрать прямое подключение `harmony::core`: оно и так приходит через `harmony::transport`. Места: `app/CMakeLists.txt:237`, `cli/CMakeLists.txt:5`, `tests/CMakeLists.txt:56`, `:109`.
-- [ ] libconcord под clang: добавить `-Wno-inconsistent-missing-override` для цели `harmony_concord`.
-- [ ] Тесты, где структуры инициализируются перечислением полей (`DeviceDraft`, `Packet`), при добавлении нового поля снова дадут `-Wmissing-field-initializers`. Такие места переводить на присваивание полей, когда будут правиться.
-- [ ] Windows в CI: ccache и кэш `_deps`. В ключ кэша добавить `third_party/libconcord/CMakeLists.txt`.
+Локальной сборкой эти пункты не проверить: результат покажет прогон CI (macOS, Windows, Dependabot).
+
+- [x] Закрепить Actions по SHA, в первую очередь `softprops/action-gh-release` (v3.0.3); заодно `jurplel/install-qt-action` (v4.5.0). Включён Dependabot (`.github/dependabot.yml`, еженедельно, одним PR).
+  - [ ] Осталось: `msys2/setup-msys2` и `actions/*` — полный SHA найти не удалось (нет доступа к GitHub), стоят теги. Узнать: `git ls-remote <repo> refs/tags/<тег>`.
+- [x] sha256 hidapi вписан (`cmake/Dependencies.cmake`); hidapi теперь качается архивом, git — только с `-DHARMONY_HIDAPI_FROM_GIT=ON`. Хеш взят из Buildroot/Flathub/Ubuntu, хеш подтверждён локальной сборкой win-release (hidapi скачан архивом, проверка прошла).
+- [x] «ignoring duplicate libraries» на macOS: прямое подключение `harmony::core` убрано из `app`, `cli`, `harmony_tests`, `harmony_gui_tests` (приходит через `harmony::transport`, PUBLIC). Проверка — лог линковки macOS.
+- [x] libconcord под clang: `-Wno-inconsistent-missing-override` для `harmony_concord`.
+- Правило: тесты, где структуры инициализируются перечислением полей (`DeviceDraft`, `Packet`), при добавлении нового поля снова дадут `-Wmissing-field-initializers`. Такие места переводить на присваивание полей, когда будут правиться.
+- [x] Windows в CI: ccache (`mingw-w64-x86_64-ccache`) и кэш `.ccache` + `_deps`, после сборки — `ccache --show-stats`. В ключ кэша всех задач добавлен `third_party/libconcord/CMakeLists.txt`.
 
 ## Этап 7. Разделение крупных файлов
 

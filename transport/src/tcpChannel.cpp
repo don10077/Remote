@@ -87,6 +87,29 @@ void suppressSigpipe([[maybe_unused]] Socket s) {
 }
 #endif
 
+/**
+ * @brief Дождаться события на сокете до срока; прерванный сигналом poll ждёт остаток времени.
+ * @param s Сокет.
+ * @param events POLLIN или POLLOUT.
+ * @param deadline Срок ожидания.
+ * @param revents Сюда записываются наступившие события (в том числе POLLERR, POLLHUP).
+ * @return > 0 — событие есть, 0 — срок вышел, < 0 — ошибка poll.
+ */
+int waitSocket(Socket s, short events, std::chrono::steady_clock::time_point deadline, short& revents) {
+    int ready = -1;
+    revents = 0;
+    do {
+        const auto left = std::chrono::duration_cast<std::chrono::milliseconds>(
+            deadline - std::chrono::steady_clock::now());
+        pollfd fd{};
+        fd.fd = s;
+        fd.events = events;
+        ready = pollSockets(&fd, 1, static_cast<int>(std::max<std::int64_t>(left.count(), 0)));
+        revents = fd.revents;
+    } while (ready < 0 && interrupted());
+    return ready;
+}
+
 /// Сколько ждать, пока пульт примет отправленное, прежде чем считать его зависшим.
 constexpr std::chrono::milliseconds kSendTimeout{10000};
 
@@ -123,16 +146,8 @@ public:
         while (got < count) {
             // Таймаут — на каждую порцию (см. Channel::receive); прерванный сигналом poll
             // продолжает ждать остаток, а не начинает заново.
-            const auto deadline = std::chrono::steady_clock::now() + timeout;
-            int ready = -1;
-            do {
-                const auto left = std::chrono::duration_cast<std::chrono::milliseconds>(
-                    deadline - std::chrono::steady_clock::now());
-                pollfd fd{};
-                fd.fd = socket_;
-                fd.events = POLLIN;
-                ready = pollSockets(&fd, 1, static_cast<int>(std::max<std::int64_t>(left.count(), 0)));
-            } while (ready < 0 && interrupted());
+            short revents = 0;
+            const int ready = waitSocket(socket_, POLLIN, std::chrono::steady_clock::now() + timeout, revents);
             if (ready == 0) {
                 return makeError(ErrorCode::Io, "the remote did not answer in time");
             }
@@ -174,15 +189,15 @@ Result<std::unique_ptr<Channel>> connectTcp(const std::string& host, std::uint16
         return makeError(ErrorCode::Io, "could not create a socket");
     }
     // Подключение с таймаутом: неблокирующий connect и ожидание готовности.
+    const auto deadline = std::chrono::steady_clock::now() + timeout;
     setBlocking(s, false);
     const int started = ::connect(s, found->ai_addr, static_cast<int>(found->ai_addrlen));
     freeaddrinfo(found);
     bool connected = started == 0;
-    if (!connected && connectInProgress()) {
-        pollfd fd{};
-        fd.fd = s;
-        fd.events = POLLOUT;
-        if (pollSockets(&fd, 1, static_cast<int>(timeout.count())) > 0 && (fd.revents & POLLOUT) != 0) {
+    // Прерванный сигналом неблокирующий connect не отменяется: подключение идёт дальше, его ждём так же.
+    if (!connected && (connectInProgress() || interrupted())) {
+        short revents = 0;
+        if (waitSocket(s, POLLOUT, deadline, revents) > 0 && (revents & POLLOUT) != 0) {
             int error = 0;
             socklen_t length = sizeof error;
             getsockopt(s, SOL_SOCKET, SO_ERROR, reinterpret_cast<char*>(&error), &length);

@@ -122,3 +122,36 @@ TEST(RemoteServices, SettingValueWithoutEnvelope) {
     EXPECT_EQ(settingValue("HTTP/1.0 200 OK\r\nX: y\r\n\r\n 25 \r\n"), "25");
     EXPECT_EQ(settingValue("Military"), "Military");
 }
+
+TEST(RemoteServices, BodyIsReadByContentLength) {
+    // Сервер не закрыл соединение: ответ заканчивается по Content-Length, а не по паузе.
+    auto script = std::make_shared<Script>();
+    say(*script, "HTTP/1.0 200 OK\r\ncontent-length: 34\r\n\r\n<Event><Value>60</Value></Event>\r\nextra bytes after the body");
+    auto value = readRemoteSetting("host", "/system/backlightlevel", factoryFor(script));
+    ASSERT_TRUE(value) << value.error().message;
+    EXPECT_EQ(*value, "60");
+    EXPECT_FALSE(script->toClient.empty()); // лишнее после тела не прочитано
+}
+
+TEST(RemoteServices, IncompleteBodyIsAnError) {
+    auto script = std::make_shared<Script>();
+    say(*script, "HTTP/1.0 200 OK\r\nContent-Length: 100\r\n\r\n<Value>1</Value>");
+    EXPECT_EQ(readRemoteSetting("host", "/system/sound", factoryFor(script)).error().code, ErrorCode::Remote);
+}
+
+TEST(RemoteServices, TooLargeResponseIsAnError) {
+    // Заявленный размер больше предела: тело не читается.
+    auto declared = std::make_shared<Script>();
+    say(*declared, "HTTP/1.0 200 OK\r\nContent-Length: 999999999\r\n\r\n");
+    EXPECT_EQ(readRemoteSetting("host", "/system/sound", factoryFor(declared)).error().code, ErrorCode::Remote);
+    // Без Content-Length чтение останавливается на пределе (1 МБ).
+    auto endless = std::make_shared<Script>();
+    say(*endless, "HTTP/1.0 200 OK\r\n\r\n");
+    say(*endless, std::string(1024U * 1024U + 16U, 'x'));
+    EXPECT_EQ(readRemoteSetting("host", "/system/sound", factoryFor(endless)).error().code, ErrorCode::Remote);
+    // Заголовки без конца тоже ограничены.
+    auto headers = std::make_shared<Script>();
+    say(*headers, "HTTP/1.0 200 OK\r\n");
+    say(*headers, std::string(32U * 1024U, 'h'));
+    EXPECT_EQ(readRemoteSetting("host", "/system/sound", factoryFor(headers)).error().code, ErrorCode::Remote);
+}

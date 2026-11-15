@@ -36,6 +36,7 @@ class QDoubleSpinBox;
 class QFormLayout;
 class QLineEdit;
 class QListWidget;
+class QProcess;
 class QPushButton;
 class QSpinBox;
 
@@ -84,6 +85,8 @@ public:
      * @param model id модели; неизвестная — первая из списка.
      */
     explicit ZoneEditorDialog(const QString& model, QWidget* parent = nullptr);
+    /// Останавливает незавершённое распознавание авто-зон.
+    ~ZoneEditorDialog() override;
 
     /**
      * @brief Поставить слою состояние из истории правок и показать этот слой.
@@ -163,8 +166,24 @@ private:
     void onModelChosen(int index);
 
     void addZone(const std::optional<QRectF>& drawn);
-    /// Распознать кнопки на фото (tools/autoZones.py) и добавить зоны в слой корпуса.
+    /**
+     * @brief Распознать кнопки на фото (tools/autoZones.py) и добавить зоны в слой корпуса.
+     *
+     * Скрипт запускается асинхронно: окно не блокируется, повторное нажатие кнопки отменяет
+     * распознавание. Если распознавание уже идёт, вызов его останавливает.
+     */
     void runAutoZones();
+    /// Запустить следующий интерпретатор из autoAttempts_; список пуст — сообщить, что Python не найден.
+    void startAutoZones();
+    /// Остановить распознавание: процесс завершается, его результат не применяется.
+    void stopAutoZones();
+    /// Вернуть кнопке «Авто-зоны» обычный вид после завершения или отмены.
+    void resetAutoAction();
+    /**
+     * @brief Добавить в корпус зоны из вывода скрипта.
+     * @param output JSON-массив рамок (stdout `autoZones.py --json`).
+     */
+    void applyAutoZones(const QByteArray& output);
     /// Выделить все зоны текущего слоя (Ctrl+A).
     void selectAll();
     void duplicateZones();
@@ -335,6 +354,13 @@ private:
     QPushButton* saveButton_ = nullptr;
     QAction* drawAction_ = nullptr;
     QAction* autoAction_ = nullptr;
+    /// Запуск интерпретатора для авто-зон: программа и аргументы.
+    struct AutoAttempt {
+        QString program;
+        QStringList arguments;
+    };
+    QList<AutoAttempt> autoAttempts_;           ///< интерпретаторы, которые ещё не пробовали
+    QProcess* autoProcess_ = nullptr;           ///< идущее распознавание; nullptr — не идёт
     QAction* selectAllAction_ = nullptr;
     QAction* duplicateAction_ = nullptr;
     QAction* deleteAction_ = nullptr;

@@ -82,4 +82,14 @@ QString errorText(const Error& error);
 /// @return Сочетание клавиш стандартного действия, как его пишет система («Ctrl+Z», на macOS «⌘Z»).
 QString shortcut(QKeySequence::StandardKey key);
 
+/**
+ * @brief Название клавиши-модификатора, как его пишет система.
+ *
+ * Для подсказок вида «Ctrl+стрелки»: на macOS Qt::ControlModifier — это клавиша Command,
+ * и подпись будет «⌘», а не «Ctrl».
+ * @param key Один модификатор (Qt::ControlModifier, Qt::ShiftModifier, Qt::AltModifier, Qt::MetaModifier).
+ * @return «Ctrl», «Shift», «Alt» (на macOS — «⌘», «⇧», «⌥»); без завершающего «+».
+ */
+QString modifier(Qt::KeyboardModifier key);
+
 } // namespace harmony::app::labels

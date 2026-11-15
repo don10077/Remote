@@ -6,11 +6,14 @@
 #   macOS   — Harmony-<версия>-macos.dmg (универсальный: Apple Silicon и Intel).
 # Тег v* (например, v0.2.0) — ещё и релиз на GitHub с этими файлами.
 #
-# TODO: закрепить actions по полному SHA коммита (uses: owner/action@<sha40> # vX.Y.Z),
-#       прежде всего сторонние (jurplel, msys2, softprops) и всё в job release (contents: write).
-#       Пока стоят теги: SHA без сети не узнать, выдумывать нельзя.
+# Сторонние actions закреплены по полному SHA коммита (owner/action@<sha40> # vX.Y.Z):
+#   softprops/action-gh-release — v3.0.3, jurplel/install-qt-action — v4.5.0.
+#   Обновляет их Dependabot (.github/dependabot.yml) — SHA и комментарий вместе.
+# TODO: закрепить msys2/setup-msys2 и actions/* так же (полный SHA — git ls-remote <repo> refs/tags/<тег>).
 #
 # Кэш: ccache (.ccache в рабочей папке) и исходники FetchContent (build/<пресет>/_deps) — через actions/cache.
+# Ключ зависит от файлов, где объявлены FetchContent: cmake/Dependencies.cmake и
+# third_party/libconcord/CMakeLists.txt (libzip для macOS).
 
 name: CI
 
@@ -52,9 +55,9 @@ jobs:
             .ccache
             build/core-only/_deps/*-src
             build/core-only/_deps/*-subbuild
-          key: build-${{ runner.os }}-${{ github.job }}-${{ hashFiles('cmake/Dependencies.cmake') }}-${{ github.sha }}
+          key: build-${{ runner.os }}-${{ github.job }}-${{ hashFiles('cmake/Dependencies.cmake', 'third_party/libconcord/CMakeLists.txt') }}-${{ github.sha }}
           restore-keys: |
-            build-${{ runner.os }}-${{ github.job }}-${{ hashFiles('cmake/Dependencies.cmake') }}-
+            build-${{ runner.os }}-${{ github.job }}-${{ hashFiles('cmake/Dependencies.cmake', 'third_party/libconcord/CMakeLists.txt') }}-
       - name: Настройка
         run: cmake --preset core-only
       - name: Сборка
@@ -79,9 +82,9 @@ jobs:
             .ccache
             build/core-only/_deps/*-src
             build/core-only/_deps/*-subbuild
-          key: build-${{ runner.os }}-${{ github.job }}-${{ hashFiles('cmake/Dependencies.cmake') }}-${{ github.sha }}
+          key: build-${{ runner.os }}-${{ github.job }}-${{ hashFiles('cmake/Dependencies.cmake', 'third_party/libconcord/CMakeLists.txt') }}-${{ github.sha }}
           restore-keys: |
-            build-${{ runner.os }}-${{ github.job }}-${{ hashFiles('cmake/Dependencies.cmake') }}-
+            build-${{ runner.os }}-${{ github.job }}-${{ hashFiles('cmake/Dependencies.cmake', 'third_party/libconcord/CMakeLists.txt') }}-
       # GoogleTest и pugixml — из исходников: системные собраны под libstdc++.
       - name: Настройка
         run: >-
@@ -110,9 +113,9 @@ jobs:
             .ccache
             build/asan-ubsan/_deps/*-src
             build/asan-ubsan/_deps/*-subbuild
-          key: build-${{ runner.os }}-${{ github.job }}-${{ hashFiles('cmake/Dependencies.cmake') }}-${{ github.sha }}
+          key: build-${{ runner.os }}-${{ github.job }}-${{ hashFiles('cmake/Dependencies.cmake', 'third_party/libconcord/CMakeLists.txt') }}-${{ github.sha }}
           restore-keys: |
-            build-${{ runner.os }}-${{ github.job }}-${{ hashFiles('cmake/Dependencies.cmake') }}-
+            build-${{ runner.os }}-${{ github.job }}-${{ hashFiles('cmake/Dependencies.cmake', 'third_party/libconcord/CMakeLists.txt') }}-
       - name: Настройка
         run: cmake --preset asan-ubsan
       - name: Сборка
@@ -138,9 +141,9 @@ jobs:
             .ccache
             build/fuzz/_deps/*-src
             build/fuzz/_deps/*-subbuild
-          key: build-${{ runner.os }}-${{ github.job }}-${{ hashFiles('cmake/Dependencies.cmake') }}-${{ github.sha }}
+          key: build-${{ runner.os }}-${{ github.job }}-${{ hashFiles('cmake/Dependencies.cmake', 'third_party/libconcord/CMakeLists.txt') }}-${{ github.sha }}
           restore-keys: |
-            build-${{ runner.os }}-${{ github.job }}-${{ hashFiles('cmake/Dependencies.cmake') }}-
+            build-${{ runner.os }}-${{ github.job }}-${{ hashFiles('cmake/Dependencies.cmake', 'third_party/libconcord/CMakeLists.txt') }}-
       - name: Настройка
         run: cmake --preset fuzz -DCMAKE_C_COMPILER=clang-19 -DCMAKE_CXX_COMPILER=clang++-19
       - name: Сборка
@@ -170,7 +173,7 @@ jobs:
             libxcb-cursor0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 \
             libxcb-shape0 libxcb-xinerama0 libxcb-xkb1
       # Qt 6.5+ нужен программе, а в Ubuntu 24.04 только 6.4 — берём официальную сборку Qt.
-      - uses: jurplel/install-qt-action@v4
+      - uses: jurplel/install-qt-action@b344308e4483fc892e0d27b3cd1b173ebdd95f06 # v4.5.0
         with:
           version: ${{ env.QT_VERSION }}
           cache: true
@@ -180,9 +183,9 @@ jobs:
             .ccache
             build/release/_deps/*-src
             build/release/_deps/*-subbuild
-          key: build-${{ runner.os }}-${{ github.job }}-${{ hashFiles('cmake/Dependencies.cmake') }}-${{ github.sha }}
+          key: build-${{ runner.os }}-${{ github.job }}-${{ hashFiles('cmake/Dependencies.cmake', 'third_party/libconcord/CMakeLists.txt') }}-${{ github.sha }}
           restore-keys: |
-            build-${{ runner.os }}-${{ github.job }}-${{ hashFiles('cmake/Dependencies.cmake') }}-
+            build-${{ runner.os }}-${{ github.job }}-${{ hashFiles('cmake/Dependencies.cmake', 'third_party/libconcord/CMakeLists.txt') }}-
       - name: Настройка
         run: cmake --preset release
       - name: Сборка
@@ -222,6 +225,7 @@ jobs:
             mingw-w64-x86_64-toolchain
             mingw-w64-x86_64-cmake
             mingw-w64-x86_64-ninja
+            mingw-w64-x86_64-ccache
             mingw-w64-x86_64-qt6-base
             mingw-w64-x86_64-qt6-svg
             mingw-w64-x86_64-qt6-translations
@@ -230,12 +234,25 @@ jobs:
             mingw-w64-x86_64-pkgconf
             mingw-w64-x86_64-pugixml
             mingw-w64-x86_64-nsis
+      # ccache из MSYS2 находит корневой CMakeLists.txt (HARMONY_USE_CCACHE), CCACHE_DIR — из env.
+      - uses: actions/cache@v5
+        with:
+          path: |
+            .ccache
+            build/release/_deps/*-src
+            build/release/_deps/*-subbuild
+          key: build-${{ runner.os }}-${{ github.job }}-${{ hashFiles('cmake/Dependencies.cmake', 'third_party/libconcord/CMakeLists.txt') }}-${{ github.sha }}
+          restore-keys: |
+            build-${{ runner.os }}-${{ github.job }}-${{ hashFiles('cmake/Dependencies.cmake', 'third_party/libconcord/CMakeLists.txt') }}-
       # Пресеты win-* живут в локальном CMakeUserPresets.json; здесь MSYS2 уже в PATH,
       # поэтому подходит обычный release.
       - name: Настройка
         run: cmake --preset release
       - name: Сборка
         run: cmake --build --preset release
+      # Попадания в кэш: со второго прогона hits должно быть большинство.
+      - name: Статистика ccache
+        run: ccache --show-stats
       - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
@@ -272,7 +289,7 @@ jobs:
       - name: Пакеты
         run: brew install ninja ccache
       # Официальная сборка Qt — универсальная (arm64 + x86_64), в отличие от Homebrew.
-      - uses: jurplel/install-qt-action@v4
+      - uses: jurplel/install-qt-action@b344308e4483fc892e0d27b3cd1b173ebdd95f06 # v4.5.0
         with:
           version: ${{ env.QT_VERSION }}
           cache: true
@@ -282,9 +299,9 @@ jobs:
             .ccache
             build/release/_deps/*-src
             build/release/_deps/*-subbuild
-          key: build-${{ runner.os }}-${{ github.job }}-${{ hashFiles('cmake/Dependencies.cmake') }}-${{ github.sha }}
+          key: build-${{ runner.os }}-${{ github.job }}-${{ hashFiles('cmake/Dependencies.cmake', 'third_party/libconcord/CMakeLists.txt') }}-${{ github.sha }}
           restore-keys: |
-            build-${{ runner.os }}-${{ github.job }}-${{ hashFiles('cmake/Dependencies.cmake') }}-
+            build-${{ runner.os }}-${{ github.job }}-${{ hashFiles('cmake/Dependencies.cmake', 'third_party/libconcord/CMakeLists.txt') }}-
       - name: Настройка
         run: cmake --preset release -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64"
       - name: Сборка
@@ -328,10 +345,10 @@ jobs:
       - name: Package checksums
         working-directory: packages
         run: sha256sum * > SHA256SUMS.txt
-      # TODO: закрепить по SHA — сторонний action с правом contents: write.
+      # Закреплён по SHA: сторонний action с правом contents: write.
       # Описание — из .github/release-notes.md (обновлять к каждому выпуску);
       # версии 0.x — предварительные (pre-release).
-      - uses: softprops/action-gh-release@v3
+      - uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
         with:
           files: packages/*
           fail_on_unmatched_files: true

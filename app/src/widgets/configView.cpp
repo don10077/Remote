@@ -8,6 +8,7 @@
 
 #include "../icons.h"
 #include "../labels.h"
+#include "../theme.h"
 #include "../modern/activityIcon.h"
 #include "../modern/modernShell.h"
 #include "../modern/remotePanel.h"
@@ -606,7 +607,7 @@ void ConfigView::fillSidebar() {
                 item.meta = tr("not sent · %1").arg(item.meta);
             }
             item.icon = icons::deviceType(device.type);
-            item.colour = RemotePanel::deviceColour(i); // как кнопки этого устройства на пульте
+            item.colour = theme::deviceColor(i); // как кнопки этого устройства на пульте
             item.tileTooltip = labels::deviceType(device.type);
             item.tooltip = QString("<b>%1</b><br>%2 · %3")
                                .arg(item.label.toHtmlEscaped(), labels::deviceType(device.type),
@@ -743,7 +744,7 @@ void ConfigView::showActivity(int index) {
         const int colourIndex = deviceIndex(*config_, deviceId);
         // Цветная метка — тот же цвет, что кнопки устройства на пульте.
         devices->item(row, 0)->setIcon(
-            icons::make(icons::Icon::Dot, RemotePanel::deviceColour(colourIndex)));
+            icons::make(icons::Icon::Dot, theme::deviceColor(colourIndex)));
     };
     for (const auto& deviceId : activity.powerOn) {
         addDevice(deviceId, tr("turns on"));

@@ -31,6 +31,10 @@ add_library(harmony_concord STATIC
     remote_z_learn/single.cpp remote_z_learn/stream.cpp)
 set_target_properties(harmony_concord PROPERTIES CXX_STANDARD 17 CXX_EXTENSIONS ON)
 target_compile_definitions(harmony_concord PRIVATE WANT_HIDAPI=1)
+# Clang (и AppleClang) ругается на смесь override и его отсутствия в чужих классах; код не правим.
+if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    target_compile_options(harmony_concord PRIVATE -Wno-inconsistent-missing-override)
+endif()
 target_include_directories(harmony_concord SYSTEM PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
 target_link_libraries(harmony_concord PRIVATE hidapi::hidapi harmony_zip)
 if(WIN32)

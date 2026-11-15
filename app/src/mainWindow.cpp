@@ -334,8 +334,8 @@ void MainWindow::createActions() {
         dialog.exec();
         // Прочитанный с хаба файл сразу открывается в редакторе.
         const QString hubFile = dialog.hubFile();
-        if (!hubFile.isEmpty() && confirmDiscard()) {
-            openFolder(hubFile);
+        if (!hubFile.isEmpty()) {
+            openFolder(hubFile); // о несохранённых правках спросит после чтения файла
         }
     });
     chooseRemoteAction_ = connectionMenu->addAction(tr("Change target remote…"));
@@ -421,11 +421,7 @@ void MainWindow::createMenuBar(const QList<QAction*>& openActions, QAction* quit
         const QStringList list = library::recent();
         for (const QString& path : list) {
             QAction* action = recent->addAction(QDir::toNativeSeparators(path));
-            connect(action, &QAction::triggered, this, [this, path] {
-                if (confirmDiscard()) {
-                    openFolder(path);
-                }
-            });
+            connect(action, &QAction::triggered, this, [this, path] { openFolder(path); });
         }
         if (list.isEmpty()) {
             recent->addAction(tr("(empty)"))->setEnabled(false);
@@ -776,9 +772,7 @@ void MainWindow::showStartDialog() {
     }
     switch (dialog.choice()) {
     case StartDialog::Choice::Open:
-        if (confirmDiscard()) {
-            openFolder(dialog.folder());
-        }
+        openFolder(dialog.folder());
         break;
     case StartDialog::Choice::Create:
         createConfig();
@@ -837,9 +831,7 @@ void MainWindow::browseConfig() {
         return; // пользователь передумал
     }
     library::setLastDialogDir(QFileInfo(path).absolutePath());
-    if (confirmDiscard()) {
-        openFolder(path);
-    }
+    openFolder(path);
 }
 
 bool MainWindow::openFolder(const QString& folder) {
@@ -852,6 +844,19 @@ bool MainWindow::openFolder(const QString& folder) {
         QMessageBox::warning(this, tr("Could not open"),
                              labels::errorText(document.error()));
         return false;
+    }
+    // О несохранённых правках — когда файл уже прочитан: при ошибке открытия вопрос был бы зря.
+    const bool hadChanges = document_ && !undoStack_.isClean();
+    if (!confirmDiscard()) {
+        return false;
+    }
+    if (hadChanges && undoStack_.isClean()) {
+        // Правки сохранены, возможно, в этот же файл: прочитанное до сохранения устарело.
+        document = ConfigDocument::open(toPath(folder));
+        if (!document) {
+            QMessageBox::warning(this, tr("Could not open"), labels::errorText(document.error()));
+            return false;
+        }
     }
     library::touch(fromPath(document->location()));
     const bool isHub = document->backend()->format() == ConfigFormat::Hub;
@@ -1006,12 +1011,12 @@ void MainWindow::matchStockHubDevices(const irdb::IrDatabase& database) {
 }
 
 void MainWindow::openDemo() {
-    if (!confirmDiscard()) {
-        return;
-    }
     auto document = loadDemo(tr("Example configuration"));
     if (!document) {
         QMessageBox::warning(this, tr("Example"), labels::errorText(document.error()));
+        return;
+    }
+    if (!confirmDiscard()) {
         return;
     }
     showDocument(std::move(*document));

@@ -72,12 +72,6 @@ public:
     /// Вернуть экран пульта после пересборки панели (пустой — экран по умолчанию).
     void setScreenMode(const QString& mode);
 
-    /**
-     * @brief Цвет устройства: тот же на пульте, в легенде и на плитке боковой панели.
-     * @param index Индекс устройства в конфигурации; < 0 — серый.
-     */
-    static QColor deviceColour(int index);
-
 signals:
     void hardKeyClicked(const QString& key); ///< Щелчок по аппаратной кнопке
     void softButtonClicked(int position);    ///< Щелчок по экранной кнопке

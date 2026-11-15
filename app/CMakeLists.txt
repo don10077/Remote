@@ -233,8 +233,9 @@ if(APPLE)
     set_target_properties(harmony_app PROPERTIES OUTPUT_NAME "Harmony")
 endif()
 
+# harmony::core приходит через harmony::transport (PUBLIC); прямая ссылка дала бы
+# libharmony_core.a дважды и «ignoring duplicate libraries» у линкера macOS.
 target_link_libraries(harmony_app PRIVATE
-    harmony::core
     harmony::transport
     Qt6::Widgets
     Qt6::Svg      # SVG-картинки экранов из resources/sprites

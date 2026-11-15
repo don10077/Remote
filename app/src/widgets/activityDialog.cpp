@@ -7,6 +7,7 @@
 
 #include "../icons.h"
 #include "../labels.h"
+#include "../theme.h"
 #include "../nameCheck.h"
 #include "../modern/activityIcon.h"
 #include "../modern/remotePanel.h"
@@ -105,7 +106,7 @@ ActivityDialog::ActivityDialog(const model::RemoteConfig& config, const model::A
     for (int i = 0; i < static_cast<int>(config_.devices.size()); ++i) {
         const auto& device = config_.devices[static_cast<std::size_t>(i)];
         // Цветная метка — тот же цвет, что у кнопок устройства на пульте.
-        auto* item = new QListWidgetItem(icons::make(icons::Icon::Dot, RemotePanel::deviceColour(i)),
+        auto* item = new QListWidgetItem(icons::make(icons::Icon::Dot, theme::deviceColor(i)),
                                          QString::fromStdString(device.displayName()) + "  ·  " +
                                              labels::deviceType(device.type));
         item->setData(kDeviceIdRole, QString::fromStdString(device.id));

@@ -270,4 +270,17 @@ QString shortcut(QKeySequence::StandardKey key) {
     return QKeySequence(key).toString(QKeySequence::NativeText);
 }
 
+QString modifier(Qt::KeyboardModifier key) {
+    // Один модификатор Qt не печатает, поэтому берём сочетание с «A» и отрезаем клавишу:
+    // «Ctrl+A» → «Ctrl», на macOS «⌘A» → «⌘».
+    QString text = QKeySequence(QKeyCombination(key, Qt::Key_A)).toString(QKeySequence::NativeText);
+    if (text.endsWith(QLatin1Char('A'))) {
+        text.chop(1);
+    }
+    if (text.endsWith(QLatin1Char('+'))) {
+        text.chop(1);
+    }
+    return text;
+}
+
 } // namespace harmony::app::labels

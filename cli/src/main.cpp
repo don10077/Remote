@@ -13,6 +13,7 @@
 
 #include "harmony/core/configDiff.h"
 #include "harmony/core/formats/hubConfig.h"
+#include "cliFiles.h"
 #include "transferCommands.h"
 #include "hubCommands.h"
 #include "harmony/core/configDocument.h"
@@ -109,6 +110,7 @@ void printUsage(std::ostream& out) {
         << "                                   original remote (the remote learns each button)\n"
         << "  harmony-cli remote               information about the connected remote\n"
         << "  harmony-cli backup <file.EZHex>  read the configuration from the remote into a file\n"
+        << "                                   (an existing file is kept: a number is added to the name)\n"
         << "  harmony-cli write <path> --yes [--force]\n"
         << "                                   write the configuration to the remote; before that\n"
         << "                                   the remote's current configuration is saved to\n"
@@ -299,12 +301,29 @@ bool printProgress(harmony::transport::Stage stage, std::size_t done, std::size_
     return true;
 }
 
-/// Записывает байты в файл; false — не удалось, в том числе при сбросе буфера на диск.
-bool writeFile(const std::filesystem::path& path, const std::vector<std::uint8_t>& bytes) {
-    std::ofstream file(path, std::ios::binary);
-    file.write(reinterpret_cast<const char*>(bytes.data()), static_cast<std::streamsize>(bytes.size()));
-    file.close();
-    return !file.fail();
+/**
+ * @brief Сохранить резервную копию, не затирая существующий файл.
+ *
+ * Если файл с таким именем уже есть, к имени добавляется номер (freePath); запись — через
+ * временный файл (writeFileAtomic), поэтому при сбое на диске не остаётся недописанной копии.
+ * @param wanted Желаемое имя.
+ * @param bytes Содержимое.
+ * @return Путь, куда записано; пусто — не удалось (сообщение уже напечатано).
+ */
+std::filesystem::path saveCopy(const std::filesystem::path& wanted, const std::vector<std::uint8_t>& bytes) {
+    const std::filesystem::path path = harmony::cli::freePath(wanted);
+    if (path.empty()) {
+        std::cerr << "Error: no free file name next to " << wanted.string() << "\n";
+        return {};
+    }
+    if (!harmony::cli::writeFileAtomic(path, bytes)) {
+        std::cerr << "Error: could not write the file " << path.string() << "\n";
+        return {};
+    }
+    if (path != wanted) {
+        std::cout << wanted.string() << " already exists, saved under another name.\n";
+    }
+    return path;
 }
 
 /// Подключается к пульту и печатает, что за пульт.
@@ -687,11 +706,11 @@ int runBackup(const std::filesystem::path& file, const std::string& host) {
         std::cerr << "Error: " << ezhex.error().message << "\n";
         return 2;
     }
-    if (!writeFile(file, *ezhex)) {
-        std::cerr << "Error: could not write the file\n";
+    const std::filesystem::path saved = saveCopy(file, *ezhex);
+    if (saved.empty()) {
         return 2;
     }
-    std::cout << "Saved: " << ezhex->size() << " bytes\n";
+    std::cout << "Saved: " << saved.string() << " (" << ezhex->size() << " bytes)\n";
     return 0;
 }
 
@@ -733,15 +752,16 @@ int runWrite(const std::filesystem::path& path, const std::string& host, bool fo
     char stamp[32] = {};
     const std::time_t now = std::time(nullptr);
     std::strftime(stamp, sizeof stamp, "%Y%m%d-%H%M%S", std::localtime(&now));
-    const std::filesystem::path backup = std::string("harmony-backup-") + stamp + ".EZHex";
+    const std::filesystem::path wantedBackup = std::string("harmony-backup-") + stamp + ".EZHex";
     auto current = link.readConfig(printProgress);
     std::cout << "\n";
     if (!current) {
         std::cerr << "Error: " << current.error().message << " — writing cancelled\n";
         return 2;
     }
-    if (!writeFile(backup, *current)) {
-        std::cerr << "Error: could not save the backup " << backup.string() << " — writing cancelled\n";
+    const std::filesystem::path backup = saveCopy(wantedBackup, *current);
+    if (backup.empty()) {
+        std::cerr << "Error: could not save the backup — writing cancelled\n";
         return 2;
     }
     std::cout << "Backup: " << backup.string() << "\n";

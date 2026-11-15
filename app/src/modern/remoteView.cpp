@@ -1,5 +1,6 @@
 #include "remoteView.h"
 #include "../remoteResources.h"
+#include "../theme.h"
 
 #include "activityIcon.h"
 #include "harmony/core/remoteProfile.h"
@@ -35,6 +36,7 @@
 
 using harmony::app::RemoteView;
 namespace resources = harmony::app::remoteResources;
+namespace theme = harmony::app::theme;
 
 namespace {
 
@@ -70,21 +72,15 @@ constexpr qreal LCD_ROW_H = 62.0;
 constexpr qreal LCD_ROW_GAP = 8.0;
 constexpr qreal LCD_PAD = 8.0;
 
-// overlay colours
-const QColor DIM_FILL(20, 22, 26, 158);
-const QColor DIM_LINE(255, 255, 255, 75);
-const QColor BROKEN_FILL(229, 72, 77, 64);
-const QColor BROKEN_LINE(255, 90, 82);
-const QColor SELECT_LINE(138, 184, 255);
-const QColor SELECT_GLOW(138, 184, 255, 90);
-const QColor HOVER_LINE(255, 255, 255, 140);
+/// Цвет плиток и фона экрана по умолчанию (классический экран 900), если в remote.json цвет не задан.
+const QColor DEFAULT_TILE_COLOUR("#0b3442");
 
 /** pill with the look of the Harmony LCD buttons */
 void paintPill(QPainter& p, const QRectF& r, bool selected, bool hover,
-               const QColor& base = QColor("#0b3442"), const QColor& border = QColor("#ffffff")) {
+               const QColor& base = DEFAULT_TILE_COLOUR, const QColor& border = QColor("#ffffff")) {
     // Цвета по умолчанию (из remote.json) дают классический вид пульта; другой цвет плитки
     // и рамки перекрашивает плитку, сохраняя объём (светлый верх, тёмный низ).
-    const bool customFill = base.isValid() && base != QColor("#0b3442");
+    const bool customFill = base.isValid() && base != DEFAULT_TILE_COLOUR;
     const bool customBorder = border.isValid() && border != QColor("#ffffff");
     QLinearGradient fill(r.topLeft(), r.bottomLeft());
     fill.setColorAt(0.0, customFill ? base.lighter(190) : QColor("#1f5a6c"));
@@ -109,7 +105,7 @@ void paintPill(QPainter& p, const QRectF& r, bool selected, bool hover,
 void paintLcdBackdrop(QPainter& p, qreal w, qreal h) {
     QRadialGradient bg(QPointF(w / 2.0, h * 0.55), h * 0.62);
     bg.setColorAt(0.0, QColor("#1d7087"));
-    bg.setColorAt(0.5, QColor("#0b3442"));
+    bg.setColorAt(0.5, DEFAULT_TILE_COLOUR);
     bg.setColorAt(1.0, QColor("#031017"));
     p.fillRect(QRectF(0, 0, w, h), bg);
 }
@@ -263,7 +259,10 @@ void drawCellIcon(QPainter& p, const QRectF& rect, const CellContent& cell, qrea
         const QSizeF scaled = QSizeF(pixmap.size()).scaled(rect.size(), Qt::KeepAspectRatio);
         // у значков прошивки прозрачные поля неравные (слева шире), поэтому по горизонтали
         // центрируется непрозрачная часть, а не вся картинка
-        static QHash<qint64, qreal> shifts; // cacheKey → сдвиг центра в долях ширины
+        // cacheKey → сдвиг центра в долях ширины; после перечитывания ресурсов значки новые, кэш сбрасывается
+        static QHash<qint64, qreal> shifts;
+        static quint64 version = 0;
+        if (version != resources::revision()) { shifts.clear(); version = resources::revision(); }
         auto shift = shifts.constFind(pixmap.cacheKey());
         if (shift == shifts.cend()) {
             const QImage alpha = pixmap.toImage().convertToFormat(QImage::Format_ARGB32);
@@ -1067,7 +1066,7 @@ void RemoteView::paintEvent(QPaintEvent*) {
     } else {
         // resource missing: keep the widget usable with a plain body
         p.setPen(Qt::NoPen);
-        p.setBrush(QColor("#15171a"));
+        p.setBrush(theme::color(theme::Color::RemoteBody));
         p.drawRoundedRect(target, 40 * scale(), 40 * scale());
     }
 
@@ -1106,13 +1105,13 @@ void RemoteView::paintZones(QPainter& p) const {
             const KeyState state = deviceKeys.value(zone.id, KeyState::Free);
             if (state == KeyState::Free) {
                 // free key: darken the photo and outline dashed
-                p.setBrush(DIM_FILL);
-                QPen pen(DIM_LINE, 1.0, Qt::DashLine);
+                p.setBrush(theme::color(theme::Color::RemoteDimFill));
+                QPen pen(theme::color(theme::Color::RemoteDimLine), 1.0, Qt::DashLine);
                 p.setPen(pen);
                 p.drawRoundedRect(r, radius, radius);
             } else if (state == KeyState::Broken) {
-                p.setBrush(BROKEN_FILL);
-                p.setPen(QPen(BROKEN_LINE, 2.0));
+                p.setBrush(theme::color(theme::Color::RemoteBrokenFill));
+                p.setPen(QPen(theme::color(theme::Color::RemoteBroken), 2.0));
                 p.drawRoundedRect(r, radius, radius);
             }
         } else if (isKey && currentMode == Mode::Activity) {
@@ -1125,21 +1124,21 @@ void RemoteView::paintZones(QPainter& p) const {
                 p.setPen(QPen(colour, 2.0));
                 p.drawRoundedRect(r, radius, radius);
             } else {
-                p.setBrush(DIM_FILL);
-                p.setPen(QPen(DIM_LINE, 1.0, Qt::DashLine));
+                p.setBrush(theme::color(theme::Color::RemoteDimFill));
+                p.setPen(QPen(theme::color(theme::Color::RemoteDimLine), 1.0, Qt::DashLine));
                 p.drawRoundedRect(r, radius, radius);
             }
         }
 
         if (selected) {
             p.setBrush(Qt::NoBrush);
-            p.setPen(QPen(SELECT_GLOW, 6.0));
+            p.setPen(QPen(theme::color(theme::Color::RemoteSelectedGlow), 6.0));
             p.drawRoundedRect(r, radius, radius);
-            p.setPen(QPen(SELECT_LINE, 2.0));
+            p.setPen(QPen(theme::color(theme::Color::RemoteSelected), 2.0));
             p.drawRoundedRect(r, radius, radius);
         } else if (zone.id == hoverId) {
             p.setBrush(Qt::NoBrush);
-            p.setPen(QPen(HOVER_LINE, 1.5));
+            p.setPen(QPen(theme::color(theme::Color::RemoteHoverLine), 1.5));
             p.drawRoundedRect(r, radius, radius);
         }
     }
@@ -1156,7 +1155,9 @@ void RemoteView::paintModernScreen(QPainter& p) {
     const auto ref = layout.value("ref").toArray();
     const QRectF lcd = toWidget(screenRect());
     if (ref.size() != 2 || ref[0].toDouble() <= 0 || ref[1].toDouble() <= 0) {
-        p.fillRect(lcd, QColor(138, 184, 255, 60));
+        QColor place = theme::color(theme::Color::RemoteSelected); // экран без размеров: только его место
+        place.setAlpha(60);
+        p.fillRect(lcd, place);
         return;
     }
     // Единая схема для всех пультов, без имён раскладок:
@@ -1184,15 +1185,15 @@ QString RemoteView::serviceText(const QString& id, const QJsonObject& layout) co
 
 void RemoteView::paintGridScreen(QPainter& p, const QJsonObject& layout) {
     // Единый рендерер экранов remote.json: фон — картинка или заливка цветом,
-    // плитки — картинка или «таблетка» цветом с рамкой (по умолчанию #0b3442 и белая).
+    // плитки — картинка или «таблетка» цветом с рамкой (по умолчанию DEFAULT_TILE_COLOUR и белая).
     const auto ref = layout.value("ref").toArray();
     const qreal refW = ref[0].toDouble();
     const qreal refH = ref[1].toDouble();
     const QRectF lcd = toWidget(screenRect());
     const auto background = layout.value("background").toObject();
     const auto cellStyle = tileStyle(layout, tiles);
-    const QColor bgColor(background.value("color").toString("#0b3442"));
-    const QColor cellColor(cellStyle.value("color").toString("#0b3442"));
+    const QColor bgColor(background.value("color").toString(DEFAULT_TILE_COLOUR.name()));
+    const QColor cellColor(cellStyle.value("color").toString(DEFAULT_TILE_COLOUR.name()));
     const QColor borderColor(cellStyle.value("border").toString("#ffffff"));
     const auto loadImage = [](const QString& file) {
         return file.isEmpty() ? QImage() : QImage::fromData(resources::data(":/res/" + file));
@@ -1218,7 +1219,7 @@ void RemoteView::paintGridScreen(QPainter& p, const QJsonObject& layout) {
     const bool glass = !background.contains("image");
     if (!bgImage.isNull()) p.drawImage(QRectF(0, 0, refW, refH), bgImage);
     else if (glass) {
-        if (bgColor == QColor("#0b3442")) paintLcdBackdrop(p, refW, refH);
+        if (bgColor == DEFAULT_TILE_COLOUR) paintLcdBackdrop(p, refW, refH);
         else {
             QRadialGradient glow(QPointF(refW / 2.0, refH * 0.55), refH * 0.62);
             glow.setColorAt(0.0, bgColor.lighter(190));

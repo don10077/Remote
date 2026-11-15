@@ -64,6 +64,7 @@ struct FakeRemote {
     int refused = 0;
     std::size_t readOffset = 0;
     std::uint32_t reportedSize = 0; ///< Не 0 — какой размер конфигурации назвать вместо настоящего
+    bool reportZeroSize = false;    ///< Назвать размер конфигурации 0 (сбой обмена)
     std::vector<std::uint8_t> timeParams; ///< Коды длины параметров UPDATE_TIME
     int learnTimeouts = 0;                 ///< Сколько раз ответить «сигнала не было»
     std::vector<std::uint16_t> learnWords; ///< Слова сигнала, как их шлёт пульт
@@ -84,7 +85,10 @@ struct FakeRemote {
             break;
         case Command::ReadRegion:
             readOffset = 0;
-            reply.params = {usbnet::number(reportedSize != 0 ? reportedSize : static_cast<std::uint32_t>(region.size()), 4)};
+            reply.params = {usbnet::number(reportZeroSize      ? 0U
+                                           : reportedSize != 0 ? reportedSize
+                                                               : static_cast<std::uint32_t>(region.size()),
+                                           4)};
             break;
         case Command::ReadRegionData: {
             const std::size_t length = std::min<std::size_t>(1024, region.size() - readOffset);
@@ -256,6 +260,7 @@ TEST(Harmony900Link, ReadsConfigAsConcordanceBackup) {
     EXPECT_EQ(*ezhex, sampleEzHex()); // байт в байт как резервная копия concordance
     EXPECT_EQ(lastDone, remote->region.size());
     EXPECT_EQ(remote->commands.back(), Command::ReadRegionDone);
+    EXPECT_EQ(std::ranges::count(remote->commands, Command::ReadRegionDone), 1);
 }
 
 TEST(Harmony900Link, Reads1100VariantsWithoutChangingTheirIdentity) {
@@ -320,6 +325,49 @@ TEST(Harmony900Link, RejectsImplausibleConfigSize) {
     EXPECT_EQ(ezhex.error().code, ErrorCode::Remote);
     EXPECT_EQ(std::ranges::count(remote->commands, Command::ReadRegionData), 0);
     EXPECT_EQ(remote->commands.back(), Command::ReadRegionDone); // пульт выведен из режима чтения
+}
+
+TEST(Harmony900Link, ZeroConfigSizeIsAnError) {
+    auto remote = remoteWithSample();
+    remote->reportZeroSize = true; // пустой конфигурации не бывает: это сбой, а не пустой файл
+    auto link = linkTo(remote);
+    ASSERT_TRUE(link.connect({}));
+
+    auto ezhex = link.readConfig({});
+
+    ASSERT_FALSE(ezhex);
+    EXPECT_EQ(ezhex.error().code, ErrorCode::Remote);
+    EXPECT_EQ(std::ranges::count(remote->commands, Command::ReadRegionData), 0);
+    EXPECT_EQ(remote->commands.back(), Command::ReadRegionDone);
+}
+
+TEST(Harmony900Link, ReadErrorMidwayLeavesReadMode) {
+    // Пульт назвал размер больше, чем отдал: после настоящих данных приходит пустая порция.
+    auto remote = remoteWithSample();
+    remote->reportedSize = static_cast<std::uint32_t>(remote->region.size() + 4096);
+    auto link = linkTo(remote);
+    ASSERT_TRUE(link.connect({}));
+
+    auto ezhex = link.readConfig({});
+
+    ASSERT_FALSE(ezhex);
+    EXPECT_EQ(ezhex.error().code, ErrorCode::Remote);
+    EXPECT_GT(std::ranges::count(remote->commands, Command::ReadRegionData), 0);
+    EXPECT_EQ(remote->commands.back(), Command::ReadRegionDone); // пульт выведен из режима чтения
+    EXPECT_EQ(std::ranges::count(remote->commands, Command::ReadRegionDone), 1);
+}
+
+TEST(Harmony900Link, CancelledReadLeavesReadModeOnce) {
+    auto remote = remoteWithSample();
+    auto link = linkTo(remote);
+    ASSERT_TRUE(link.connect({}));
+
+    auto ezhex = link.readConfig([](Stage, std::size_t, std::size_t) { return false; });
+
+    ASSERT_FALSE(ezhex);
+    EXPECT_EQ(ezhex.error().code, ErrorCode::Cancelled);
+    EXPECT_EQ(remote->commands.back(), Command::ReadRegionDone);
+    EXPECT_EQ(std::ranges::count(remote->commands, Command::ReadRegionDone), 1);
 }
 
 TEST(Harmony900Link, RefusesConfigForOtherModel) {
