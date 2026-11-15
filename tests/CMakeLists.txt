@@ -85,6 +85,11 @@ if(HARMONY_BUILD_APP)
         zoneEditorDialogTest.cpp
         ../app/src/widgets/zoneEditorDialog.cpp
         ../app/src/widgets/zoneEditorDialog.h
+        ../app/src/widgets/zoneEditorProperties.cpp
+        ../app/src/widgets/zoneEditorRemoteFile.cpp
+        ../app/src/widgets/zoneEditorScreens.cpp
+        ../app/src/widgets/zoneEditorShared.h
+        ../app/src/widgets/zoneEditorZones.cpp
         ../app/src/widgets/zoneCanvas.cpp
         ../app/src/widgets/zoneCanvas.h
         ../app/src/i18n.cpp

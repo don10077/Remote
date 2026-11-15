@@ -277,7 +277,7 @@ The configuration from %1 will be copied into this archive.</source>
       <translation>%1 — нажмите «Повторить» или «Пропустить».</translation>
     </message>
     <message>
-      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <location filename="../../../app/src/widgets/zoneEditorScreens.cpp" />
       <source>%1 — zones: %2</source>
       <translation>%1 — зон: %2</translation>
     </message>
@@ -377,7 +377,7 @@ The configuration from %1 will be copied into this archive.</source>
       <translation>%1: у пульта нет кнопки «%2»</translation>
     </message>
     <message>
-      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <location filename="../../../app/src/widgets/zoneEditorRemoteFile.cpp" />
       <source>%1: the result is not valid JSON (%2). Nothing was saved.</source>
       <translation>%1: получен некорректный JSON (%2). Ничего не сохранено.</translation>
     </message>
@@ -457,7 +457,7 @@ The configuration from %1 will be copied into this archive.</source>
       <translation>(пусто)</translation>
     </message>
     <message>
-      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <location filename="../../../app/src/widgets/zoneEditorProperties.cpp" />
       <source>(no id)</source>
       <translation>(без идентификатора)</translation>
     </message>
@@ -710,7 +710,7 @@ The configuration from %1 will be copied into this archive.</source>
       <translation>шаг макроса шлёт «%1», а у %2 такой команды нет</translation>
     </message>
     <message>
-      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <location filename="../../../app/src/widgets/zoneEditorRemoteFile.cpp" />
       <source>A picture must be a .png or .svg file in the sprites folder or in the folder of a remote: %1</source>
       <translation>Картинка должна быть файлом .png или .svg в папке sprites или в папке пульта: %1</translation>
     </message>
@@ -829,7 +829,7 @@ The configuration from %1 will be copied into this archive.</source>
       <translation>Изменено активностей: %1.</translation>
     </message>
     <message>
-      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <location filename="../../../app/src/widgets/zoneEditorProperties.cpp" />
       <source>Activities screen</source>
       <translation>Экран действий</translation>
     </message>
@@ -961,7 +961,7 @@ The configuration from %1 will be copied into this archive.</source>
       <translation>Добавить экран</translation>
     </message>
     <message>
-      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <location filename="../../../app/src/widgets/zoneEditorZones.cpp" />
       <source>Add screen area</source>
       <translation>Добавить область экрана</translation>
     </message>
@@ -976,7 +976,7 @@ The configuration from %1 will be copied into this archive.</source>
       <translation>Добавить эту модель</translation>
     </message>
     <message>
-      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <location filename="../../../app/src/widgets/zoneEditorZones.cpp" />
       <source>Add zone</source>
       <translation>Добавить зону</translation>
     </message>
@@ -1032,7 +1032,7 @@ The configuration from %1 will be copied into this archive.</source>
       <translation>Выровнять</translation>
     </message>
     <message>
-      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <location filename="../../../app/src/widgets/zoneEditorZones.cpp" />
       <source>Align zones</source>
       <translation>Выровнять зоны</translation>
     </message>
@@ -1043,7 +1043,7 @@ The configuration from %1 will be copied into this archive.</source>
       <translation>Все</translation>
     </message>
     <message>
-      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <location filename="../../../app/src/widgets/zoneEditorZones.cpp" />
       <source>All %1 recognized zones overlap the zones already on the screen, so nothing was added. Delete the zones you want to replace (%2, then %3) and run Auto zones again.</source>
       <translation>Все %1 распознанные зоны пересекаются с зонами, уже отображаемыми на экране, поэтому ничего не добавлено. Удалите зоны, которые хотите заменить (%2, затем %3), и запустите «Авто-зоны» снова.</translation>
     </message>
@@ -1252,7 +1252,7 @@ Add a device?</source>
       <translation>Назначить «%1» на «%2»</translation>
     </message>
     <message>
-      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <location filename="../../../app/src/widgets/zoneEditorProperties.cpp" />
       <source>Assignable button</source>
       <translation>Назначаемая кнопка</translation>
     </message>
@@ -1283,21 +1283,22 @@ Add a device?</source>
     </message>
     <message>
       <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <location filename="../../../app/src/widgets/zoneEditorZones.cpp" />
       <source>Auto zones</source>
       <translation>Авто-зоны</translation>
     </message>
     <message>
-      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <location filename="../../../app/src/widgets/zoneEditorZones.cpp" />
       <source>Auto zones did not start. Python 3 with the opencv package is required: pip install opencv-python.</source>
       <translation>Авто-зоны не запустились. Нужен Python 3 с пакетом opencv: pip install opencv-python.</translation>
     </message>
     <message>
-      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <location filename="../../../app/src/widgets/zoneEditorZones.cpp" />
       <source>Auto zones needs the photo %1, but the file was not found.</source>
       <translation>Для авто-зон нужно фото %1, но файл не найден.</translation>
     </message>
     <message>
-      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <location filename="../../../app/src/widgets/zoneEditorZones.cpp" />
       <source>Auto zones stopped.</source>
       <translation>Авто-зоны остановлены.</translation>
     </message>
@@ -1324,7 +1325,7 @@ Add a device?</source>
     <message>
       <location filename="../../../app/src/modern/remoteView.cpp" />
       <location filename="../../../app/src/widgets/learnWizardDialog.cpp" />
-      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <location filename="../../../app/src/widgets/zoneEditorProperties.cpp" />
       <source>Back</source>
       <translation>Назад</translation>
     </message>
@@ -1395,7 +1396,8 @@ Add a device?</source>
       <translation>Основа:</translation>
     </message>
     <message>
-      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <location filename="../../../app/src/widgets/zoneEditorProperties.cpp" />
+      <location filename="../../../app/src/widgets/zoneEditorShared.h" />
       <source>Battery</source>
       <translation>Батарея</translation>
     </message>
@@ -1691,27 +1693,27 @@ Add a device?</source>
       <translation>Неполный последний ряд плиток — по центру</translation>
     </message>
     <message>
-      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <location filename="../../../app/src/widgets/zoneEditorProperties.cpp" />
       <source>Change button action</source>
       <translation>Изменить действие кнопки</translation>
     </message>
     <message>
-      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <location filename="../../../app/src/widgets/zoneEditorProperties.cpp" />
       <source>Change corner radius</source>
       <translation>Изменить радиус скругления</translation>
     </message>
     <message>
-      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <location filename="../../../app/src/widgets/zoneEditorProperties.cpp" />
       <source>Change id</source>
       <translation>Изменить идентификатор</translation>
     </message>
     <message>
-      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <location filename="../../../app/src/widgets/zoneEditorProperties.cpp" />
       <source>Change kind</source>
       <translation>Изменить тип</translation>
     </message>
     <message>
-      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <location filename="../../../app/src/widgets/zoneEditorProperties.cpp" />
       <source>Change panel shape</source>
       <translation>Изменение формы панели</translation>
     </message>
@@ -1731,12 +1733,12 @@ Add a device?</source>
       <translation>Сменить целевой пульт…</translation>
     </message>
     <message>
-      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <location filename="../../../app/src/widgets/zoneEditorScreens.cpp" />
       <source>Change tile gap</source>
       <translation>Изменение зазора плиток</translation>
     </message>
     <message>
-      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <location filename="../../../app/src/widgets/zoneEditorScreens.cpp" />
       <source>Change tile grid</source>
       <translation>Изменить сетку плиток</translation>
     </message>
@@ -1798,12 +1800,12 @@ Add a device?</source>
       <translation>Проверять подключение пульта каждые 10 секунд</translation>
     </message>
     <message>
-      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <location filename="../../../app/src/widgets/zoneEditorProperties.cpp" />
       <source>Check: %1 errors, %2 warnings</source>
       <translation>Проверка: ошибок — %1, предупреждений — %2</translation>
     </message>
     <message>
-      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <location filename="../../../app/src/widgets/zoneEditorProperties.cpp" />
       <source>Check: no problems</source>
       <translation>Проверка: замечаний нет</translation>
     </message>
@@ -1823,7 +1825,8 @@ Add a device?</source>
       <translation>Блокировка от детей</translation>
     </message>
     <message>
-      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <location filename="../../../app/src/widgets/zoneEditorProperties.cpp" />
+      <location filename="../../../app/src/widgets/zoneEditorRemoteFile.cpp" />
       <source>Choose a button for this zone.</source>
       <translation>Выберите кнопку для этой зоны.</translation>
     </message>
@@ -1838,7 +1841,7 @@ Add a device?</source>
       <translation>Выберите конфигурацию: из недавних или файл (.EZHex, UserConfiguration.xml).</translation>
     </message>
     <message>
-      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <location filename="../../../app/src/widgets/zoneEditorRemoteFile.cpp" />
       <source>Choose a picture</source>
       <translation>Выбор картинки</translation>
     </message>
@@ -1930,7 +1933,8 @@ Add a device?</source>
     </message>
     <message>
       <location filename="../../../app/src/widgets/remoteSettingsDialog.cpp" />
-      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <location filename="../../../app/src/widgets/zoneEditorProperties.cpp" />
+      <location filename="../../../app/src/widgets/zoneEditorShared.h" />
       <source>Clock</source>
       <translation>Часы</translation>
     </message>
@@ -2124,7 +2128,7 @@ Add a device?</source>
       <translation>удалены команды: %1 и ещё %2</translation>
     </message>
     <message>
-      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <location filename="../../../app/src/widgets/zoneEditorProperties.cpp" />
       <source>Commands screen</source>
       <translation>Экран команд</translation>
     </message>
@@ -2170,7 +2174,7 @@ Add a device?</source>
       <translation>команда|команды|команд</translation>
     </message>
     <message>
-      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <location filename="../../../app/src/widgets/zoneEditorScreens.cpp" />
       <source>Common tile area</source>
       <translation>Общая зона плиток</translation>
     </message>
@@ -2246,7 +2250,7 @@ Add a device?</source>
       <translation>Конфигурация не соответствует подключённому пульту</translation>
     </message>
     <message>
-      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <location filename="../../../app/src/widgets/zoneEditorProperties.cpp" />
       <source>Configuration error of this remote: %1</source>
       <translation>Ошибка конфигурации этого пульта: %1</translation>
     </message>
@@ -2444,7 +2448,7 @@ Add a device?</source>
       <translation>Скопировано в «%2»: %1. Отменить — %3</translation>
     </message>
     <message>
-      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <location filename="../../../app/src/widgets/zoneEditorZones.cpp" />
       <source>Copied %1 zone(s)</source>
       <translation>Скопировано зон: %1</translation>
     </message>
@@ -2510,7 +2514,7 @@ Add a device?</source>
       <translation>Скопировать фото, зоны и профиль в папку, чтобы править их без пересборки</translation>
     </message>
     <message>
-      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <location filename="../../../app/src/widgets/zoneEditorRemoteFile.cpp" />
       <source>Copy the picture into the sprites folder of the resources folder first, then choose it there.</source>
       <translation>Сначала скопируйте картинку в папку sprites папки ресурсов, затем выберите её там.</translation>
     </message>
@@ -2653,7 +2657,7 @@ Add a device?</source>
       <translation>Не удалось подготовить %1 к сохранению: %2. Ничего не сохранено.</translation>
     </message>
     <message>
-      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <location filename="../../../app/src/widgets/zoneEditorRemoteFile.cpp" />
       <source>Could not read %1.</source>
       <translation>Не удалось прочитать %1.</translation>
     </message>
@@ -2736,7 +2740,7 @@ Copy saved: %2</source>
       <translation>не удалось запустить сетевую подсистему</translation>
     </message>
     <message>
-      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <location filename="../../../app/src/widgets/zoneEditorRemoteFile.cpp" />
       <source>Could not update %1: the file structure is not recognised.</source>
       <translation>Не удалось обновить %1: структура файла не распознана.</translation>
     </message>
@@ -2919,7 +2923,7 @@ Copy saved: %2</source>
       <translation>Удалить выбранную команду (если её не используют кнопки и активности)</translation>
     </message>
     <message>
-      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <location filename="../../../app/src/widgets/zoneEditorZones.cpp" />
       <source>Delete zones</source>
       <translation>Удалить зоны</translation>
     </message>
@@ -3196,7 +3200,7 @@ Copy saved: %2</source>
       <translation>Перетащите команду на кнопку на картинке пульта, чтобы назначить её.</translation>
     </message>
     <message>
-      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <location filename="../../../app/src/widgets/zoneEditorProperties.cpp" />
       <source>Drag the zone to move it. Drag its corner handles to resize it. Changes are applied when you save.</source>
       <translation>Перетащите зону для перемещения, потяните за угловые маркеры для изменения размера. Правки применятся после сохранения.</translation>
     </message>
@@ -3211,7 +3215,7 @@ Copy saved: %2</source>
       <translation>Дублировать</translation>
     </message>
     <message>
-      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <location filename="../../../app/src/widgets/zoneEditorZones.cpp" />
       <source>Duplicate zones</source>
       <translation>Дублировать зоны</translation>
     </message>
@@ -3271,7 +3275,7 @@ Copy saved: %2</source>
       <translation>Редактировать зоны кнопок и раскладки экранов на фотографии пульта</translation>
     </message>
     <message>
-      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <location filename="../../../app/src/widgets/zoneEditorProperties.cpp" />
       <source>Edit rectangle</source>
       <translation>Изменить прямоугольник</translation>
     </message>
@@ -3359,7 +3363,7 @@ Copy saved: %2</source>
       <translation>ошибка записи файла: %1</translation>
     </message>
     <message>
-      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <location filename="../../../app/src/widgets/zoneEditorProperties.cpp" />
       <source>Error: </source>
       <translation>Ошибка: </translation>
     </message>
@@ -3853,7 +3857,7 @@ Copy saved: %2</source>
       <translation>Ошибка чтения HID или истекло время ожидания. Проверьте USB-кабель и закройте другие программы для пульта.</translation>
     </message>
     <message>
-      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <location filename="../../../app/src/widgets/zoneEditorScreens.cpp" />
       <source>Hide %1</source>
       <translation>Скрыть: %1</translation>
     </message>
@@ -3943,7 +3947,7 @@ Copy saved: %2</source>
       <translation>удержание</translation>
     </message>
     <message>
-      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <location filename="../../../app/src/widgets/zoneEditorProperties.cpp" />
       <source>Home</source>
       <translation>Главный экран</translation>
     </message>
@@ -4444,7 +4448,7 @@ The file contains device names and models, but no IR codes, account or e-mail. Y
       <translation>Последнюю открытую конфигурацию</translation>
     </message>
     <message>
-      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <location filename="../../../app/src/widgets/zoneEditorRemoteFile.cpp" />
       <source>Layer %1 has errors, the program would reject these resources: %2</source>
       <translation>В слое «%1» есть ошибки, программа не сможет загрузить эти ресурсы: %2</translation>
     </message>
@@ -4775,7 +4779,7 @@ The file contains device names and models, but no IR codes, account or e-mail. Y
       <translation>Найдено несколько интерфейсов Harmony HID. Оставьте подключённым только один пульт.</translation>
     </message>
     <message>
-      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <location filename="../../../app/src/widgets/zoneEditorScreens.cpp" />
       <source>Move %1 on the screen to where it should be shown.</source>
       <translation>Перетащите элемент «%1» на экране туда, где он должен быть.</translation>
     </message>
@@ -4897,12 +4901,12 @@ The file contains device names and models, but no IR codes, account or e-mail. Y
       <translation>Новое имя:</translation>
     </message>
     <message>
-      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <location filename="../../../app/src/widgets/zoneEditorScreens.cpp" />
       <source>New screen</source>
       <translation>Новый экран</translation>
     </message>
     <message>
-      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <location filename="../../../app/src/widgets/zoneEditorScreens.cpp" />
       <source>New screen (not created yet)</source>
       <translation>Новый экран (ещё не создан)</translation>
     </message>
@@ -4928,6 +4932,7 @@ The file contains device names and models, but no IR codes, account or e-mail. Y
     </message>
     <message>
       <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <location filename="../../../app/src/widgets/zoneEditorProperties.cpp" />
       <source>Next page</source>
       <translation>Следующая страница</translation>
     </message>
@@ -5117,7 +5122,7 @@ The file contains device names and models, but no IR codes, account or e-mail. Y
       <translation>Версий пока нет. Они появляются, пока вы правите (раз в несколько минут), перед сохранением и по кнопке «Сохранить версию сейчас».</translation>
     </message>
     <message>
-      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <location filename="../../../app/src/widgets/zoneEditorZones.cpp" />
       <source>No zones were recognized on the photo.</source>
       <translation>На фото не распознано ни одной зоны.</translation>
     </message>
@@ -5133,7 +5138,7 @@ The file contains device names and models, but no IR codes, account or e-mail. Y
       <translation>нет</translation>
     </message>
     <message>
-      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <location filename="../../../app/src/widgets/zoneEditorProperties.cpp" />
       <source>None (touch screen)</source>
       <translation>Нет (нажатие на экран)</translation>
     </message>
@@ -5148,7 +5153,7 @@ The file contains device names and models, but no IR codes, account or e-mail. Y
       <translation>это не файл конфигурации Harmony Hub</translation>
     </message>
     <message>
-      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <location filename="../../../app/src/widgets/zoneEditorRemoteFile.cpp" />
       <source>Not a valid colour: %1</source>
       <translation>Некорректный цвет: %1</translation>
     </message>
@@ -5526,6 +5531,7 @@ The file contains device names and models, but no IR codes, account or e-mail. Y
     </message>
     <message>
       <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <location filename="../../../app/src/widgets/zoneEditorScreens.cpp" />
       <source>Own tile area for this screen</source>
       <translation>Своя зона плиток у этого экрана</translation>
     </message>
@@ -5550,7 +5556,8 @@ The file contains device names and models, but no IR codes, account or e-mail. Y
       <translation>Страница вниз</translation>
     </message>
     <message>
-      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <location filename="../../../app/src/widgets/zoneEditorProperties.cpp" />
+      <location filename="../../../app/src/widgets/zoneEditorShared.h" />
       <source>Page number</source>
       <translation>Номер страницы</translation>
     </message>
@@ -5596,7 +5603,7 @@ The file contains device names and models, but no IR codes, account or e-mail. Y
       <translation>Вставка: %1 в «%2»</translation>
     </message>
     <message>
-      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <location filename="../../../app/src/widgets/zoneEditorZones.cpp" />
       <source>Paste zones</source>
       <translation>Вставить зоны</translation>
     </message>
@@ -5677,7 +5684,7 @@ The file contains device names and models, but no IR codes, account or e-mail. Y
       <translation>Изображение</translation>
     </message>
     <message>
-      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <location filename="../../../app/src/widgets/zoneEditorRemoteFile.cpp" />
       <source>Picture %1 was not found in the resources folder.</source>
       <translation>Картинка %1 не найдена в папке ресурсов.</translation>
     </message>
@@ -5692,7 +5699,7 @@ The file contains device names and models, but no IR codes, account or e-mail. Y
       <translation>Фотографии</translation>
     </message>
     <message>
-      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <location filename="../../../app/src/widgets/zoneEditorRemoteFile.cpp" />
       <source>Pictures (*.png *.svg)</source>
       <translation>Картинки (*.png *.svg)</translation>
     </message>
@@ -5876,6 +5883,7 @@ The file contains device names and models, but no IR codes, account or e-mail. Y
     </message>
     <message>
       <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <location filename="../../../app/src/widgets/zoneEditorProperties.cpp" />
       <source>Previous page</source>
       <translation>Предыдущая страница</translation>
     </message>
@@ -6174,17 +6182,17 @@ The file contains device names and models, but no IR codes, account or e-mail. Y
       <translation>Распознаёт кнопки на фотографии (скрипт tools/autoZones.py, Python и пакет opencv). Рамки, пересекающиеся с зонами, уже отображаемыми на экране, пропускаются: сначала удалите их (%1, затем %2), если хотите заменить. Найденные зоны переименуйте, поправьте или удалите лишнее. Повторное нажатие останавливает распознавание.</translation>
     </message>
     <message>
-      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <location filename="../../../app/src/widgets/zoneEditorZones.cpp" />
       <source>Recognized %1 zone(s). Rename them and fix or delete what is not needed.</source>
       <translation>Распознано зон: %1. Переименуйте их, поправьте лишнее или удалите.</translation>
     </message>
     <message>
-      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <location filename="../../../app/src/widgets/zoneEditorZones.cpp" />
       <source>Recognized %1 zones: %2 added, %3 skipped because they overlap the zones on the screen.</source>
       <translation>Распознано зон: %1; добавлено %2, пропущено %3 (пересекаются с зонами на экране).</translation>
     </message>
     <message>
-      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <location filename="../../../app/src/widgets/zoneEditorZones.cpp" />
       <source>Recognizing zones on the photo… The editor stays available; press “Stop auto zones” to cancel.</source>
       <translation>Распознавание зон на фото… Редактором можно пользоваться; чтобы отменить, нажмите «Остановить авто-зоны».</translation>
     </message>
@@ -6267,7 +6275,7 @@ The file contains device names and models, but no IR codes, account or e-mail. Y
       <translation>Другие проекты</translation>
     </message>
     <message>
-      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <location filename="../../../app/src/widgets/zoneEditorRemoteFile.cpp" />
       <source>Reload and discard my edits</source>
       <translation>Загрузить заново, отбросив мои правки</translation>
     </message>
@@ -6510,12 +6518,12 @@ Their buttons and start steps in this activity, including input switching, will 
       <translation>Убрать оттуда и удалить</translation>
     </message>
     <message>
-      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <location filename="../../../app/src/widgets/zoneEditorZones.cpp" />
       <source>Remove screen area</source>
       <translation>Удалить область экрана</translation>
     </message>
     <message>
-      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <location filename="../../../app/src/widgets/zoneEditorScreens.cpp" />
       <source>Remove screen «%1»? Its zones will be deleted.</source>
       <translation>Удалить экран «%1»? Его зоны будут удалены.</translation>
     </message>
@@ -6789,12 +6797,12 @@ Their buttons and start steps in this activity, including input switching, will 
       <translation>Сохранить конфигурацию Harmony Hub</translation>
     </message>
     <message>
-      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <location filename="../../../app/src/widgets/zoneEditorRemoteFile.cpp" />
       <source>Save my edits on top</source>
       <translation>Сохранить мои правки поверх</translation>
     </message>
     <message>
-      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <location filename="../../../app/src/widgets/zoneEditorRemoteFile.cpp" />
       <source>Save my edits: the editor writes only the parts it changed into the current file. Reload: discard my edits and take the file from disk.</source>
       <translation>«Записать поверх»: редактор запишет в текущий файл только изменённые им части. «Перечитать»: отбросить мои правки и взять файл с диска.</translation>
     </message>
@@ -6821,7 +6829,7 @@ Their buttons and start steps in this activity, including input switching, will 
     <message>
       <location filename="../../../app/src/mainWindow.cpp" />
       <location filename="../../../app/src/widgets/versionsDialog.cpp" />
-      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <location filename="../../../app/src/widgets/zoneEditorRemoteFile.cpp" />
       <source>Saved</source>
       <translation>Сохранено</translation>
     </message>
@@ -6888,7 +6896,7 @@ Their buttons and start steps in this activity, including input switching, will 
     </message>
     <message>
       <location filename="../../../app/src/widgets/zoneCanvas.cpp" />
-      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <location filename="../../../app/src/widgets/zoneEditorProperties.cpp" />
       <source>Screen area</source>
       <translation>Область экрана</translation>
     </message>
@@ -6904,7 +6912,7 @@ Their buttons and start steps in this activity, including input switching, will 
     </message>
     <message>
       <location filename="../../../app/src/widgets/buttonDialog.cpp" />
-      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <location filename="../../../app/src/widgets/zoneEditorProperties.cpp" />
       <source>Screen button</source>
       <translation>Кнопка на экране</translation>
     </message>
@@ -6939,22 +6947,22 @@ Their buttons and start steps in this activity, including input switching, will 
       <translation>Кнопка на экран…</translation>
     </message>
     <message>
-      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <location filename="../../../app/src/widgets/zoneEditorScreens.cpp" />
       <source>Screen created</source>
       <translation>Экран создан</translation>
     </message>
     <message>
-      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <location filename="../../../app/src/widgets/zoneEditorProperties.cpp" />
       <source>Screen decoration</source>
       <translation>Оформление экрана</translation>
     </message>
     <message>
-      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <location filename="../../../app/src/widgets/zoneEditorProperties.cpp" />
       <source>Screen label</source>
       <translation>Подпись экрана</translation>
     </message>
     <message>
-      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <location filename="../../../app/src/widgets/zoneEditorProperties.cpp" />
       <source>Screen panel</source>
       <translation>Панель экрана</translation>
     </message>
@@ -6964,7 +6972,7 @@ Their buttons and start steps in this activity, including input switching, will 
       <translation>Параметры экрана</translation>
     </message>
     <message>
-      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <location filename="../../../app/src/widgets/zoneEditorScreens.cpp" />
       <source>Screen removed</source>
       <translation>Экран удалён</translation>
     </message>
@@ -6974,7 +6982,7 @@ Their buttons and start steps in this activity, including input switching, will 
       <translation>Тема экрана</translation>
     </message>
     <message>
-      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <location filename="../../../app/src/widgets/zoneEditorProperties.cpp" />
       <source>Screen tile</source>
       <translation>Плитка экрана</translation>
     </message>
@@ -7016,6 +7024,7 @@ Their buttons and start steps in this activity, including input switching, will 
     </message>
     <message>
       <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <location filename="../../../app/src/widgets/zoneEditorProperties.cpp" />
       <source>Select a button on the photo, or click Draw Zone and drag a rectangle.</source>
       <translation>Выберите кнопку на фотографии. Чтобы добавить новую зону, нажмите «Нарисовать зону» и обведите кнопку мышью.</translation>
     </message>
@@ -7177,7 +7186,7 @@ Their buttons and start steps in this activity, including input switching, will 
       <translation>Несколько шагов: команды, паузы</translation>
     </message>
     <message>
-      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <location filename="../../../app/src/widgets/zoneEditorProperties.cpp" />
       <source>Several zones selected. Move them together or use Align selected.</source>
       <translation>Выделено несколько зон. Их можно перемещать вместе или выровнять через меню «Выровнять».</translation>
     </message>
@@ -7192,7 +7201,7 @@ Their buttons and start steps in this activity, including input switching, will 
       <translation>Показать</translation>
     </message>
     <message>
-      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <location filename="../../../app/src/widgets/zoneEditorScreens.cpp" />
       <source>Show %1</source>
       <translation>Показать: %1</translation>
     </message>
@@ -7247,7 +7256,7 @@ Their buttons and start steps in this activity, including input switching, will 
       <translation>Сразу показывает новый экран; параметры ниже меняют его вживую. В пульт он записывается только после «Создать экран».</translation>
     </message>
     <message>
-      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <location filename="../../../app/src/widgets/zoneEditorProperties.cpp" />
       <source>Side cell</source>
       <translation>Боковая ячейка</translation>
     </message>
@@ -7362,7 +7371,7 @@ Their buttons and start steps in this activity, including input switching, will 
       <translation>Остановить</translation>
     </message>
     <message>
-      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <location filename="../../../app/src/widgets/zoneEditorZones.cpp" />
       <source>Stop auto zones</source>
       <translation>Остановить авто-зоны</translation>
     </message>
@@ -7438,6 +7447,7 @@ Their buttons and start steps in this activity, including input switching, will 
     </message>
     <message>
       <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <location filename="../../../app/src/widgets/zoneEditorProperties.cpp" />
       <source>System button</source>
       <translation>Служебная кнопка</translation>
     </message>
@@ -7566,12 +7576,12 @@ Translate the strings and restart the program — the language will appear in th
       <translation>адрес не помещается в %1 бит</translation>
     </message>
     <message>
-      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <location filename="../../../app/src/widgets/zoneEditorZones.cpp" />
       <source>The auto-zones script was not found (tools/autoZones.py).</source>
       <translation>Скрипт авто-зон не найден (tools/autoZones.py).</translation>
     </message>
     <message>
-      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <location filename="../../../app/src/widgets/zoneEditorScreens.cpp" />
       <source>The background picture covers the background colour.</source>
       <translation>Картинка фона закрывает цвет фона.</translation>
     </message>
@@ -7616,7 +7626,7 @@ Translate the strings and restart the program — the language will appear in th
       <translation>кнопка запускает макрос, которого нет в ActionLists.xml</translation>
     </message>
     <message>
-      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <location filename="../../../app/src/widgets/zoneEditorZones.cpp" />
       <source>The clipboard has no zones</source>
       <translation>В буфере обмена нет зон</translation>
     </message>
@@ -8138,7 +8148,7 @@ They will not be sent to the remote either. When the device is made active again
       <translation>проблемы уже нет</translation>
     </message>
     <message>
-      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <location filename="../../../app/src/widgets/zoneEditorRemoteFile.cpp" />
       <source>The program does not connect to this remote. Writing a configuration to the remote is implemented only for USB network + Harmony XML.</source>
       <translation>Программа не подключается к этому пульту. Запись конфигурации на пульт реализована только для пары «USB-сеть + Harmony XML».</translation>
     </message>
@@ -8163,12 +8173,12 @@ They will not be sent to the remote either. When the device is made active again
       <translation>Программа хранит прежние состояния конфигурации: раз в несколько минут, пока есть несохранённые правки, перед каждым сохранением и по вашей просьбе. Справа — что изменится, если восстановить выбранную версию.</translation>
     </message>
     <message>
-      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <location filename="../../../app/src/widgets/zoneEditorRemoteFile.cpp" />
       <source>The program reads this remote and writes its configuration.</source>
       <translation>Программа читает этот пульт и записывает его конфигурацию.</translation>
     </message>
     <message>
-      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <location filename="../../../app/src/widgets/zoneEditorRemoteFile.cpp" />
       <source>The program reads this remote. Writing a configuration to the remote is implemented only for USB network + Harmony XML.</source>
       <translation>Программа читает этот пульт. Запись конфигурации на пульт реализована только для пары «USB-сеть + Harmony XML».</translation>
     </message>
@@ -8534,7 +8544,7 @@ They will not be sent to the remote either. When the device is made active again
       <translation>У отмеченных устройств нет переключаемых входов.</translation>
     </message>
     <message>
-      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <location filename="../../../app/src/widgets/zoneEditorScreens.cpp" />
       <source>The tile picture replaces the tile colour and border of the remote.</source>
       <translation>Картинка плитки заменяет цвет и рамку плиток пульта.</translation>
     </message>
@@ -8584,7 +8594,7 @@ They will not be sent to the remote either. When the device is made active again
       <translation>запись прервана до завершения; пульт должен остаться с прежней конфигурацией</translation>
     </message>
     <message>
-      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <location filename="../../../app/src/widgets/zoneEditorRemoteFile.cpp" />
       <source>The zones have unsaved changes.</source>
       <translation>Изменения зон не сохранены.</translation>
     </message>
@@ -8653,7 +8663,7 @@ They will not be sent to the remote either. When the device is made active again
 %1</translation>
     </message>
     <message>
-      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <location filename="../../../app/src/widgets/zoneEditorRemoteFile.cpp" />
       <source>These files changed outside the editor.</source>
       <translation>Эти файлы изменены вне редактора.</translation>
     </message>
@@ -8742,12 +8752,12 @@ They will not be sent to the remote either. When the device is made active again
 %1</translation>
     </message>
     <message>
-      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <location filename="../../../app/src/widgets/zoneEditorProperties.cpp" />
       <source>This remote has no screen to open.</source>
       <translation>У этого пульта нет экрана для перехода.</translation>
     </message>
     <message>
-      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <location filename="../../../app/src/widgets/zoneEditorScreens.cpp" />
       <source>This screen is built from pictures: its background, panels and buttons are drawn on them, so the background colour, background picture and panel colour are not visible.</source>
       <translation>Экран собран из картинок: фон, панели и кнопки нарисованы на них, поэтому цвет фона, картинка фона и цвет панелей не видны.</translation>
     </message>
@@ -8777,17 +8787,19 @@ They will not be sent to the remote either. When the device is made active again
       <translation>Отмеченные устройства включаются при запуске активности, остальные выключаются</translation>
     </message>
     <message>
-      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <location filename="../../../app/src/widgets/zoneEditorProperties.cpp" />
       <source>Tile %1</source>
       <translation>Плитка %1</translation>
     </message>
     <message>
       <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <location filename="../../../app/src/widgets/zoneEditorProperties.cpp" />
       <source>Tile area of all screens</source>
       <translation>Зона плиток всех экранов</translation>
     </message>
     <message>
       <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <location filename="../../../app/src/widgets/zoneEditorProperties.cpp" />
       <source>Tile area of this screen</source>
       <translation>Зона плиток этого экрана</translation>
     </message>
@@ -8812,7 +8824,7 @@ They will not be sent to the remote either. When the device is made active again
       <translation>Картинка плитки:</translation>
     </message>
     <message>
-      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <location filename="../../../app/src/widgets/zoneEditorRemoteFile.cpp" />
       <source>Tiles are pictures on these screens, so the tile colour and border are not visible there: %1.</source>
       <translation>На этих экранах плитки — картинки, цвет и рамка плиток там не видны: %1.</translation>
     </message>
@@ -8842,7 +8854,8 @@ They will not be sent to the remote either. When the device is made active again
       <translation>Длительности: %1</translation>
     </message>
     <message>
-      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <location filename="../../../app/src/widgets/zoneEditorProperties.cpp" />
+      <location filename="../../../app/src/widgets/zoneEditorShared.h" />
       <source>Title</source>
       <translation>Заголовок</translation>
     </message>
@@ -9285,7 +9298,7 @@ They will not be sent to the remote either. When the device is made active again
       <translation>предупреждение</translation>
     </message>
     <message>
-      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <location filename="../../../app/src/widgets/zoneEditorProperties.cpp" />
       <source>Warning: </source>
       <translation>Предупреждение: </translation>
     </message>
@@ -9402,7 +9415,7 @@ They will not be sent to the remote either. When the device is made active again
       <translation>Windows</translation>
     </message>
     <message>
-      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <location filename="../../../app/src/widgets/zoneEditorScreens.cpp" />
       <source>Without a background picture the screen has the Harmony 900 header and footer: the title, page, clock and battery are always drawn there.</source>
       <translation>Без картинки фона у экрана шапка и подвал как у Harmony 900: заголовок, страница, часы и батарея всегда рисуются там.</translation>
     </message>

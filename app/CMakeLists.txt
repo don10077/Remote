@@ -118,6 +118,11 @@ qt_add_executable(harmony_app
     src/widgets/zoneCanvas.h
     src/widgets/zoneEditorDialog.cpp
     src/widgets/zoneEditorDialog.h
+    src/widgets/zoneEditorProperties.cpp
+    src/widgets/zoneEditorRemoteFile.cpp
+    src/widgets/zoneEditorScreens.cpp
+    src/widgets/zoneEditorShared.h
+    src/widgets/zoneEditorZones.cpp
     src/modern/remoteView.cpp
     src/modern/remoteView.h
 )
