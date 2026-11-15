@@ -227,6 +227,106 @@ TEST(ConfigCheck, LearnedToggleProtocolIsReported) {
                     "two presses in a row for one long press"));
 }
 
+namespace {
+
+constexpr const char* kTvId = "92555930";       ///< Hisense
+constexpr const char* kReceiverId = "82969357"; ///< ресивер
+constexpr const char* kTvActivity = "79016674"; ///< «Смотреть ТВ»: экранные кнопки 0–5, шаг запуска Home
+
+/// Первая проблема активности kTvActivity с исправлением @p fix.
+const Problem* tvActivityProblem(const std::vector<Problem>& problems, Problem::Fix fix) {
+    const auto it = std::ranges::find_if(problems, [fix](const Problem& p) {
+        return p.fix == fix && p.where == Problem::Where::Activity && p.id == kTvActivity;
+    });
+    return it != problems.end() ? &*it : nullptr;
+}
+
+/// Места экранных кнопок активности.
+std::vector<int> softPositions(const ConfigDocument& document, const std::string& activity) {
+    std::vector<int> out;
+    for (const auto& group : document.model().findActivity(activity)->controlGroups) {
+        if (group.name != "HardButtons") {
+            for (const auto& button : group.buttons) {
+                out.push_back(button.position);
+            }
+        }
+    }
+    std::ranges::sort(out);
+    return out;
+}
+
+} // namespace
+
+TEST(ConfigCheck, BrokenSoftButtonIsRemoved) {
+    // У телевизора пропала Aspect: экранная кнопка 2 (место 1) её шлёт.
+    auto document = open(replaceIn(sampleXml(), "Device", kTvId, "<Name>Aspect</Name>", "<Name>AspectX</Name>"));
+    const auto problems = document.check();
+    const Problem* broken = tvActivityProblem(problems, Problem::Fix::RemoveSoftButton);
+    ASSERT_NE(broken, nullptr);
+    EXPECT_EQ(broken->softPosition, 1);
+    const Problem copy = *broken;
+    ASSERT_TRUE(document.fixProblem(copy));
+    EXPECT_EQ(softPositions(document, kTvActivity), (std::vector<int>{0, 2, 3, 4, 5}));
+    EXPECT_EQ(tvActivityProblem(document.check(), Problem::Fix::RemoveSoftButton), nullptr);
+    EXPECT_EQ(document.fixProblem(copy).error().code, ErrorCode::NotFound); // уже исправлено
+}
+
+TEST(ConfigCheck, SecondSoftButtonOnOnePlaceIsMoved) {
+    // Кнопка с места 1 — на место 0, где уже есть кнопка; место 1 освобождается.
+    auto document = open(replaceIn(sampleXml(), "Activity", kTvActivity, "<Position>1</Position>",
+                                   "<Position>0</Position>"));
+    const auto problems = document.check();
+    const Problem* twice = tvActivityProblem(problems, Problem::Fix::MoveSoftButton);
+    ASSERT_NE(twice, nullptr);
+    EXPECT_EQ(twice->softPosition, 0);
+    const Problem copy = *twice;
+    ASSERT_TRUE(document.fixProblem(copy));
+    EXPECT_EQ(softPositions(document, kTvActivity), (std::vector<int>{0, 1, 2, 3, 4, 5}));
+    EXPECT_EQ(document.fixProblem(copy).error().code, ErrorCode::NotFound);
+}
+
+TEST(ConfigCheck, BrokenStartStepsAreRemoved) {
+    // Шаг запуска шлёт телевизору Home, которой больше нет.
+    auto document = open(replaceIn(sampleXml(), "Device", kTvId, "<Name>Home</Name>", "<Name>HomeX</Name>"));
+    const auto problems = document.check();
+    const Problem* steps = tvActivityProblem(problems, Problem::Fix::RemoveBrokenSteps);
+    ASSERT_NE(steps, nullptr);
+    const Problem copy = *steps;
+    ASSERT_TRUE(document.fixProblem(copy));
+    EXPECT_EQ(tvActivityProblem(document.check(), Problem::Fix::RemoveBrokenSteps), nullptr);
+    EXPECT_EQ(document.fixProblem(copy).error().code, ErrorCode::NotFound);
+    // Шаги выбора входа остались.
+    EXPECT_EQ(document.model().findActivity(kTvActivity)->inputs.size(), 2U);
+}
+
+TEST(ConfigCheck, UsedDeviceIsSwitchedOn) {
+    // Кнопки активности шлют ресиверу, а активность его выключает.
+    auto document = open(replaceIn(sampleXml(), "Activity", kTvActivity, std::string("<On>") + kReceiverId + "</On>",
+                                   std::string("<Off>") + kReceiverId + "</Off>"));
+    const auto problems = document.check();
+    const Problem* power = tvActivityProblem(problems, Problem::Fix::PowerOnDevice);
+    ASSERT_NE(power, nullptr);
+    EXPECT_EQ(power->fixDevice, kReceiverId);
+    ASSERT_TRUE(document.fixProblem(*power));
+    const auto& on = document.model().findActivity(kTvActivity)->powerOn;
+    EXPECT_NE(std::ranges::find(on, std::string(kReceiverId)), on.end());
+    EXPECT_EQ(tvActivityProblem(document.check(), Problem::Fix::PowerOnDevice), nullptr);
+}
+
+TEST(ConfigCheck, SameDeviceNamesAreRenamed) {
+    auto document = open(sampleXml());
+    const auto& devices = document.model().devices;
+    ASSERT_TRUE(document.setDeviceLabel(devices[1].id, devices[0].displayName()));
+    const auto problems = document.check();
+    const auto rename = std::ranges::find_if(problems, [](const Problem& p) {
+        return p.fix == Problem::Fix::Rename && p.where == Problem::Where::Device;
+    });
+    ASSERT_NE(rename, problems.end());
+    ASSERT_TRUE(document.fixProblem(*rename));
+    EXPECT_FALSE(has(document.check(), "another device has the same name"));
+    EXPECT_NE(document.model().devices[0].displayName(), document.model().devices[1].displayName());
+}
+
 TEST(ConfigCheck, ManualOnlyProblemsAreNotFixed) {
     // Две команды с одним именем: какую оставить — решает пользователь.
     auto document = open(

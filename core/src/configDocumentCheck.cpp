@@ -687,6 +687,136 @@ void dropIfEmpty(pugi::xml_node group) {
     }
 }
 
+/// Исправлять нечего: проблему уже убрала другая правка.
+Result<void> alreadyGone() {
+    return makeError(ErrorCode::NotFound, "the problem is already gone");
+}
+
+/// Кнопка шлёт существующую команду существующему устройству.
+bool commandExists(const model::RemoteConfig& config, const std::string& actionId) {
+    const ActionRef action = splitAction(actionId);
+    const model::Device* device = config.findDevice(action.device);
+    return device != nullptr && device->findCommand(action.command) != nullptr;
+}
+
+/// Fix::RemoveSoftButton: убрать последнюю кнопку на этом месте, команды которой не существует.
+Result<void> fixRemoveSoftButton(ConfigDocument::Impl& impl, const Problem& problem) {
+    const model::RemoteConfig& config = impl.model;
+    return detail::mutate(impl, [&](pugi::xml_node root) -> Result<void> {
+        const auto buttons = softNodes(ownerNode(root, problem));
+        for (auto it = buttons.rbegin(); it != buttons.rend(); ++it) {
+            if (it->child("Position").text().as_int(-1) == problem.softPosition &&
+                !commandExists(config, std::string(detail::textOf(it->child("ActionId"))))) {
+                pugi::xml_node group = it->parent();
+                group.remove_child(*it);
+                dropIfEmpty(group);
+                return {};
+            }
+        }
+        return alreadyGone();
+    });
+}
+
+/// Fix::MoveSoftButton: вторую кнопку на этом месте — на место @p free.
+Result<void> fixMoveSoftButton(ConfigDocument::Impl& impl, const Problem& problem, int free) {
+    return detail::mutate(impl, [&](pugi::xml_node root) -> Result<void> {
+        int seen = 0;
+        for (pugi::xml_node button : softNodes(ownerNode(root, problem))) {
+            if (button.child("Position").text().as_int(-1) == problem.softPosition && ++seen == 2) {
+                button.child("Position").text() = free;
+                return {};
+            }
+        }
+        return alreadyGone();
+    });
+}
+
+/// Fix::RemoveBrokenSteps: убрать шаги запуска удалённым устройствам и несуществующих команд.
+Result<void> fixRemoveBrokenSteps(ConfigDocument::Impl& impl, const Problem& problem) {
+    const model::RemoteConfig& config = impl.model;
+    return detail::mutate(impl, [&](pugi::xml_node root) -> Result<void> {
+        pugi::xml_node enter = ownerNode(root, problem).child("EnterActions");
+        int removed = 0;
+        for (pugi::xml_node action = enter.child("Action"); action;) {
+            const pugi::xml_node next = action.next_sibling("Action");
+            const pugi::xml_node operation = action.child("Operation");
+            const std::string device = parameter(operation, "DeviceId");
+            const model::Device* target = config.findDevice(device);
+            const bool broken = !device.empty() &&
+                                (target == nullptr ||
+                                 (detail::textOf(operation.child("Name")) == "SendCommand" &&
+                                  target->findCommand(parameter(operation, "Command")) == nullptr));
+            if (broken) {
+                enter.remove_child(action);
+                ++removed;
+            }
+            action = next;
+        }
+        return removed == 0 ? alreadyGone() : Result<void>{};
+    });
+}
+
+/// Fix::RemoveDeleted: убрать из питания и ролей активности устройства, которых нет.
+Result<void> fixRemoveDeleted(ConfigDocument::Impl& impl, const Problem& problem) {
+    const model::RemoteConfig& config = impl.model;
+    return detail::mutate(impl, [&](pugi::xml_node root) -> Result<void> {
+        pugi::xml_node activity = ownerNode(root, problem);
+        int removed = 0;
+        auto removeWhere = [&](pugi::xml_node parent, const char* tag, auto deviceOf) {
+            for (pugi::xml_node node = parent.child(tag); node;) {
+                const pugi::xml_node next = node.next_sibling(tag);
+                if (config.findDevice(deviceOf(node)) == nullptr) {
+                    parent.remove_child(node);
+                    ++removed;
+                }
+                node = next;
+            }
+        };
+        auto text = [](pugi::xml_node node) { return std::string(detail::textOf(node)); };
+        removeWhere(activity.child("Power"), "On", text);
+        removeWhere(activity.child("Power"), "Off", text);
+        removeWhere(activity, "Role", [](pugi::xml_node role) {
+            return std::string(detail::textOf(role.child("DeviceId")));
+        });
+        return removed == 0 ? alreadyGone() : Result<void>{};
+    });
+}
+
+/// Fix::CompletePowerMap: устройства, про которые активность молчит, — выключить.
+Result<void> fixCompletePowerMap(ConfigDocument::Impl& impl, const Problem& problem) {
+    const model::RemoteConfig& config = impl.model;
+    return detail::mutate(impl, [&](pugi::xml_node root) -> Result<void> {
+        pugi::xml_node activity = ownerNode(root, problem);
+        const model::Activity* current = config.findActivity(problem.id);
+        if (!activity || current == nullptr) {
+            return makeError(ErrorCode::NotFound, "no activity %1", {problem.id});
+        }
+        pugi::xml_node power = activity.child("Power") ? activity.child("Power") : activity.append_child("Power");
+        for (const auto& device : config.devices) {
+            if (std::ranges::find(current->powerOn, device.id) == current->powerOn.end() &&
+                std::ranges::find(current->powerOff, device.id) == current->powerOff.end()) {
+                detail::appendText(power, "Off", device.id);
+            }
+        }
+        return {};
+    });
+}
+
+/// Fix::Rename для активности: «Имя (2)», «Имя (3)»… — первое, которого нет у других активностей.
+std::string uniqueActivityLabel(const model::RemoteConfig& config, const model::Activity& activity) {
+    const std::string base = trimmed(activity.label);
+    auto taken = [&](const std::string& candidate) {
+        return std::ranges::any_of(config.activities, [&](const model::Activity& other) {
+            return other.id != activity.id && lower(trimmed(other.label)) == lower(candidate);
+        });
+    };
+    std::string label = base;
+    for (int n = 2; taken(label); ++n) {
+        label = base + " (" + std::to_string(n) + ")";
+    }
+    return label;
+}
+
 } // namespace
 
 std::size_t countProblems(const std::vector<Problem>& problems, Problem::Severity severity) {
@@ -704,122 +834,24 @@ std::vector<Problem> ConfigDocument::check() const {
 
 Result<void> ConfigDocument::fixProblem(const Problem& problem) {
     const model::RemoteConfig& config = impl_->model;
-    auto commandExists = [&config](const std::string& actionId) {
-        const ActionRef action = splitAction(actionId);
-        const model::Device* device = config.findDevice(action.device);
-        return device != nullptr && device->findCommand(action.command) != nullptr;
-    };
     const ButtonOwner owner = problem.where == Problem::Where::Device
                                   ? ButtonOwner::device(problem.id)
                                   : ButtonOwner::activity(problem.id);
     switch (problem.fix) {
     case Problem::Fix::None:
         return makeError(ErrorCode::Unsupported, "this problem has to be fixed by hand");
-
     case Problem::Fix::FreeHardKey:
         return setHardButton(owner, problem.hardKey, {}, {});
-
     case Problem::Fix::RemoveSoftButton:
-        return detail::mutate(*impl_, [&](pugi::xml_node root) -> Result<void> {
-            // Последняя кнопка на этом месте, команда которой не существует.
-            const auto buttons = softNodes(ownerNode(root, problem));
-            for (auto it = buttons.rbegin(); it != buttons.rend(); ++it) {
-                if (it->child("Position").text().as_int(-1) == problem.softPosition &&
-                    !commandExists(std::string(detail::textOf(it->child("ActionId"))))) {
-                    pugi::xml_node group = it->parent();
-                    group.remove_child(*it);
-                    dropIfEmpty(group);
-                    return {};
-                }
-            }
-            return makeError(ErrorCode::NotFound, "the problem is already gone");
-        });
-
-    case Problem::Fix::MoveSoftButton: {
-        const int free = freeSoftPosition(owner);
-        return detail::mutate(*impl_, [&](pugi::xml_node root) -> Result<void> {
-            // Вторая кнопка на этом месте — на первое свободное.
-            int seen = 0;
-            for (pugi::xml_node button : softNodes(ownerNode(root, problem))) {
-                if (button.child("Position").text().as_int(-1) == problem.softPosition &&
-                    ++seen == 2) {
-                    button.child("Position").text() = free;
-                    return {};
-                }
-            }
-            return makeError(ErrorCode::NotFound, "the problem is already gone");
-        });
-    }
-
+        return fixRemoveSoftButton(*impl_, problem);
+    case Problem::Fix::MoveSoftButton:
+        return fixMoveSoftButton(*impl_, problem, freeSoftPosition(owner));
     case Problem::Fix::RemoveBrokenSteps:
-        return detail::mutate(*impl_, [&](pugi::xml_node root) -> Result<void> {
-            pugi::xml_node enter = ownerNode(root, problem).child("EnterActions");
-            int removed = 0;
-            for (pugi::xml_node action = enter.child("Action"); action;) {
-                const pugi::xml_node next = action.next_sibling("Action");
-                const pugi::xml_node operation = action.child("Operation");
-                const std::string device = parameter(operation, "DeviceId");
-                const model::Device* target = config.findDevice(device);
-                const bool broken =
-                    !device.empty() &&
-                    (target == nullptr ||
-                     (detail::textOf(operation.child("Name")) == "SendCommand" &&
-                      target->findCommand(parameter(operation, "Command")) == nullptr));
-                if (broken) {
-                    enter.remove_child(action);
-                    ++removed;
-                }
-                action = next;
-            }
-            if (removed == 0) {
-                return makeError(ErrorCode::NotFound, "the problem is already gone");
-            }
-            return {};
-        });
-
+        return fixRemoveBrokenSteps(*impl_, problem);
     case Problem::Fix::RemoveDeleted:
-        return detail::mutate(*impl_, [&](pugi::xml_node root) -> Result<void> {
-            pugi::xml_node activity = ownerNode(root, problem);
-            int removed = 0;
-            auto removeWhere = [&](pugi::xml_node parent, const char* tag, auto deviceOf) {
-                for (pugi::xml_node node = parent.child(tag); node;) {
-                    const pugi::xml_node next = node.next_sibling(tag);
-                    if (config.findDevice(deviceOf(node)) == nullptr) {
-                        parent.remove_child(node);
-                        ++removed;
-                    }
-                    node = next;
-                }
-            };
-            auto text = [](pugi::xml_node node) { return std::string(detail::textOf(node)); };
-            removeWhere(activity.child("Power"), "On", text);
-            removeWhere(activity.child("Power"), "Off", text);
-            removeWhere(activity, "Role", [](pugi::xml_node role) {
-                return std::string(detail::textOf(role.child("DeviceId")));
-            });
-            if (removed == 0) {
-                return makeError(ErrorCode::NotFound, "the problem is already gone");
-            }
-            return {};
-        });
-
+        return fixRemoveDeleted(*impl_, problem);
     case Problem::Fix::CompletePowerMap:
-        return detail::mutate(*impl_, [&](pugi::xml_node root) -> Result<void> {
-            pugi::xml_node activity = ownerNode(root, problem);
-            const model::Activity* current = config.findActivity(problem.id);
-            if (!activity || current == nullptr) {
-                return makeError(ErrorCode::NotFound, "no activity %1", {problem.id});
-            }
-            pugi::xml_node power =
-                activity.child("Power") ? activity.child("Power") : activity.append_child("Power");
-            for (const auto& device : config.devices) {
-                if (std::ranges::find(current->powerOn, device.id) == current->powerOn.end() &&
-                    std::ranges::find(current->powerOff, device.id) == current->powerOff.end()) {
-                    detail::appendText(power, "Off", device.id);
-                }
-            }
-            return {};
-        });
+        return fixCompletePowerMap(*impl_, problem);
 
     case Problem::Fix::PowerOnDevice: {
         const model::Activity* activity = config.findActivity(problem.id);
@@ -833,31 +865,18 @@ Result<void> ConfigDocument::fixProblem(const Problem& problem) {
         return updateActivity(problem.id, draft, false);
     }
 
-    case Problem::Fix::Rename: {
+    case Problem::Fix::Rename:
         if (problem.where == Problem::Where::Device) {
             const model::Device* device = config.findDevice(problem.id);
             if (device == nullptr) {
                 return makeError(ErrorCode::NotFound, "no device %1", {problem.id});
             }
-            return setDeviceLabel(problem.id,
-                                  detail::uniqueLabel(config, trimmed(device->displayName())));
+            return setDeviceLabel(problem.id, detail::uniqueLabel(config, trimmed(device->displayName())));
         }
-        const model::Activity* activity = config.findActivity(problem.id);
-        if (activity == nullptr) {
-            return makeError(ErrorCode::NotFound, "no activity %1", {problem.id});
+        if (const model::Activity* activity = config.findActivity(problem.id)) {
+            return setActivityLabel(problem.id, uniqueActivityLabel(config, *activity));
         }
-        const std::string base = trimmed(activity->label);
-        auto taken = [&](const std::string& candidate) {
-            return std::ranges::any_of(config.activities, [&](const model::Activity& other) {
-                return other.id != activity->id && lower(trimmed(other.label)) == lower(candidate);
-            });
-        };
-        std::string label = base;
-        for (int n = 2; taken(label); ++n) {
-            label = base + " (" + std::to_string(n) + ")";
-        }
-        return setActivityLabel(problem.id, label);
-    }
+        return makeError(ErrorCode::NotFound, "no activity %1", {problem.id});
     }
     return makeError(ErrorCode::Unsupported, "this problem has to be fixed by hand");
 }
