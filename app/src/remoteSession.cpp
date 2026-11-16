@@ -10,7 +10,7 @@
 #include "journal.h"
 
 #include "harmony/transport/harmony900Link.h"
-#include "harmony/transport/harmonyHidReader.h"
+#include "harmony/transport/concordTransfer.h"
 
 #include <QByteArray>
 #include <QDir>
@@ -19,10 +19,6 @@
 #include <QMetaObject>
 #include <QSaveFile>
 #include <QThread>
-#include <QCryptographicHash>
-#include <QDateTime>
-#include <QJsonDocument>
-#include <QJsonObject>
 
 namespace harmony::app {
 
@@ -142,38 +138,35 @@ void RemoteSession::readConfig() {
     });
 }
 
-void RemoteSession::readHidConfig() {
+void RemoteSession::readCapture() {
     if (busy()) return;
-    journal::info(tr("Reading the configuration over USB HID…"));
+    journal::info(tr("Reading the remote for analysis…"));
     run([this] {
         auto fail = [this](const Error& error) {
             const QString message = labels::errorText(error);
             const bool cancelled = error.code == ErrorCode::Cancelled;
             QMetaObject::invokeMethod(this, [this, message, cancelled] { emit failed(message, cancelled); }, Qt::QueuedConnection);
         };
-        auto channel = transport::openHarmonyHid();
-        if (!channel) { fail(channel.error()); return; }
-        transport::HarmonyHidReader reader(**channel);
-        auto result = reader.read(progressHandler());
-        if (!result) { fail(result.error()); return; }
-        const QByteArray raw(reinterpret_cast<const char*>(result->config.data()), static_cast<qsizetype>(result->config.size()));
-        const QByteArray identity(reinterpret_cast<const char*>(result->identityReport.data()), static_cast<qsizetype>(result->identityReport.size()));
-        const auto& info = result->info;
-        QJsonObject object{
-            {"format", "harmony-hid-backup"}, {"version", 1},
-            {"createdUtc", QDateTime::currentDateTimeUtc().toString(Qt::ISODate)},
-            {"model", QString::fromStdString(info.model)},
-            {"architecture", info.identity.architecture}, {"skin", info.identity.skin},
-            {"firmware", QString::fromStdString(info.firmwareVersion)},
-            {"flash", QString::fromStdString(info.identity.flash)},
-            {"board", QString::fromStdString(info.identity.board)},
-            {"identityHex", QString::fromLatin1(identity.toHex())},
-            {"configBase", static_cast<qint64>(result->configBase)}, {"configSize", static_cast<qint64>(raw.size())},
-            {"configSha256", QString::fromLatin1(QCryptographicHash::hash(raw, QCryptographicHash::Sha256).toHex())},
-            {"configBase64", QString::fromLatin1(raw.toBase64())}
-        };
-        const QByteArray backup = QJsonDocument(object).toJson();
-        QMetaObject::invokeMethod(this, [this, backup] { emit hidReadFinished(backup); }, Qt::QueuedConnection);
+        transport::ConcordTransfer session;
+        auto info = session.connect("auto");
+        if (!info) { fail(info.error()); return; }
+        auto data = session.read(progressHandler());
+        if (!data) { fail(data.error()); return; }
+        const auto capture = transport::makeCapture(*info, std::move(*data));
+        const auto json = formats::writeRemoteCapture(capture);
+        if (!json) { fail(json.error()); return; }
+        // Проверка по тем байтам, что уйдут в файл: так же файл разберёт получатель.
+        const auto parsed = formats::parseRemoteCapture(*json);
+        if (!parsed) { fail(parsed.error()); return; }
+        const auto check = transport::inspectCapture(*parsed);
+        if (!check) { fail(check.error()); return; }
+        QStringList passed{tr("SHA-256 of the data"), tr("container checksum")};
+        if (check->frame) passed << tr("image frame");
+        const QString text = passed.join(QStringLiteral(", "));
+        const QByteArray bytes(json->data(), static_cast<qsizetype>(json->size()));
+        const QString modelId = QString::fromStdString(capture.modelId);
+        QMetaObject::invokeMethod(this, [this, bytes, modelId, text] { emit captureReadFinished(bytes, modelId, text); },
+                                  Qt::QueuedConnection);
     });
 }
 

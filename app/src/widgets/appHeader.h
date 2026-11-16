@@ -54,6 +54,9 @@ public:
     /// Устанавливает доступность записи для выбранного проекта.
     void setWriteEnabled(bool writable);
 
+    /// Подпись кнопки чтения: для USB HID-моделей чтение сразу сохраняет файл для анализа.
+    void setReadSavesFile(bool saves);
+
 signals:
     void undoRequested();  ///< Нажата кнопка «Отменить»
     void redoRequested();  ///< Нажата кнопка «Повторить»
@@ -65,6 +68,7 @@ private:
     QToolButton* redoButton_ = nullptr;
     QToolButton* connectionButton_ = nullptr;
     QPushButton* writeButton_ = nullptr;
+    QPushButton* readButton_ = nullptr;
 };
 
 } // namespace harmony::app

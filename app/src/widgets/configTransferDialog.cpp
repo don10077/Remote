@@ -2,6 +2,7 @@
 #include "../appSettings.h"
 #include "../labels.h"
 #include "../configLibrary.h"
+#include "harmony/core/formats/remoteCapture.h"
 #include "harmony/core/remoteCatalog.h"
 #include "harmony/transport/concordTransfer.h"
 #include "harmony/transport/hubConfigReader.h"
@@ -85,9 +86,16 @@ void ConfigTransferDialog::transfer(bool writing) {
     const std::string id = models_->currentData().toString().toStdString();
     const auto* model = catalogModel(id);
     if (!model || (writing ? !model->writable : !model->readable)) return;
-    const QString filter = tr("Remote configuration (*.EZHex *.ezhex *.zip *.hex);;All files (*)");
-    const QString filename = writing ? QFileDialog::getOpenFileName(this, tr("Write configuration file"), {}, filter) :
-        QFileDialog::getSaveFileName(this, tr("Read configuration to file"), "Harmony-" + QString::fromStdString(id) + ".EZHex", filter);
+    const QString filter = tr("Remote configuration (*.EZHex *.ezhex *.zip *.hex *.remote.json);;All files (*)");
+    // Читается в один файл *.remote.json: контейнер с пульта плюс сведения о снятии и SHA-256.
+    const auto now = QDateTime::currentDateTime();
+    const QString suggested = QString::fromStdString(formats::captureFileName(
+        id, now.date().year(), now.date().month(), now.date().day(), now.time().hour(), now.time().minute()));
+    QString filename = writing ? QFileDialog::getOpenFileName(this, tr("Write configuration file"), {}, filter) :
+        QFileDialog::getSaveFileName(this, tr("Read configuration to file"), suggested,
+                                     tr("Remote capture (*.remote.json)"));
+    const QString suffix = QString::fromLatin1(formats::kRemoteCaptureExtension);
+    if (!writing && !filename.isEmpty() && !filename.endsWith(suffix, Qt::CaseInsensitive)) filename += suffix;
     if (filename.isEmpty()) return;
     QByteArray contents;
     QString backup;
@@ -134,9 +142,22 @@ void ConfigTransferDialog::transfer(bool writing) {
             auto result = session.read(progress);
             if (!result) error = labels::errorText(result.error());
             else {
-                QSaveFile output(filename);
-                if (!output.open(QIODevice::WriteOnly) || output.write(reinterpret_cast<const char*>(result->data()), static_cast<qint64>(result->size())) != static_cast<qint64>(result->size()) || !output.commit())
-                    error = tr("Could not save the configuration file.");
+                const auto json = formats::writeRemoteCapture(transport::makeCapture(*connected, std::move(*result)));
+                if (!json) error = labels::errorText(json.error());
+                else {
+                    QSaveFile output(filename);
+                    if (!output.open(QIODevice::WriteOnly) || output.write(json->data(), static_cast<qint64>(json->size())) != static_cast<qint64>(json->size()) || !output.commit())
+                        error = tr("Could not save the configuration file.");
+                    else {
+                        // Проверка по файлу с диска, как его прочтёт получатель.
+                        QFile saved(filename);
+                        const QByteArray text = saved.open(QIODevice::ReadOnly) ? saved.readAll() : QByteArray();
+                        const auto parsed = formats::parseRemoteCapture(std::string_view(text.constData(), static_cast<std::size_t>(text.size())));
+                        if (!parsed) error = labels::errorText(parsed.error());
+                        else if (const auto check = transport::inspectCapture(*parsed); !check)
+                            error = labels::errorText(check.error());
+                    }
+                }
             }
         }
         QMetaObject::invokeMethod(this, [this, error, writing, filename, backup, allowWithoutBackup] {

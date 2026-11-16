@@ -43,8 +43,11 @@ public:
     /// Читает конфигурацию с пульта (итог — readFinished или failed).
     void readConfig();
 
-    /// Снимает исходный HID-дамп 600/650/665/700 для исследования формата.
-    void readHidConfig();
+    /**
+     * @brief Читает любой читаемый пульт (модель определяется сама) в один файл *.remote.json
+     * и проверяет его (итог — captureReadFinished или failed).
+     */
+    void readCapture();
 
     /**
      * @brief Первый шаг записи: читает конфигурацию с пульта и сохраняет её резервной копией
@@ -78,8 +81,9 @@ signals:
     void progress(harmony::transport::Stage stage, qint64 done, qint64 total);
     /// Конфигурация прочитана (содержимое .EZHex).
     void readFinished(const QByteArray& ezhex);
-    /// Самодостаточный JSON: исходный flash, identity и SHA-256; не документ 900.
-    void hidReadFinished(const QByteArray& backup);
+    /// Снятый файл *.remote.json (контейнер, сведения о пульте, SHA-256) уже проверен:
+    /// @p modelId — id модели, @p check — что именно сошлось (для окна и журнала).
+    void captureReadFinished(const QByteArray& json, const QString& modelId, const QString& check);
     /// Резервная копия сохранена (prepareWrite()): содержимое .EZHex с пульта и файл.
     void backupSaved(const QByteArray& ezhex, const QString& backupFile);
     /// Конфигурация записана; @p backupFile — где резервная копия прежней.

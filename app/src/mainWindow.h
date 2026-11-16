@@ -270,7 +270,7 @@ private:
     /// Открыть выбранную папку ресурсов в файловом менеджере.
     void openRemoteResourcesFolder();
     /// Сохраняет диагностический HID-дамп, не передавая его парсеру Harmony 900.
-    void saveHidBackup(const QByteArray& backup);
+    void saveCapture(const QByteArray& backup, const QString& modelId, const QString& check);
 
     /// Открывает конфигурацию, прочитанную с пульта.
     void openFromRemote(const QByteArray& ezhex);

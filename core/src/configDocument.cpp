@@ -9,6 +9,7 @@
 #include "configDocumentImpl.h"
 
 #include "actionLists.h"
+#include "harmony/core/formats/remoteCapture.h"
 #include "harmony/core/formats/userConfiguration.h"
 
 #ifdef _WIN32
@@ -557,6 +558,26 @@ Result<ConfigDocument> ConfigDocument::open(const std::filesystem::path& path) {
     // Конфигурация Harmony Hub (*.hub.json, DeviceList.json, копия Melodious): правится, на пульт не пишется.
     if (!isFolder) {
         const auto first = content->find_first_not_of(" \t\r\n\xEF\xBB\xBF");
+        if (first != std::string::npos && (*content)[first] == '{' && formats::isRemoteCapture(*content)) {
+            // Снято с пульта (*.remote.json, старый *.hid.json): открывается EZHex внутри.
+            // Место на диске не запоминается: «Сохранить» не должно затереть снятый файл.
+            auto capture = formats::parseRemoteCapture(*content);
+            if (!capture) {
+                return wrapError(capture.error(), "%1", {pathToUtf8(file)});
+            }
+            if (capture->container != formats::CaptureContainer::EzHex) {
+                return makeError(ErrorCode::Unsupported,
+                                 "%1 was read from %2 for analysis; this model cannot be opened in the editor yet",
+                                 {pathToUtf8(file), capture->model});
+            }
+            std::u8string stem = path.stem().u8string(); // «Harmony-900-….remote» → без «.remote»
+            if (stem.ends_with(u8".remote")) stem.resize(stem.size() - 7);
+            auto document = fromEzHex(capture->data, std::string(stem.begin(), stem.end()));
+            if (!document) {
+                return wrapError(document.error(), "%1", {pathToUtf8(file)});
+            }
+            return document;
+        }
         if (first != std::string::npos && (*content)[first] == '{') {
             auto hub = formats::parseHubConfig(*content);
             if (!hub) {

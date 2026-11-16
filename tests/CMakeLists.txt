@@ -19,12 +19,14 @@ add_executable(harmony_tests
     irEncodeTest.cpp
     configEditTest.cpp
     configEzHexTest.cpp
+    formats/digestTest.cpp
     formats/ezhexTest.cpp
     formats/gspmTest.cpp
     formats/gspmFontsTest.cpp
     formats/gspmScreensTest.cpp
     formats/hubConfigTest.cpp
     formats/irTablesTest.cpp
+    formats/remoteCaptureTest.cpp
     formats/ssirSequencesTest.cpp
     formats/userConfigurationTest.cpp
     errorTest.cpp

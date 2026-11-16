@@ -28,12 +28,14 @@ add_library(harmony_core
     src/configDocumentReplace.cpp
     src/configDocumentStates.cpp
     src/configDiff.cpp
+    src/formats/digest.cpp
     src/formats/ezhex.cpp
     src/formats/gspm.cpp
     src/formats/gspmFonts.cpp
     src/formats/gspmScreens.cpp
     src/formats/hubConfig.cpp
     src/formats/irTables.cpp
+    src/formats/remoteCapture.cpp
     src/formats/ssirSequences.cpp
     src/formats/userConfiguration.cpp
     src/formats/zipArchive.cpp

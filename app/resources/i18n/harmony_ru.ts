@@ -192,6 +192,11 @@ The configuration from %1 will be copied into this archive.</source>
       <translation>%1 Отменить — %2</translation>
     </message>
     <message>
+      <location filename="../../../core/src/configDocument.cpp" />
+      <source>%1 was read from %2 for analysis; this model cannot be opened in the editor yet</source>
+      <translation type="unfinished" />
+    </message>
+    <message>
       <location filename="../../../app/src/widgets/commandDialog.cpp" />
       <source>%1 · %2 bits</source>
       <translation>%1 · %2 бит</translation>
@@ -1129,6 +1134,16 @@ Add a device?</source>
       <location filename="../../../core/src/configDocument.cpp" />
       <source>an interrupted save needs recovery from %1 before this configuration can be opened</source>
       <translation>Сохранение было прервано. Перед открытием восстановите файлы из %1</translation>
+    </message>
+    <message>
+      <location filename="../../../transport/src/concordTransfer.cpp" />
+      <source>An old HID dump has no configuration container and cannot be written</source>
+      <translation type="unfinished" />
+    </message>
+    <message>
+      <location filename="../../../transport/src/concordTransfer.cpp" />
+      <source>An old HID dump has no configuration container to check</source>
+      <translation type="unfinished" />
     </message>
     <message>
       <location filename="../../../app/src/widgets/activityDialog.cpp" />
@@ -2365,14 +2380,14 @@ Add a device?</source>
       <translation>Подключите только один HID-пульт Harmony</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindowMenus.cpp" />
-      <source>Connect one Harmony One/600/650/665/700 by USB, close other Logitech applications and click Read from remote. No external utility is needed. Windows uses its HID driver; on Linux, access to the hidraw device is required. The program saves a backup for analysis without changing the remote.</source>
-      <translation>Подключите один Harmony One/600/650/665/700 по USB, закройте другие приложения Logitech и нажмите «Прочитать с пульта». Отдельные утилиты не нужны. Windows использует системный HID-драйвер; в Linux нужны права доступа к устройству hidraw. Программа сохранит копию для анализа, не изменяя пульт.</translation>
-    </message>
-    <message>
       <location filename="../../../app/src/widgets/welcomePage.cpp" />
       <source>Connect remote</source>
       <translation>Подключить пульт</translation>
+    </message>
+    <message>
+      <location filename="../../../app/src/mainWindowMenus.cpp" />
+      <source>Connect the remote by USB, close other Logitech applications and click Read from remote and save. The model is detected automatically and one file for analysis (*.remote.json) is saved and checked; the remote is not changed. No external utility is needed. Windows uses its HID driver; on Linux, access to the hidraw device is required.</source>
+      <translation>Подключите пульт по USB, закройте другие приложения Logitech и нажмите «Прочитать с пульта и сохранить». Модель определится сама, будет сохранён и проверен один файл для анализа (*.remote.json); пульт не меняется. Отдельные утилиты не нужны. Windows использует системный HID-драйвер; в Linux нужны права доступа к устройству hidraw.</translation>
     </message>
     <message>
       <location filename="../../../core/src/propertyCatalog.cpp" />
@@ -2421,6 +2436,11 @@ Add a device?</source>
       <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
       <source>Connection:</source>
       <translation>Подключение:</translation>
+    </message>
+    <message>
+      <location filename="../../../app/src/remoteSession.cpp" />
+      <source>container checksum</source>
+      <translation>сумма контейнера</translation>
     </message>
     <message>
       <location filename="../../../app/src/mainWindowRemote.cpp" />
@@ -3474,6 +3494,11 @@ Copy saved: %2</source>
       <translation>нет файла %1 — без него ИК-команды не перенести</translation>
     </message>
     <message>
+      <location filename="../../../app/src/mainWindowRemote.cpp" />
+      <source>File check passed: %1</source>
+      <translation>Проверка файла пройдена: %1</translation>
+    </message>
+    <message>
       <location filename="../../../app/src/versionStore.cpp" />
       <location filename="../../../core/src/configDocument.cpp" />
       <location filename="../../../core/src/formats/userConfiguration.cpp" />
@@ -3748,11 +3773,6 @@ Copy saved: %2</source>
       <location filename="../../../app/src/helpContent.cpp" />
       <source>Harmony edits the configuration of a Logitech Harmony 900 remote without Logitech's software and cloud. You change the configuration on the computer and write it to the remote when it is ready.</source>
       <translation>Harmony редактирует конфигурацию пульта Logitech Harmony 900 без программ и облака Logitech. Вы меняете конфигурацию на компьютере и записываете её на пульт, когда она готова.</translation>
-    </message>
-    <message>
-      <location filename="../../../app/src/mainWindowRemote.cpp" />
-      <source>Harmony HID backup (*.hid.json)</source>
-      <translation>Копия Harmony HID (*.hid.json)</translation>
     </message>
     <message>
       <location filename="../../../app/src/widgets/configTransferDialog.cpp" />
@@ -4098,6 +4118,11 @@ The file contains device names and models, but no IR codes, account or e-mail. Y
       <location filename="../../../app/src/helpContent.cpp" />
       <source>If the remote is not found</source>
       <translation>Если пульт не найден</translation>
+    </message>
+    <message>
+      <location filename="../../../app/src/remoteSession.cpp" />
+      <source>image frame</source>
+      <translation>рамка образа</translation>
     </message>
     <message>
       <location filename="../../../app/src/widgets/configView.cpp" />
@@ -5314,6 +5339,11 @@ The file contains device names and models, but no IR codes, account or e-mail. Y
       <translation>OK</translation>
     </message>
     <message>
+      <location filename="../../../core/src/formats/remoteCapture.cpp" />
+      <source>old HID dumps are only read, not written</source>
+      <translation type="unfinished" />
+    </message>
+    <message>
       <location filename="../../../app/src/widgets/remoteSettingsDialog.cpp" />
       <source>On</source>
       <translation>Вкл.</translation>
@@ -6098,6 +6128,11 @@ The file contains device names and models, but no IR codes, account or e-mail. Y
       <translation>Чтение с пульта</translation>
     </message>
     <message>
+      <location filename="../../../app/src/widgets/appHeader.cpp" />
+      <source>Read from remote and save</source>
+      <translation>Прочитать с пульта и сохранить</translation>
+    </message>
+    <message>
       <location filename="../../../app/src/widgets/protocolCommandDialog.cpp" />
       <source>Read from remote…</source>
       <translation>Считать с пульта…</translation>
@@ -6140,11 +6175,6 @@ The file contains device names and models, but no IR codes, account or e-mail. Y
       <translation>Чтение конфигурации с пульта…</translation>
     </message>
     <message>
-      <location filename="../../../app/src/remoteSession.cpp" />
-      <source>Reading the configuration over USB HID…</source>
-      <translation>Чтение конфигурации по USB HID…</translation>
-    </message>
-    <message>
       <location filename="../../../transport/src/hubConfigReader.cpp" />
       <source>reading the Hub configuration was cancelled</source>
       <translation>чтение конфигурации Hub отменено</translation>
@@ -6153,6 +6183,11 @@ The file contains device names and models, but no IR codes, account or e-mail. Y
       <location filename="../../../app/src/mainWindowRemote.cpp" />
       <source>Reading the log from the remote…</source>
       <translation>Чтение журнала с пульта…</translation>
+    </message>
+    <message>
+      <location filename="../../../app/src/remoteSession.cpp" />
+      <source>Reading the remote for analysis…</source>
+      <translation>Чтение пульта для анализа…</translation>
     </message>
     <message>
       <location filename="../../../app/src/mainWindowMenus.cpp" />
@@ -6346,19 +6381,25 @@ The file contains device names and models, but no IR codes, account or e-mail. Y
       <translation>Кнопок пульта: %1, экранных: %2.</translation>
     </message>
     <message>
+      <location filename="../../../app/src/mainWindowRemote.cpp" />
       <location filename="../../../app/src/widgets/configTransferDialog.cpp" />
-      <source>Remote configuration (*.EZHex *.ezhex *.zip *.hex);;All files (*)</source>
-      <translation>Конфигурация пульта (*.EZHex *.ezhex *.zip *.hex);;Все файлы (*)</translation>
+      <source>Remote capture (*.remote.json)</source>
+      <translation>Снятое с пульта (*.remote.json)</translation>
+    </message>
+    <message>
+      <location filename="../../../app/src/mainWindow.cpp" />
+      <source>Remote configuration (*.EZHex *.ezhex *.remote.json UserConfiguration.xml);;Remote backup (*.EZHex *.ezhex *.remote.json);;XML files (*.xml);;All files (*)</source>
+      <translation>Конфигурация пульта (*.EZHex *.ezhex *.remote.json UserConfiguration.xml);;Резервная копия с пульта (*.EZHex *.ezhex *.remote.json);;XML-файлы (*.xml);;Все файлы (*)</translation>
+    </message>
+    <message>
+      <location filename="../../../app/src/widgets/configTransferDialog.cpp" />
+      <source>Remote configuration (*.EZHex *.ezhex *.zip *.hex *.remote.json);;All files (*)</source>
+      <translation>Конфигурация пульта (*.EZHex *.ezhex *.zip *.hex *.remote.json);;Все файлы (*)</translation>
     </message>
     <message>
       <location filename="../../../app/src/widgets/compareConfigsDialog.cpp" />
       <source>Remote configuration (*.EZHex *.ezhex UserConfiguration.xml);;All files (*)</source>
       <translation>Конфигурация пульта (*.EZHex *.ezhex UserConfiguration.xml);;Все файлы (*)</translation>
-    </message>
-    <message>
-      <location filename="../../../app/src/mainWindow.cpp" />
-      <source>Remote configuration (*.EZHex *.ezhex UserConfiguration.xml);;Remote backup (*.EZHex *.ezhex);;XML files (*.xml);;All files (*)</source>
-      <translation>Конфигурация пульта (*.EZHex *.ezhex UserConfiguration.xml);;Резервная копия с пульта (*.EZHex *.ezhex);;XML-файлы (*.xml);;Все файлы (*)</translation>
     </message>
     <message>
       <location filename="../../../app/src/widgets/addDeviceDialog.cpp" />
@@ -7201,6 +7242,11 @@ Their buttons and start steps in this activity, including input switching, will 
       <translation>Выделено несколько зон. Их можно перемещать вместе или выровнять через меню «Выровнять».</translation>
     </message>
     <message>
+      <location filename="../../../app/src/remoteSession.cpp" />
+      <source>SHA-256 of the data</source>
+      <translation>SHA-256 данных</translation>
+    </message>
+    <message>
       <location filename="../../../transport/src/harmonyHidReader.cpp" />
       <source>Short HID response</source>
       <translation>Слишком короткий ответ HID</translation>
@@ -7636,6 +7682,16 @@ Translate the strings and restart the program — the language will appear in th
       <translation>кнопка запускает макрос, которого нет в ActionLists.xml</translation>
     </message>
     <message>
+      <location filename="../../../transport/src/concordTransfer.cpp" />
+      <source>The capture contains another capture instead of a configuration</source>
+      <translation type="unfinished" />
+    </message>
+    <message>
+      <location filename="../../../transport/src/concordTransfer.cpp" />
+      <source>The capture says %1, but the data is a different container</source>
+      <translation type="unfinished" />
+    </message>
+    <message>
       <location filename="../../../app/src/widgets/zoneEditorZones.cpp" />
       <source>The clipboard has no zones</source>
       <translation>В буфере обмена нет зон</translation>
@@ -7694,6 +7750,19 @@ These buttons and start steps will be deleted together with the command.</source
 Эти кнопки и шаги запуска будут удалены вместе с командой.</translation>
     </message>
     <message>
+      <location filename="../../../app/src/mainWindowRemote.cpp" />
+      <source>The configuration and remote information are saved in one file. Send this file for analysis.
+
+Checked: %1
+
+%2</source>
+      <translation>Конфигурация и сведения о пульте сохранены в одном файле. Пришлите этот файл для анализа.
+
+Проверено: %1
+
+%2</translation>
+    </message>
+    <message>
       <location filename="../../../core/src/undo/documentEdit.cpp" />
       <source>the configuration could not be returned to its state before the failed edit (%1)</source>
       <translation>не удалось вернуть конфигурацию в состояние до неудачной правки (%1)</translation>
@@ -7732,6 +7801,16 @@ These buttons and start steps will be deleted together with the command.</source
       <location filename="../../../app/src/widgets/configTransferDialog.cpp" />
       <source>The connected remote and the file's intended model will be checked before writing.</source>
       <translation>Перед записью будет проверено соответствие файла подключённому пульту.</translation>
+    </message>
+    <message>
+      <location filename="../../../transport/src/concordTransfer.cpp" />
+      <source>The container is for protocol %1, but the remote reported protocol %2</source>
+      <translation type="unfinished" />
+    </message>
+    <message>
+      <location filename="../../../transport/src/concordTransfer.cpp" />
+      <source>The container is for skin %1, but the capture was read from skin %2</source>
+      <translation type="unfinished" />
     </message>
     <message>
       <location filename="../../../app/src/widgets/activityDialog.cpp" />
@@ -8144,15 +8223,6 @@ They will not be sent to the remote either. When the device is made active again
       <translation>Новый язык включится после перезапуска программы.</translation>
     </message>
     <message>
-      <location filename="../../../app/src/mainWindowRemote.cpp" />
-      <source>The original configuration and remote information are saved in one file. Send this file for analysis. Editing and writing this format are not supported yet.
-
-%1</source>
-      <translation>Исходная конфигурация и сведения о пульте сохранены в одном файле. Пришлите этот файл для анализа. Редактирование и запись этого формата пока не поддерживаются.
-
-%1</translation>
-    </message>
-    <message>
       <location filename="../../../core/src/configDocumentCheck.cpp" />
       <source>the problem is already gone</source>
       <translation>проблемы уже нет</translation>
@@ -8247,6 +8317,41 @@ They will not be sent to the remote either. When the device is made active again
       <location filename="../../../core/src/propertyCatalog.cpp" />
       <source>The remote cannot switch this device, so it asks you instead of trying.</source>
       <translation>Пульт не может включать и выключать это устройство и просит сделать это вас.</translation>
+    </message>
+    <message>
+      <location filename="../../../core/src/formats/remoteCapture.cpp" />
+      <source>the remote capture data is damaged: SHA-256 does not match</source>
+      <translation type="unfinished" />
+    </message>
+    <message>
+      <location filename="../../../core/src/formats/remoteCapture.cpp" />
+      <source>the remote capture data is not valid Base64</source>
+      <translation type="unfinished" />
+    </message>
+    <message>
+      <location filename="../../../core/src/formats/remoteCapture.cpp" />
+      <source>the remote capture data size does not match: %1 bytes, expected %2</source>
+      <translation type="unfinished" />
+    </message>
+    <message>
+      <location filename="../../../core/src/formats/remoteCapture.cpp" />
+      <source>the remote capture does not say which remote it was read from</source>
+      <translation type="unfinished" />
+    </message>
+    <message>
+      <location filename="../../../core/src/formats/remoteCapture.cpp" />
+      <source>the remote capture has no data or the data is too large</source>
+      <translation type="unfinished" />
+    </message>
+    <message>
+      <location filename="../../../core/src/formats/remoteCapture.cpp" />
+      <source>the remote capture has no data size or the data is too large</source>
+      <translation type="unfinished" />
+    </message>
+    <message>
+      <location filename="../../../core/src/formats/remoteCapture.cpp" />
+      <source>the remote capture has no remote or data section</source>
+      <translation type="unfinished" />
     </message>
     <message>
       <location filename="../../../app/src/widgets/propertiesDialog.cpp" />
@@ -8718,6 +8823,11 @@ They will not be sent to the remote either. When the device is made active again
       <translation>это не база ИК-кодов Harmony: %1</translation>
     </message>
     <message>
+      <location filename="../../../core/src/formats/remoteCapture.cpp" />
+      <source>this is not a remote capture file</source>
+      <translation type="unfinished" />
+    </message>
+    <message>
       <location filename="../../../core/src/formats/ezhex.cpp" />
       <source>this is not a remote configuration file (.EZHex): no header</source>
       <translation>это не файл конфигурации пульта (.EZHex): нет заголовка</translation>
@@ -9085,6 +9195,11 @@ They will not be sent to the remote either. When the device is made active again
       <translation>неизвестный формат ссылки на сырой код</translation>
     </message>
     <message>
+      <location filename="../../../core/src/formats/remoteCapture.cpp" />
+      <source>unknown remote capture container: %1</source>
+      <translation type="unfinished" />
+    </message>
+    <message>
       <location filename="../../../transport/src/concordTransfer.cpp" />
       <source>Unknown remote identity</source>
       <translation>Неизвестный идентификатор пульта</translation>
@@ -9119,6 +9234,11 @@ They will not be sent to the remote either. When the device is made active again
       <location filename="../../../transport/src/harmonyHidReader.cpp" />
       <source>Unsupported HID remote: architecture %1, skin %2</source>
       <translation>Неподдерживаемый HID-пульт: архитектура %1, модель (skin) %2</translation>
+    </message>
+    <message>
+      <location filename="../../../core/src/formats/remoteCapture.cpp" />
+      <source>unsupported remote capture version %1</source>
+      <translation type="unfinished" />
     </message>
     <message>
       <location filename="../../../core/src/propertyCatalog.cpp" />

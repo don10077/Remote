@@ -12,6 +12,7 @@
 #include "widgets/remoteSettingsDialog.h"
 #include "appSettings.h"
 #include "harmony/core/configDiff.h"
+#include "harmony/core/formats/remoteCapture.h"
 #include "harmony/core/remoteProfile.h"
 #include "harmony/transport/remoteServices.h"
 
@@ -120,7 +121,7 @@ void MainWindow::readFromRemote() {
     if (!profile || profile->driver == driver::kNone) return;
     startRemoteProgress(tr("Read from remote"), tr("Reading from the remote failed"));
     if (usesUsbNet(selectedRemote_.toStdString())) remote_->readConfig();
-    else remote_->readHidConfig();
+    else remote_->readCapture();
 }
 
 void MainWindow::chooseRemote() {
@@ -143,25 +144,29 @@ void MainWindow::chooseRemote() {
     }
 }
 
-void MainWindow::saveHidBackup(const QByteArray& backup) {
+void MainWindow::saveCapture(const QByteArray& backup, const QString& modelId, const QString& check) {
     finishRemoteProgress();
+    // Имя по умолчанию: Harmony-<модель>-<дата>-<время>.remote.json
+    const auto now = QDateTime::currentDateTime();
+    const QString name = QString::fromStdString(formats::captureFileName(
+        modelId.toStdString(), now.date().year(), now.date().month(), now.date().day(),
+        now.time().hour(), now.time().minute()));
     // Сначала автоматическая копия: отмена окна экспорта не теряет прочитанные данные.
-    const QString file = QDir(library::backupFolder()).filePath(
-        "Harmony-HID-" + QDateTime::currentDateTime().toString("yyyyMMdd-HHmmss-zzz") + ".hid.json");
+    const QString file = QDir(library::backupFolder()).filePath(name);
     QSaveFile out(file);
     if (!out.open(QIODevice::WriteOnly) || out.write(backup) != backup.size() || !out.commit()) {
         QMessageBox::warning(this, tr("Read from remote"), tr("Could not save the file %1").arg(file));
         return;
     }
     journal::info(tr("Remote backup saved: %1").arg(QDir::toNativeSeparators(file)));
+    journal::info(tr("File check passed: %1").arg(check));
+    const QString suffix = QString::fromLatin1(formats::kRemoteCaptureExtension);
     QString destination = QFileDialog::getSaveFileName(this, tr("Save remote backup to send"),
-        QDir(library::lastDialogDir()).filePath("Harmony-" + QDateTime::currentDateTime().toString("yyyyMMdd-HHmmss") +
-                                                ".hid.json"),
-        tr("Harmony HID backup (*.hid.json)"));
+        QDir(library::lastDialogDir()).filePath(name), tr("Remote capture (*.remote.json)"));
     if (!destination.isEmpty()) {
         library::setLastDialogDir(QFileInfo(destination).absolutePath());
-        if (!destination.endsWith(QLatin1String(".hid.json"), Qt::CaseInsensitive)) {
-            destination += QLatin1String(".hid.json"); // диалог Qt суффикс сам не добавляет
+        if (!destination.endsWith(suffix, Qt::CaseInsensitive)) {
+            destination += suffix; // диалог Qt суффикс сам не добавляет
         }
     }
     QString saved = file;
@@ -175,8 +180,8 @@ void MainWindow::saveHidBackup(const QByteArray& backup) {
         saved = destination;
     }
     QMessageBox box(QMessageBox::Information, tr("Read from remote"),
-        tr("The original configuration and remote information are saved in one file. Send this file for analysis. Editing and writing this format are not supported yet.\n\n%1")
-            .arg(QDir::toNativeSeparators(saved)), QMessageBox::Ok, this);
+        tr("The configuration and remote information are saved in one file. Send this file for analysis.\n\nChecked: %1\n\n%2")
+            .arg(check, QDir::toNativeSeparators(saved)), QMessageBox::Ok, this);
     auto* folder = box.addButton(tr("Open folder"), QMessageBox::ActionRole);
     box.exec();
     if (box.clickedButton() == folder)

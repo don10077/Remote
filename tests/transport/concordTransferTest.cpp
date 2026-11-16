@@ -23,23 +23,50 @@ formats::Bytes mhFile(std::string_view target = "/cfg/usercfg", int skin = 78, b
     return formats::writeZip(archive);
 }
 
-/// Минимальный GSPM с известными указателем, LWJL и XOR, не аппаратный образец.
-TransferFile oneFile() {
-    TransferFile file;
-    file.protocol = 12; file.skin = 54;
-    file.payload.resize(128, 0);
-    auto& b = file.payload;
+/// Минимальный образ GSPM с указателем конца, LWJL и XOR: One (база 0x040000) или 600–700 (0x030000).
+formats::Bytes gspmImage(std::uint32_t base = 0x040000u) {
+    formats::Bytes b(128, 0);
     std::copy_n("GSPM", 4, b.begin());
     std::copy_n("LWJL", 4, b.begin() + 0x63);
-    const auto end = 0x040000u + static_cast<unsigned>(b.size()) - 4;
+    const auto end = base + static_cast<unsigned>(b.size()) - 4;
     b[4] = static_cast<std::uint8_t>(end); b[5] = static_cast<std::uint8_t>(end >> 8); b[6] = static_cast<std::uint8_t>(end >> 16);
     std::uint16_t sum = 0x4321;
     for (std::size_t i = 0; i < b.size() - 6; i += 2) sum ^= static_cast<std::uint16_t>(b[i] | (b[i + 1] << 8));
     b[b.size() - 6] = static_cast<std::uint8_t>(sum);
     b[b.size() - 5] = static_cast<std::uint8_t>(sum >> 8);
     std::copy_n("PTYY", 4, b.end() - 4);
+    return b;
+}
+
+/// Минимальный GSPM One, не аппаратный образец.
+TransferFile oneFile() {
+    TransferFile file;
+    file.protocol = 12; file.skin = 54;
+    file.payload = gspmImage();
     return file;
 }
+
+/// Пульт 600–700, как его видит connect(): arch 14, протокол 14.
+TransferInfo info665() {
+    TransferInfo info;
+    info.modelId = "665";
+    info.remote.model = "Harmony 665";
+    info.remote.firmwareVersion = "2.2";
+    info.remote.identity = {.architecture = 14, .skin = 99, .flash = "0x01:0x49", .board = "1.2.3", .softwareType = 0};
+    info.protocol = 14;
+    info.readable = true;
+    return info;
+}
+
+/// EZHex, каким его возвращает ConcordTransfer::read() для 600–700.
+formats::Bytes ezhex665(formats::Bytes image) {
+    auto identity = info665().remote.identity;
+    auto bytes = formats::writeEzHex({.header = {}, .payload = std::move(image), .identity = identity});
+    EXPECT_TRUE(bytes);
+    return bytes.value_or(formats::Bytes{});
+}
+
+formats::Bytes asBytes(const std::string& text) { return {text.begin(), text.end()}; }
 }
 
 TEST(RemoteCatalog, ModelsWithoutArtworkStillHaveTransferCapabilities) {
@@ -118,4 +145,74 @@ TEST(ConcordTransfer, UnknownModelsAndConcurrentSessionsNeverOpenHardware) {
     EXPECT_FALSE(second.connect("900"));
     EXPECT_FALSE(first.read());
     EXPECT_FALSE(first.write({}, {}));
+}
+
+TEST(RemoteCaptureTransfer, CaptureOf665PassesContainerAndFrameChecks) {
+    const auto capture = makeCapture(info665(), ezhex665(gspmImage(0x030000u)));
+    EXPECT_EQ(capture.modelId, "665");
+    EXPECT_EQ(capture.model, "Harmony 665");
+    EXPECT_EQ(capture.identity.skin, 99);
+    EXPECT_EQ(capture.protocol, 14);
+    EXPECT_EQ(capture.firmware, "2.2");
+    EXPECT_EQ(capture.container, formats::CaptureContainer::EzHex);
+    EXPECT_EQ(capture.createdUtc.size(), 20u);
+    const auto check = inspectCapture(capture);
+    ASSERT_TRUE(check) << check.error().message;
+    EXPECT_TRUE(check->checksum);
+    EXPECT_TRUE(check->frame);
+    EXPECT_EQ(check->file.payload, gspmImage(0x030000u));
+}
+
+TEST(RemoteCaptureTransfer, BrokenFrameOrForeignIdentityIsReported) {
+    auto image = gspmImage(0x030000u);
+    image[20] ^= 1; // XOR16 образа больше не сходится, а сумма EZHex пересчитана
+    EXPECT_EQ(inspectCapture(makeCapture(info665(), ezhex665(image))).error().code, ErrorCode::Format);
+    // Образ One (база 0x040000) у 665: вектор конца не тот.
+    EXPECT_FALSE(inspectCapture(makeCapture(info665(), ezhex665(gspmImage()))));
+    auto other = info665();
+    other.remote.identity.skin = 100; // контейнер для skin 99
+    EXPECT_EQ(inspectCapture(makeCapture(other, ezhex665(gspmImage(0x030000u)))).error().code, ErrorCode::Format);
+    other = info665();
+    other.mh = true; // сказано MH, а внутри EZHex
+    EXPECT_EQ(inspectCapture(makeCapture(other, ezhex665(gspmImage(0x030000u)))).error().code, ErrorCode::Format);
+}
+
+TEST(RemoteCaptureTransfer, MhCaptureHasNoFrameCheckYet) {
+    TransferInfo info;
+    info.modelId = "200"; info.mh = true; info.remote.identity.skin = 78;
+    const auto check = inspectCapture(makeCapture(info, mhFile()));
+    ASSERT_TRUE(check) << check.error().message;
+    EXPECT_TRUE(check->file.mh);
+    EXPECT_TRUE(check->checksum);
+    EXPECT_FALSE(check->frame);
+}
+
+TEST(RemoteCaptureTransfer, WritingAcceptsCaptureJsonAndUnwrapsContainer) {
+    const auto container = ezhex665(gspmImage(0x030000u));
+    const auto json = formats::writeRemoteCapture(makeCapture(info665(), container));
+    ASSERT_TRUE(json);
+    const auto bytes = asBytes(*json);
+    const auto file = inspectTransferFile(bytes);
+    ASSERT_TRUE(file) << file.error().message;
+    EXPECT_EQ(file->skin, 99);
+    EXPECT_EQ(file->protocol, 14);
+    const auto unwrapped = unwrapCapture(bytes);
+    ASSERT_TRUE(unwrapped);
+    EXPECT_EQ(*unwrapped, container);
+    // Не JSON — как есть.
+    EXPECT_EQ(unwrapCapture(container).value_or(formats::Bytes{}), container);
+    // Испорченный JSON на пульт не уходит.
+    auto damaged = bytes;
+    damaged[damaged.size() / 2] ^= 1;
+    EXPECT_FALSE(inspectTransferFile(damaged));
+}
+
+TEST(RemoteCaptureTransfer, OldHidDumpIsReadOnly) {
+    formats::RemoteCapture legacy = makeCapture(info665(), gspmImage(0x030000u));
+    legacy.container = formats::CaptureContainer::Raw;
+    EXPECT_EQ(inspectCapture(legacy).error().code, ErrorCode::Unsupported);
+    const std::string json = R"({"format":"harmony-hid-backup","version":1,"skin":99,"configSize":3,)"
+        R"("configSha256":"039058c6f2c0cb492c533b0a4d14ef77cc0f78abccced5287d84a1a2011cfb81","configBase64":"AQID"})";
+    EXPECT_EQ(unwrapCapture(asBytes(json)).error().code, ErrorCode::Unsupported);
+    EXPECT_FALSE(inspectTransferFile(asBytes(json)));
 }

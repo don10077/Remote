@@ -538,7 +538,7 @@ void MainWindow::showConnectionHelp() {
     box.setIcon(QMessageBox::Information);
     box.setProperty(help::kTopicProperty, static_cast<int>(help::Topic::Connect));
     if (!usesUsbNet(selectedRemote_.toStdString())) {
-        box.setText(tr("Connect one Harmony One/600/650/665/700 by USB, close other Logitech applications and click Read from remote. No external utility is needed. Windows uses its HID driver; on Linux, access to the hidraw device is required. The program saves a backup for analysis without changing the remote."));
+        box.setText(tr("Connect the remote by USB, close other Logitech applications and click Read from remote and save. The model is detected automatically and one file for analysis (*.remote.json) is saved and checked; the remote is not changed. No external utility is needed. Windows uses its HID driver; on Linux, access to the hidraw device is required."));
         if (linuxUsb::available()) {
             box.setInformativeText(tr("On Linux press “Set up USB” once (administrator password needed)."));
         }

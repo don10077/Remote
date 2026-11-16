@@ -60,9 +60,9 @@ AppHeader::AppHeader(QMenu* connectionMenu, QWidget* parent)
     layout->addWidget(undoButton_);
     layout->addWidget(redoButton_);
     layout->addStretch(1);
-    auto* readButton = new QPushButton(tr("Read from remote"), this);
-    connect(readButton, &QPushButton::clicked, this, &AppHeader::readRequested);
-    layout->addWidget(readButton);
+    readButton_ = new QPushButton(tr("Read from remote"), this);
+    connect(readButton_, &QPushButton::clicked, this, &AppHeader::readRequested);
+    layout->addWidget(readButton_);
     layout->addWidget(connectionButton_);
     layout->addSpacing(8);
     layout->addWidget(writeButton_);
@@ -93,6 +93,10 @@ void AppHeader::setConnectionState(bool connected, const QString& text) {
 
 void AppHeader::setWriteEnabled(bool writable) {
     writeButton_->setEnabled(writable);
+}
+
+void AppHeader::setReadSavesFile(bool saves) {
+    readButton_->setText(saves ? tr("Read from remote and save") : tr("Read from remote"));
 }
 
 } // namespace harmony::app

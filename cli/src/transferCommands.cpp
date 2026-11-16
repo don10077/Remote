@@ -1,6 +1,7 @@
 #include "transferCommands.h"
 #include "harmony/core/remoteCatalog.h"
 #include "harmony/transport/concordTransfer.h"
+#include <chrono>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -72,12 +73,40 @@ int runTransferCommand(std::span<char*> args, const std::string& host) {
     } else if (reading) {
         auto result = session.read();
         if (!result) return failure(result.error());
-        std::ofstream output(path(args[3]), std::ios::binary | std::ios::noreplace);
+        // Один файл для пересылки: контейнер с пульта и сведения о снятии (*.remote.json).
+        const auto capture = harmony::transport::makeCapture(*info, std::move(*result));
+        const auto json = harmony::formats::writeRemoteCapture(capture);
+        if (!json) return failure(json.error());
+        // Если указана папка, имя берётся по умолчанию: Harmony-<модель>-<дата>-<время>.remote.json.
+        auto target = path(args[3]);
+        std::error_code ec;
+        if (std::filesystem::is_directory(target, ec)) {
+            const auto stamp = std::chrono::floor<std::chrono::minutes>(std::chrono::system_clock::now());
+            const std::chrono::year_month_day day{std::chrono::floor<std::chrono::days>(stamp)};
+            const std::chrono::hh_mm_ss time{stamp - std::chrono::floor<std::chrono::days>(stamp)};
+            target /= std::filesystem::path(reinterpret_cast<const char8_t*>(harmony::formats::captureFileName(
+                capture.modelId, static_cast<int>(day.year()),
+                static_cast<int>(static_cast<unsigned>(day.month())),
+                static_cast<int>(static_cast<unsigned>(day.day())), static_cast<int>(time.hours().count()),
+                static_cast<int>(time.minutes().count())).c_str()));
+        }
+        std::ofstream output(target, std::ios::binary | std::ios::noreplace);
         if (!output) { std::cerr << "Cannot create output (existing files are not overwritten).\n"; return 2; }
-        output.write(reinterpret_cast<const char*>(result->data()), static_cast<std::streamsize>(result->size()));
+        output.write(json->data(), static_cast<std::streamsize>(json->size()));
         output.close();
         if (!output) { std::cerr << "Could not finish output file.\n"; return 2; }
-        std::cout << "Configuration saved (" << result->size() << " bytes).\n";
+        std::cout << "File: " << target.string() << '\n';
+        std::cout << "Configuration saved: model " << (capture.modelId.empty() ? "?" : capture.modelId) << ", "
+                  << capture.data.size() << " bytes (" << harmony::formats::containerName(capture.container) << ").\n";
+        // Проверка сохранённого: читаем файл с диска заново, как его прочтёт получатель.
+        std::ifstream saved(target, std::ios::binary);
+        const std::string text{std::istreambuf_iterator<char>(saved), {}};
+        const auto parsed = harmony::formats::parseRemoteCapture(text);
+        if (!parsed) return failure(parsed.error());
+        const auto check = harmony::transport::inspectCapture(*parsed);
+        if (!check) return failure(check.error());
+        std::cout << "Check passed: SHA-256, container checksum"
+                  << (check->frame ? ", GSPM frame" : "") << ".\n";
     }
     return 0;
 }

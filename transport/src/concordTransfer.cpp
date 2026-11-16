@@ -39,6 +39,37 @@ std::uint16_t xor16(std::span<const std::uint8_t> bytes, std::uint16_t seed) {
     return seed;
 }
 
+/// Первый значащий символ — «{»: снятый файл *.remote.json, а не контейнер пульта.
+bool looksLikeJson(std::span<const std::uint8_t> bytes) {
+    std::size_t i = bytes.size() >= 3 && bytes[0] == 0xEF && bytes[1] == 0xBB && bytes[2] == 0xBF ? 3 : 0;
+    while (i < bytes.size() && (bytes[i] == ' ' || bytes[i] == '\t' || bytes[i] == '\r' || bytes[i] == '\n')) ++i;
+    return i < bytes.size() && bytes[i] == '{';
+}
+
+/**
+ * @brief Рамка образа GSPM (One — arch 12, 600–700 — arch 14): признак, вектор конца,
+ * «PTYY», XOR16 перед ним; у One ещё «LWJL» и граница защищённой памяти.
+ * Для других архитектур ничего не проверяет.
+ */
+Result<void> checkGspmFrame(std::span<const std::uint8_t> b, int arch) {
+    if (arch != 12 && arch != 14) return {};
+    const std::uint32_t base = arch == 12 ? 0x040000u : 0x030000u;
+    if (b.size() < 12 || !std::equal(b.begin(), b.begin() + 4, "GSPM"))
+        return makeError(ErrorCode::Format, "Invalid GSPM signature");
+    const auto end = static_cast<std::uint32_t>(b[4]) | (static_cast<std::uint32_t>(b[5]) << 8) |
+                     (static_cast<std::uint32_t>(b[6]) << 16);
+    if (end < base + 2 || end - base != b.size() - 4 ||
+        !std::equal(b.end() - 4, b.end(), "PTYY"))
+        return makeError(ErrorCode::Format, "Invalid GSPM end vector");
+    const std::size_t close = b.size() - 6;
+    if (close % 2 != 0 || xor16(b.first(close), 0x4321) != (b[close] | (b[close + 1] << 8)))
+        return makeError(ErrorCode::Format, "Invalid GSPM XOR16 checksum");
+    if (arch == 12 && (b.size() >= 0x390000 || b.size() < 0x67 ||
+        !std::equal(b.begin() + 0x63, b.begin() + 0x67, "LWJL")))
+        return makeError(ErrorCode::Format, "Harmony One configuration overlaps protected memory or has no LWJL signature");
+    return {};
+}
+
 /// Читает один ограниченный ZIP-элемент в память, без распаковки путей на диск.
 Result<formats::Bytes> zipEntry(zip_t* archive, const char* name) {
     zip_stat_t stat{};
@@ -97,6 +128,13 @@ Result<void> saveBackup(const std::filesystem::path& path, const formats::Bytes&
 Result<TransferFile> inspectTransferFile(std::span<const std::uint8_t> bytes) {
     if (bytes.empty() || bytes.size() > maxFileSize)
         return makeError(ErrorCode::Format, "Empty or oversized configuration file");
+    if (looksLikeJson(bytes)) {
+        auto capture = formats::parseRemoteCapture({reinterpret_cast<const char*>(bytes.data()), bytes.size()});
+        if (!capture) return std::unexpected(capture.error());
+        auto check = inspectCapture(*capture);
+        if (!check) return std::unexpected(check.error());
+        return std::move(check->file);
+    }
     TransferFile result;
     if (bytes.size() >= 4 && bytes[0] == 'P' && bytes[1] == 'K') {
         zip_error_t error;
@@ -162,25 +200,58 @@ Result<void> validateTransfer(const TransferFile& file, const TransferInfo& info
     if (file.payload.empty() || file.payload.size() > maxFileSize ||
         (!info.network && info.capacity > 1 && file.payload.size() > info.capacity))
         return makeError(ErrorCode::Format, "Configuration exceeds the remote's configuration area");
-    const int arch = info.remote.identity.architecture;
-    if (!info.mh && (arch == 12 || arch == 14)) {
-        const auto& b = file.payload;
-        const std::uint32_t base = arch == 12 ? 0x040000u : 0x030000u;
-        if (b.size() < 12 || !std::equal(b.begin(), b.begin() + 4, "GSPM"))
-            return makeError(ErrorCode::Format, "Invalid GSPM signature");
-        const auto end = static_cast<std::uint32_t>(b[4]) | (static_cast<std::uint32_t>(b[5]) << 8) |
-                         (static_cast<std::uint32_t>(b[6]) << 16);
-        if (end < base + 2 || end - base != b.size() - 4 ||
-            !std::equal(b.end() - 4, b.end(), "PTYY"))
-            return makeError(ErrorCode::Format, "Invalid GSPM end vector");
-        const std::size_t close = b.size() - 6;
-        if (close % 2 != 0 || xor16(std::span(b).first(close), 0x4321) != (b[close] | (b[close + 1] << 8)))
-            return makeError(ErrorCode::Format, "Invalid GSPM XOR16 checksum");
-        if (arch == 12 && (b.size() >= 0x390000 || b.size() < 0x67 ||
-            !std::equal(b.begin() + 0x63, b.begin() + 0x67, "LWJL")))
-            return makeError(ErrorCode::Format, "Harmony One configuration overlaps protected memory or has no LWJL signature");
-    }
+    if (!info.mh) return checkGspmFrame(file.payload, info.remote.identity.architecture);
     return {};
+}
+
+Result<formats::Bytes> unwrapCapture(std::span<const std::uint8_t> bytes) {
+    if (!looksLikeJson(bytes)) return formats::Bytes(bytes.begin(), bytes.end());
+    auto capture = formats::parseRemoteCapture({reinterpret_cast<const char*>(bytes.data()), bytes.size()});
+    if (!capture) return std::unexpected(capture.error());
+    if (capture->container == formats::CaptureContainer::Raw)
+        return makeError(ErrorCode::Unsupported, "An old HID dump has no configuration container and cannot be written");
+    return std::move(capture->data);
+}
+
+Result<CaptureCheck> inspectCapture(const formats::RemoteCapture& capture) {
+    if (capture.container == formats::CaptureContainer::Raw)
+        return makeError(ErrorCode::Unsupported, "An old HID dump has no configuration container to check");
+    if (looksLikeJson(capture.data))
+        return makeError(ErrorCode::Format, "The capture contains another capture instead of a configuration");
+    CaptureCheck check;
+    auto file = inspectTransferFile(capture.data);
+    if (!file) return std::unexpected(file.error());
+    check.file = std::move(*file);
+    check.checksum = true; // EZHex: <CHECKSUM> в parseEzHex; MH: XOR16 из Description.xml
+    if (check.file.mh != (capture.container == formats::CaptureContainer::Mh))
+        return makeError(ErrorCode::Format, "The capture says %1, but the data is a different container",
+                         {std::string(formats::containerName(capture.container))});
+    if (check.file.skin != capture.identity.skin)
+        return makeError(ErrorCode::Format, "The container is for skin %1, but the capture was read from skin %2",
+                         {std::to_string(check.file.skin), std::to_string(capture.identity.skin)});
+    if (!check.file.mh && capture.protocol >= 0 && check.file.protocol != capture.protocol)
+        return makeError(ErrorCode::Format, "The container is for protocol %1, but the remote reported protocol %2",
+                         {std::to_string(check.file.protocol), std::to_string(capture.protocol)});
+    const int arch = capture.identity.architecture;
+    if (!check.file.mh && (arch == 12 || arch == 14)) {
+        if (auto frame = checkGspmFrame(check.file.payload, arch); !frame) return std::unexpected(frame.error());
+        check.frame = true;
+    }
+    return check;
+}
+
+formats::RemoteCapture makeCapture(const TransferInfo& info, formats::Bytes data,
+                                   std::chrono::system_clock::time_point now) {
+    formats::RemoteCapture capture;
+    capture.createdUtc = formats::utcTimestamp(now);
+    capture.modelId = info.modelId;
+    capture.model = info.remote.model;
+    capture.identity = info.remote.identity;
+    capture.protocol = info.protocol;
+    capture.firmware = info.remote.firmwareVersion;
+    capture.container = info.mh ? formats::CaptureContainer::Mh : formats::CaptureContainer::EzHex;
+    capture.data = std::move(data);
+    return capture;
 }
 
 struct ConcordTransfer::Impl {
@@ -264,6 +335,7 @@ Result<TransferInfo> ConcordTransfer::connect(std::string_view modelId, const En
         if (actual == models.end()) return makeError(ErrorCode::Unsupported, "Unknown remote identity");
         model = &*actual;
     }
+    info.modelId = std::string(model->id);
     info.readable = model->readable;
     info.writable = model->writable;
     impl_->connected = true;
@@ -289,9 +361,13 @@ Result<formats::Bytes> ConcordTransfer::read(const ProgressHandler& progress) {
     return formats::writeEzHex({.header = {}, .payload = std::move(bytes), .identity = identity});
 }
 
-Result<void> ConcordTransfer::write(std::span<const std::uint8_t> bytes, const std::filesystem::path& backup,
+Result<void> ConcordTransfer::write(std::span<const std::uint8_t> input, const std::filesystem::path& backup,
                                    bool allowWithoutBackup, const ProgressHandler& progress) {
     if (!impl_->connected) return makeError(ErrorCode::Io, "Remote is not connected");
+    // Снятый *.remote.json: на пульт уходит контейнер из него, а не JSON.
+    auto unwrapped = unwrapCapture(input);
+    if (!unwrapped) return std::unexpected(unwrapped.error());
+    const std::span<const std::uint8_t> bytes(*unwrapped);
     auto file = inspectTransferFile(bytes);
     if (!file) return std::unexpected(file.error());
     if (auto valid = validateTransfer(*file, impl_->info); !valid) return valid;

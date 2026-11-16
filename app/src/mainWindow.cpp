@@ -172,7 +172,7 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
     });
     connect(remote_, &RemoteSession::progress, this, &MainWindow::showRemoteProgress);
     connect(remote_, &RemoteSession::readFinished, this, &MainWindow::openFromRemote);
-    connect(remote_, &RemoteSession::hidReadFinished, this, &MainWindow::saveHidBackup);
+    connect(remote_, &RemoteSession::captureReadFinished, this, &MainWindow::saveCapture);
     connect(remote_, &RemoteSession::backupSaved, this, &MainWindow::backupSaved);
     connect(remote_, &RemoteSession::writeFinished, this, &MainWindow::remoteWritten);
     connect(remote_, &RemoteSession::failed, this, &MainWindow::remoteFailed);
@@ -289,8 +289,8 @@ void MainWindow::createConfig() {
 void MainWindow::browseConfig() {
     const QString path = QFileDialog::getOpenFileName(
         this, tr("Open configuration"), library::lastDialogDir(),
-        tr("Remote configuration (*.EZHex *.ezhex UserConfiguration.xml);;Remote "
-           "backup (*.EZHex *.ezhex);;XML files (*.xml);;All files (*)"));
+        tr("Remote configuration (*.EZHex *.ezhex *.remote.json UserConfiguration.xml);;Remote "
+           "backup (*.EZHex *.ezhex *.remote.json);;XML files (*.xml);;All files (*)"));
     if (path.isEmpty()) {
         return; // пользователь передумал
     }
@@ -428,6 +428,7 @@ void MainWindow::updateTitle() {
     writeRemoteAction_->setEnabled(canWrite && target && target->writable);
     readRemoteAction_->setEnabled(target && target->driver != driver::kNone);
     header_->setWriteEnabled(canWrite && target && target->writable);
+    header_->setReadSavesFile(target && target->driver != driver::kNone && !usesUsbNet(selectedRemote_.toStdString()));
     if (!target || target->driver == driver::kNone)
         header_->setConnectionState(false, tr("No connection driver"));
     else if (target->driver == driver::kUsbHid)
