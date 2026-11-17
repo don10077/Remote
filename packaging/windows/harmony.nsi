@@ -1,4 +1,4 @@
-; Установщик Harmony для Windows (NSIS 3).
+﻿; Установщик Harmony для Windows (NSIS 3).
 ;
 ; Берёт готовую папку dist\win (её раскладывает tools/deploy-win.sh: harmony.exe,
 ; harmony-cli.exe, DLL и плагины Qt) и собирает один Harmony-<версия>-setup.exe.
@@ -70,9 +70,8 @@ VIAddVersionKey /LANG=0 "LegalCopyright" "Harmony"
 LangString SecProgram ${LANG_ENGLISH} "Harmony"
 LangString SecProgram ${LANG_RUSSIAN} "Harmony"
 LangString SecDesktop ${LANG_ENGLISH} "Desktop shortcut"
-LangString SecDesktop ${LANG_RUSSIAN} "Ярлык на рабочем столе"
 LangString Need64Bit  ${LANG_ENGLISH} "Harmony requires 64-bit Windows."
-LangString Need64Bit  ${LANG_RUSSIAN} "Для Harmony нужна 64-разрядная Windows."
+!include "lang_ru.nsh"
 
 ; --- Установка ----------------------------------------------------------------
 Function .onInit
