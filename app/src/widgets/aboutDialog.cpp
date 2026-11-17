@@ -128,7 +128,7 @@ AboutDialog::AboutDialog(QWidget* parent) : QDialog(parent) {
         project(QStringLiteral("Concordance"), QStringLiteral("https://github.com/jaymzh/concordance"),
                 tr("libconcord: configuration transfer over USB")) +
         project(QStringLiteral("harmony-hub-root"), QStringLiteral("https://github.com/Ripthulhu/harmony-hub-root"),
-                tr("Assistance with working with Harmony Hub :)")) +
+                tr("help with Harmony Hub :)")) +
         project(QStringLiteral("logitech-harmony-ir-archive"),
                 QStringLiteral("https://github.com/pickysysadmin/logitech-harmony-ir-archive"),
                 tr("archive of Logitech's IR codes")) +
