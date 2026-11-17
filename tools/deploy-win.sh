@@ -1,13 +1,18 @@
 #!/usr/bin/env bash
 # Раскладывает собранное приложение в папку dist вместе со всем, что нужно для запуска
 # без MSYS2: плагины Qt (platforms, styles, imageformats, iconengines, tls — для HTTPS при
-# скачивании базы ИК-кодов) и DLL из MinGW.
+# скачивании базы ИК-кодов) и DLL из UCRT64.
 #
 # Использование (из build.cmd и CI): bash tools/deploy-win.sh <путь к exe> <папка dist> [ещё exe…]
 #   ещё exe — например, harmony-cli.exe: кладётся рядом, его DLL тоже копируются.
-# Нужен MSYSTEM=MINGW64, чтобы ldd находил библиотеки в /mingw64/bin.
+# Нужен MSYSTEM=UCRT64, чтобы ldd находил библиотеки в /ucrt64/bin.
 
 set -euo pipefail
+
+if [[ "${MSYSTEM:-}" != "UCRT64" ]]; then
+    echo "Run deployment from an MSYS2 UCRT64 shell (MSYSTEM=UCRT64)." >&2
+    exit 1
+fi
 
 exe="$1"
 out="$2"
@@ -19,7 +24,7 @@ cp -f "$exe" "$@" "$out/"
 # Где лежат плагины Qt: спрашиваем у самого Qt, при неудаче берём путь MSYS2 по умолчанию.
 plugins="$(qtpaths6 --query QT_INSTALL_PLUGINS 2>/dev/null \
         || qmake6 -query QT_INSTALL_PLUGINS 2>/dev/null \
-        || echo /mingw64/share/qt6/plugins)"
+        || echo /ucrt64/share/qt6/plugins)"
 plugins="${plugins%$'\r'}"
 
 for dir in platforms styles imageformats iconengines tls networkinformation; do
@@ -29,10 +34,10 @@ for dir in platforms styles imageformats iconengines tls networkinformation; do
 done
 
 # Переводы стандартных кнопок и диалогов Qt («OK», «Отмена») для языков программы.
-# В MSYS2 они в пакете mingw-w64-x86_64-qt6-translations; нет пакета — кнопки будут по-английски.
+# В MSYS2 они в пакете mingw-w64-ucrt-x86_64-qt6-translations; нет пакета — кнопки будут по-английски.
 translations="$(qtpaths6 --query QT_INSTALL_TRANSLATIONS 2>/dev/null \
         || qmake6 -query QT_INSTALL_TRANSLATIONS 2>/dev/null \
-        || echo /mingw64/share/qt6/translations)"
+        || echo /ucrt64/share/qt6/translations)"
 translations="${translations%$'\r'}"
 for lang in ru de en; do
     if [ -f "$translations/qtbase_$lang.qm" ]; then
@@ -41,11 +46,11 @@ for lang in ru de en; do
     fi
 done
 
-# ldd показывает всё дерево зависимостей; копируем только библиотеки из MinGW,
+# ldd показывает всё дерево зависимостей; копируем только библиотеки из UCRT64,
 # системные DLL Windows не нужны. cp -u обновляет файл, только если исходный новее.
 # Ошибка ldd на отдельном файле не должна прерывать раскладку, поэтому «|| true».
 { find "$out" \( -name '*.exe' -o -name '*.dll' \) -print0 | xargs -0 -n1 ldd 2>/dev/null || true; } \
-    | awk '$3 ~ /^\/mingw64\// { print $3 }' \
+    | awk '$3 ~ /^\/ucrt64\// { print $3 }' \
     | sort -u \
     | while read -r dll; do cp -u "$dll" "$out/"; done
 

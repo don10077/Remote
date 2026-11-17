@@ -124,7 +124,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.split("\n", 1)[0],
                                      formatter_class=argparse.RawDescriptionHelpFormatter, epilog=__doc__)
     parser.add_argument("--host", default="192.168.7.128", help="адрес RM4")
-    parser.add_argument("--cli", type=Path, default=ROOT / "build/win-release/cli/harmony-cli.exe")
+    parser.add_argument("--cli", type=Path, default=ROOT / "build/ucrt64/win-release/cli/harmony-cli.exe")
     parser.add_argument("--group", choices=["all", "encode", "decoded", "unknown"], default="all")
     parser.add_argument("--only", help="только случаи с этой подстрокой в названии")
     parser.add_argument("--report", type=Path,

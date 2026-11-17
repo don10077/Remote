@@ -147,11 +147,13 @@ The project uses C++23, CMake 3.28+, Ninja and Qt 6.5+. Use GCC 13+ or Clang 19+
 with a standard library that supports `std::expected`. Dependencies also include
 GoogleTest, pugixml, libzip and pkg-config. libconcord is bundled.
 
-### Windows
+### Windows (MSYS2 UCRT64)
 
 Install [MSYS2](https://www.msys2.org/) and run `build.cmd`. It installs missing packages,
-builds Release, runs tests and deploys the application and DLLs to `dist/win`.
+builds Release, runs tests and deploys the application and DLLs to `dist/ucrt64/win`.
 Use `build.cmd installer` to also create the Windows installer.
+
+Windows builds use MSYS2 UCRT64, both locally and in GitHub Actions. Local build files are kept in `build/ucrt64/<preset>/` to separate them from previous MinGW64 builds.
 
 The script looks for MSYS2 in `D:\Install\MSYS2` by default. Set `MSYS2_ROOT` for another location.
 

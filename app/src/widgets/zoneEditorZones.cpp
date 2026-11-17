@@ -34,6 +34,7 @@ QString findAutoZonesScript() {
         base + QStringLiteral("/tools/autoZones.py"),
         base + QStringLiteral("/../../tools/autoZones.py"),
         base + QStringLiteral("/../../../tools/autoZones.py"),
+        base + QStringLiteral("/../../../../tools/autoZones.py"), // build/ucrt64/<preset>/{app,tests}
     };
     for (const QString& candidate : candidates)
         if (QFileInfo::exists(QDir::cleanPath(candidate))) return QDir::cleanPath(candidate);

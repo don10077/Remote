@@ -1291,11 +1291,6 @@ Add a device?</source>
       <translation>Назначение «%1» снято. Отменить — %2</translation>
     </message>
     <message>
-      <location filename="../../../app/src/widgets/aboutDialog.cpp" />
-      <source>Assistance with working with Harmony Hub :)</source>
-      <translation type="unfinished" />
-    </message>
-    <message>
       <location filename="../../../app/src/widgets/settingsDialog.cpp" />
       <source>At startup open:</source>
       <translation>При запуске открывать:</translation>
@@ -3854,6 +3849,11 @@ Copy saved: %2</source>
       <location filename="../../../app/src/helpContent.cpp" />
       <source>Help on the open window</source>
       <translation>Справка по открытому окну</translation>
+    </message>
+    <message>
+      <location filename="../../../app/src/widgets/aboutDialog.cpp" />
+      <source>help with Harmony Hub :)</source>
+      <translation type="unfinished" />
     </message>
     <message>
       <location filename="../../../app/src/widgets/settingsDialog.cpp" />

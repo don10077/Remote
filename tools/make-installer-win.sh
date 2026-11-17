@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 # Собирает установщик Windows (NSIS) из папки, разложенной tools/deploy-win.sh.
 #
-# Использование (из build.cmd или CI, в оболочке MSYS2 MINGW64):
+# Использование (из build.cmd или CI, в оболочке MSYS2 UCRT64):
 #   bash tools/make-installer-win.sh <каталог сборки> <папка с программой> <папка результата>
-#   например: bash tools/make-installer-win.sh build/win-release dist/win dist
+#   например: bash tools/make-installer-win.sh build/ucrt64/win-release dist/ucrt64/win dist
 #
 # Результат: <папка результата>/Harmony-<версия>-setup.exe.
-# Нужен makensis (пакет MSYS2 mingw-w64-x86_64-nsis).
+# Нужен makensis (пакет MSYS2 mingw-w64-ucrt-x86_64-nsis).
 
 set -euo pipefail
 

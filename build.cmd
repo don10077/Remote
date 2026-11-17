@@ -9,10 +9,10 @@ rem  Что делает:
 rem    1. находит MSYS2 и добавляет его в PATH только для этого запуска;
 rem    2. если чего-то не хватает (компилятор, CMake, Ninja, Qt 6, GoogleTest) -
 rem       обновляет MSYS2 (pacman -Syu) и ставит недостающие пакеты;
-rem    3. при первом запуске настраивает сборку (cmake --preset);
+rem    3. настраивает отдельную сборку UCRT64 (пресет release, как в CI);
 rem    4. обновляет переводы (tools\updateTranslations.py), если есть Python;
 rem    5. собирает Release и прогоняет тесты;
-rem    6. кладёт harmony.exe со всеми DLL в dist\win - оттуда он запускается
+rem    6. кладёт harmony.exe со всеми DLL в dist\ucrt64\win - оттуда он запускается
 rem       без MSYS2 и его можно копировать на другой компьютер;
 rem    7. с параметром installer (build.cmd installer) ещё и собирает установщик
 rem       dist\Harmony-<версия>-setup.exe (NSIS ставится через pacman сам).
@@ -22,12 +22,13 @@ rem ===========================================================================
 
 if not defined MSYS2_ROOT set "MSYS2_ROOT=D:\Install\MSYS2"
 set "PRESET=win-release"
-set "DIST=dist\win"
-set "NSIS_PACKAGE=mingw-w64-x86_64-nsis"
-set "PACKAGES=mingw-w64-x86_64-toolchain mingw-w64-x86_64-cmake mingw-w64-x86_64-ninja mingw-w64-x86_64-qt6-base mingw-w64-x86_64-qt6-svg mingw-w64-x86_64-qt6-translations mingw-w64-x86_64-gtest mingw-w64-x86_64-pugixml mingw-w64-x86_64-libzip mingw-w64-x86_64-pkgconf"
+set "BUILD_DIR=build\ucrt64\%PRESET%"
+set "DIST=dist\ucrt64\win"
+set "NSIS_PACKAGE=mingw-w64-ucrt-x86_64-nsis"
+set "PACKAGES=mingw-w64-ucrt-x86_64-toolchain mingw-w64-ucrt-x86_64-cmake mingw-w64-ucrt-x86_64-ninja mingw-w64-ucrt-x86_64-qt6-base mingw-w64-ucrt-x86_64-qt6-svg mingw-w64-ucrt-x86_64-qt6-translations mingw-w64-ucrt-x86_64-gtest mingw-w64-ucrt-x86_64-pugixml mingw-w64-ucrt-x86_64-libzip mingw-w64-ucrt-x86_64-pkgconf"
 
-set "MINGW=%MSYS2_ROOT%\mingw64"
-set "PATH=%MINGW%\bin;%MSYS2_ROOT%\usr\bin;%PATH%"
+set "UCRT=%MSYS2_ROOT%\ucrt64"
+set "PATH=%UCRT%\bin;%MSYS2_ROOT%\usr\bin;%PATH%"
 
 rem Работаем из папки, где лежит этот файл, откуда бы его ни запустили.
 cd /d "%~dp0"
@@ -40,17 +41,17 @@ if not exist "%MSYS2_ROOT%\usr\bin\pacman.exe" (
 
 rem --- 1. Проверка инструментов --------------------------------------------
 set "MISSING="
-if not exist "%MINGW%\include\zip.h" set "MISSING=1"
-if not exist "%MINGW%\bin\pkg-config.exe" set "MISSING=1"
-if not exist "%MINGW%\bin\g++.exe"   set "MISSING=1"
-if not exist "%MINGW%\bin\cmake.exe" set "MISSING=1"
-if not exist "%MINGW%\bin\ninja.exe" set "MISSING=1"
-if not exist "%MINGW%\lib\cmake\Qt6Widgets\Qt6WidgetsConfig.cmake" set "MISSING=1"
-if not exist "%MINGW%\lib\cmake\Qt6Svg\Qt6SvgConfig.cmake"           set "MISSING=1"
-if not exist "%MINGW%\lib\cmake\GTest\GTestConfig.cmake"           set "MISSING=1"
+if not exist "%UCRT%\include\zip.h" set "MISSING=1"
+if not exist "%UCRT%\bin\pkg-config.exe" set "MISSING=1"
+if not exist "%UCRT%\bin\g++.exe"   set "MISSING=1"
+if not exist "%UCRT%\bin\cmake.exe" set "MISSING=1"
+if not exist "%UCRT%\bin\ninja.exe" set "MISSING=1"
+if not exist "%UCRT%\lib\cmake\Qt6Widgets\Qt6WidgetsConfig.cmake" set "MISSING=1"
+if not exist "%UCRT%\lib\cmake\Qt6Svg\Qt6SvgConfig.cmake"           set "MISSING=1"
+if not exist "%UCRT%\lib\cmake\GTest\GTestConfig.cmake"           set "MISSING=1"
 rem Переводы стандартных кнопок Qt («Да», «Нет», «Отмена»).
-if not exist "%MINGW%\share\qt6\translations\qtbase_ru.qm"         set "MISSING=1"
-if not exist "%MINGW%\lib\cmake\pugixml\pugixml-config.cmake"     set "MISSING=1"
+if not exist "%UCRT%\share\qt6\translations\qtbase_ru.qm"         set "MISSING=1"
+if not exist "%UCRT%\lib\cmake\pugixml\pugixml-config.cmake"     set "MISSING=1"
 
 if defined MISSING (
     call :pacman_update
@@ -68,13 +69,12 @@ if not exist "CMakeUserPresets.json" (
     copy /Y "CMakeUserPresets.json.example" "CMakeUserPresets.json" >nul
 )
 
-rem --- 3. Настройка (только при первом запуске) ----------------------------
-rem Дальше CMake сам перенастраивает сборку, когда меняются CMakeLists.txt.
-if not exist "build\%PRESET%\CMakeCache.txt" (
-    echo --- Настройка сборки ---
-    cmake --preset %PRESET%
-    if errorlevel 1 goto :fail
-)
+rem --- 3. Настройка UCRT64 ------------------------------------------------
+rem Отдельный каталог не смешивает новую сборку с прежней MinGW64.
+rem Явные пути также учитывают MSYS2_ROOT без правки локальных пресетов.
+echo --- Настройка сборки UCRT64 ---
+"%UCRT%\bin\cmake.exe" --preset release -B "%BUILD_DIR%" -DCMAKE_C_COMPILER="%UCRT%/bin/gcc.exe" -DCMAKE_CXX_COMPILER="%UCRT%/bin/g++.exe" -DCMAKE_MAKE_PROGRAM="%UCRT%/bin/ninja.exe"
+if errorlevel 1 goto :fail
 
 rem --- 4. Переводы ------------------------------------------------------------
 rem Новые строки tr() попадают в harmony_ru.ts пустыми (type="unfinished"),
@@ -93,18 +93,18 @@ if errorlevel 1 echo [предупреждение] updateTranslations.py зав
 :build
 rem --- 5. Сборка и тесты ---------------------------------------------------
 echo --- Сборка ---
-cmake --build --preset %PRESET%
+"%UCRT%\bin\cmake.exe" --build "%BUILD_DIR%"
 if errorlevel 1 goto :fail
 
 echo --- Тесты ---
-ctest --preset %PRESET%
+"%UCRT%\bin\ctest.exe" --test-dir "%BUILD_DIR%" --output-on-failure --no-tests=error
 if errorlevel 1 goto :fail
 
 rem --- 6. Раскладка в dist -------------------------------------------------
 echo --- Копирование в %DIST% ---
-set "MSYSTEM=MINGW64"
+set "MSYSTEM=UCRT64"
 set "CHERE_INVOKING=1"
-"%MSYS2_ROOT%\usr\bin\bash.exe" -lc "bash tools/deploy-win.sh 'build/%PRESET%/app/harmony.exe' '%DIST:\=/%' 'build/%PRESET%/cli/harmony-cli.exe'"
+"%MSYS2_ROOT%\usr\bin\bash.exe" -lc "bash tools/deploy-win.sh '%BUILD_DIR:\=/%/app/harmony.exe' '%DIST:\=/%' '%BUILD_DIR:\=/%/cli/harmony-cli.exe'"
 if errorlevel 1 (
     echo [ошибка] Не удалось скопировать в %DIST%.
     echo          Если harmony.exe сейчас запущен - закройте его и повторите.
@@ -113,7 +113,7 @@ if errorlevel 1 (
 
 rem --- 7. Установщик (build.cmd installer) -------------------------------------
 if /i not "%~1"=="installer" goto :done
-if not exist "%MINGW%\bin\makensis.exe" (
+if not exist "%UCRT%\bin\makensis.exe" (
     call :pacman_update
     if errorlevel 1 goto :fail
     echo --- Установка NSIS ---
@@ -121,7 +121,7 @@ if not exist "%MINGW%\bin\makensis.exe" (
     if errorlevel 1 goto :fail
 )
 echo --- Установщик ---
-"%MSYS2_ROOT%\usr\bin\bash.exe" -lc "bash tools/make-installer-win.sh 'build/%PRESET%' '%DIST:\=/%' dist"
+"%MSYS2_ROOT%\usr\bin\bash.exe" -lc "bash tools/make-installer-win.sh '%BUILD_DIR:\=/%' '%DIST:\=/%' dist"
 if errorlevel 1 goto :fail
 
 :done

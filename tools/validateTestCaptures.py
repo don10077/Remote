@@ -10,7 +10,7 @@ from protocolBench import CASES
 
 ROOT = Path(__file__).resolve().parent.parent
 CAPTURES = ROOT / "docs/harmony-test-captures"
-CLI = ROOT / "build/win-release/cli/harmony-cli.exe"
+CLI = ROOT / "build/ucrt64/win-release/cli/harmony-cli.exe"
 NAMES = ["NEC", "NECext", "Samsung32", "SIRC12", "SIRC15", "SIRC20", "RC5", "RC5X",
          "RC6", "Panasonic", "LG", "JVC", "Onkyo", "Denon", "Sharp", "RCA"]
 
@@ -41,7 +41,7 @@ def rc5(address: int, command: int, toggle: int) -> list[int]:
 
 def main() -> None:
     environment = os.environ.copy()
-    environment["PATH"] = "D:/Install/MSYS2/mingw64/bin;D:/Install/MSYS2/usr/bin;" + environment["PATH"]
+    environment["PATH"] = "D:/Install/MSYS2/ucrt64/bin;D:/Install/MSYS2/usr/bin;" + environment["PATH"]
     results = []
     for name, (protocol, address, command, _) in zip(NAMES, CASES):
         path = CAPTURES / f"44791927-{name}.json"

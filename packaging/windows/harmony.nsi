@@ -1,10 +1,10 @@
 ﻿; Установщик Harmony для Windows (NSIS 3).
 ;
-; Берёт готовую папку dist\win (её раскладывает tools/deploy-win.sh: harmony.exe,
+; Берёт готовую папку dist\ucrt64\win (её раскладывает tools/deploy-win.sh: harmony.exe,
 ; harmony-cli.exe, DLL и плагины Qt) и собирает один Harmony-<версия>-setup.exe.
 ;
 ; Сборка (обычно через tools/make-installer-win.sh):
-;   makensis /DVERSION=0.1.0 /DSRCDIR=dist\win /DOUTFILE=dist\Harmony-0.1.0-setup.exe harmony.nsi
+;   makensis /DVERSION=0.1.0 /DSRCDIR=dist\ucrt64\win /DOUTFILE=dist\Harmony-0.1.0-setup.exe harmony.nsi
 ;
 ; Что делает установщик: копирует программу в Program Files\Harmony, создаёт ярлык
 ; в меню «Пуск» (и по желанию на рабочем столе), регистрирует программу в

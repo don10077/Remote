@@ -67,6 +67,6 @@ zones = [
     {"id": "NumberEnterWide", "rect": [140, 1436, 64, 52], "radius": -0.5, "kind": "Key"},
 ]
 
-out = Path("dist/win/resources/remotes/880/zones.json")
+out = Path("dist/ucrt64/win/resources/remotes/880/zones.json")
 out.write_text(json.dumps(zones, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 print("зон:", len(zones), "->", out)

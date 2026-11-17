@@ -7,6 +7,7 @@
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <filesystem>
 #include <fstream>
 #include <iterator>
@@ -65,8 +66,9 @@ TEST(IrTables, ProtocolsAreRelocatable) {
 
 TEST(IrTables, SharedSectionIsRelocatedOnce) {
     // Две секции-указателя на одну секцию (как у Samsung32: повтор — тот же кадр).
-    Bytes entry = {0x01, 0x4B, 0x66, 0x00, 0x00, 0x32, 0x02, 0x0B, 0x00, 0x0B, 0x00};
-    entry.resize(11 + 16, 0);
+    const Bytes header = {0x01, 0x4B, 0x66, 0x00, 0x00, 0x32, 0x02, 0x0B, 0x00, 0x0B, 0x00};
+    Bytes entry(header.size() + 16, 0);
+    std::copy(header.begin(), header.end(), entry.begin());
     entry[11 + 12] = static_cast<std::uint8_t>(entry.size()); // начало кадра — сразу за секцией
     entry.push_back(0x01);
     entry.push_back(0x94);

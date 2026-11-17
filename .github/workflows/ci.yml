@@ -205,10 +205,10 @@ jobs:
           path: dist/*.AppImage
           if-no-files-found: error
 
-  # --- Windows (MSYS2 MinGW64, как build.cmd): тесты, установщик, zip -----------
+  # --- Windows (MSYS2 UCRT64, как build.cmd): тесты, установщик, zip -----------
   windows:
     name: Windows (installer)
-    runs-on: windows-latest
+    runs-on: windows-2025
     defaults:
       run:
         shell: msys2 {0}
@@ -217,24 +217,22 @@ jobs:
       - uses: msys2/setup-msys2@ec48f7c5447b3140e2b088413ae3a55687bccb6e # v2.33.0
         id: msys2
         with:
-          msystem: MINGW64
-          # MINGW64 объявлен устаревшим (советуют UCRT64); build.cmd тоже на MINGW64 — переход отдельно.
-          suppress-deprecation-warnings: msystem-mingw64
+          msystem: UCRT64
           update: true
           install: >-
             zip
-            mingw-w64-x86_64-toolchain
-            mingw-w64-x86_64-cmake
-            mingw-w64-x86_64-ninja
-            mingw-w64-x86_64-ccache
-            mingw-w64-x86_64-qt6-base
-            mingw-w64-x86_64-qt6-svg
-            mingw-w64-x86_64-qt6-translations
-            mingw-w64-x86_64-gtest
-            mingw-w64-x86_64-libzip
-            mingw-w64-x86_64-pkgconf
-            mingw-w64-x86_64-pugixml
-            mingw-w64-x86_64-nsis
+            mingw-w64-ucrt-x86_64-toolchain
+            mingw-w64-ucrt-x86_64-cmake
+            mingw-w64-ucrt-x86_64-ninja
+            mingw-w64-ucrt-x86_64-ccache
+            mingw-w64-ucrt-x86_64-qt6-base
+            mingw-w64-ucrt-x86_64-qt6-svg
+            mingw-w64-ucrt-x86_64-qt6-translations
+            mingw-w64-ucrt-x86_64-gtest
+            mingw-w64-ucrt-x86_64-libzip
+            mingw-w64-ucrt-x86_64-pkgconf
+            mingw-w64-ucrt-x86_64-pugixml
+            mingw-w64-ucrt-x86_64-nsis
       # ccache из MSYS2 находит корневой CMakeLists.txt (HARMONY_USE_CCACHE), CCACHE_DIR — из env.
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
@@ -242,9 +240,9 @@ jobs:
             .ccache
             build/release/_deps/*-src
             build/release/_deps/*-subbuild
-          key: build-${{ runner.os }}-${{ github.job }}-${{ hashFiles('cmake/Dependencies.cmake', 'third_party/libconcord/CMakeLists.txt') }}-${{ github.sha }}
+          key: build-ucrt64-${{ runner.os }}-${{ github.job }}-${{ hashFiles('cmake/Dependencies.cmake', 'third_party/libconcord/CMakeLists.txt') }}-${{ github.sha }}
           restore-keys: |
-            build-${{ runner.os }}-${{ github.job }}-${{ hashFiles('cmake/Dependencies.cmake', 'third_party/libconcord/CMakeLists.txt') }}-
+            build-ucrt64-${{ runner.os }}-${{ github.job }}-${{ hashFiles('cmake/Dependencies.cmake', 'third_party/libconcord/CMakeLists.txt') }}-
       # Пресеты win-* живут в локальном CMakeUserPresets.json; здесь MSYS2 уже в PATH,
       # поэтому подходит обычный release.
       - name: Настройка
@@ -267,16 +265,16 @@ jobs:
         env:
           MSYS2_ROOT: ${{ steps.msys2.outputs.msys2-location }}
         run: |
-          $mingwBin = Join-Path $env:MSYS2_ROOT 'mingw64/bin'
-          $env:Path = "$mingwBin;$env:Path"
+          $ucrtBin = Join-Path $env:MSYS2_ROOT 'ucrt64/bin'
+          $env:Path = "$ucrtBin;$env:Path"
           $env:HARMONY_AUTO_ZONES_PYTHON = Join-Path $env:pythonLocation 'python.exe'
-          & (Join-Path $mingwBin 'ctest.exe') --preset release
+          & (Join-Path $ucrtBin 'ctest.exe') --preset release
       - name: Раскладка и установщик
         run: |
-          bash tools/deploy-win.sh build/release/app/harmony.exe dist/win build/release/cli/harmony-cli.exe
-          bash tools/make-installer-win.sh build/release dist/win dist
+          bash tools/deploy-win.sh build/release/app/harmony.exe dist/ucrt64/win build/release/cli/harmony-cli.exe
+          bash tools/make-installer-win.sh build/release dist/ucrt64/win dist
           version="$(sed -n 's/^CMAKE_PROJECT_VERSION:STATIC=//p' build/release/CMakeCache.txt | tr -d '\r')"
-          (cd dist/win && zip -qr "../Harmony-$version-windows-portable.zip" .)
+          (cd dist/ucrt64/win && zip -qr "../../Harmony-$version-windows-portable.zip" .)
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: harmony-windows

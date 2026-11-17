@@ -124,13 +124,13 @@ cmake/      общие CMake-модули: предупреждения, зав�
 Нужны CMake ≥ 3.28, Ninja, компилятор с C++23 (GCC 13+ или Clang 19+) и Qt 6.5+.
 Clang 18 и более старые вместе с libstdc++ не видят `std::expected`, поэтому не подходят.
 
-### Windows (MSYS2)
+### Windows (MSYS2 UCRT64)
 
 Нужен установленный [MSYS2](https://www.msys2.org/) (по умолчанию ищется в `D:\Install\MSYS2`,
 другой путь задаётся переменной `MSYS2_ROOT`).
 
 Запустить `build.cmd` — двойным щелчком или из консоли. Он сам доставит недостающие пакеты,
-соберёт Release, прогонит тесты и положит готовое приложение со всеми DLL в `dist\win`.
+соберёт Release, прогонит тесты и положит готовое приложение со всеми DLL в `dist\ucrt64\win`.
 Оттуда `harmony.exe` запускается без MSYS2; `run.cmd` делает то же самое.
 
 `build.cmd installer` ещё и собирает установщик `dist\Harmony-<версия>-setup.exe`
@@ -197,7 +197,9 @@ tools/make-macos.sh build/release dist       # → dist/Harmony-<версия>-m
 | `core-only` | ядро, CLI и тесты без Qt; предупреждения = ошибки (для CI) |
 | `win-debug`, `win-release` | то же, что `debug`/`release`, с тулчейном MSYS2 (из `CMakeUserPresets.json`) |
 
-Результаты сборки лежат в `build/<пресет>/`.
+Результаты сборки лежат в `build/<пресет>/`; локальные Windows-пресеты используют
+`build/ucrt64/<пресет>/`. И локально, и в GitHub Actions Windows собирается на UCRT64.
+Старые сборки MinGW64 остаются в прежних каталогах.
 
 ## Поддерживаемые модели
 
