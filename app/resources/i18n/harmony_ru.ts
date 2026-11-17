@@ -1291,6 +1291,11 @@ Add a device?</source>
       <translation>Назначение «%1» снято. Отменить — %2</translation>
     </message>
     <message>
+      <location filename="../../../app/src/widgets/aboutDialog.cpp" />
+      <source>Assistance with working with Harmony Hub :)</source>
+      <translation type="unfinished" />
+    </message>
+    <message>
       <location filename="../../../app/src/widgets/settingsDialog.cpp" />
       <source>At startup open:</source>
       <translation>При запуске открывать:</translation>
@@ -2247,7 +2252,7 @@ Add a device?</source>
     <message>
       <location filename="../../../app/src/widgets/aboutDialog.cpp" />
       <source>Components</source>
-      <translation>Компоненты</translation>
+      <translation type="unfinished" />
     </message>
     <message>
       <location filename="../../../app/src/labels.cpp" />
@@ -3755,11 +3760,6 @@ Copy saved: %2</source>
       <translation>Harmony 600, 650, 665 и 700 — экспериментальные: программа умеет только читать их по USB и сохранять данные для анализа. Запись на эти модели заблокирована.</translation>
     </message>
     <message>
-      <location filename="../../../app/src/widgets/aboutDialog.cpp" />
-      <source>Harmony 900 editor</source>
-      <translation>редактор Harmony 900</translation>
-    </message>
-    <message>
       <location filename="../../../app/src/mainWindow.cpp" />
       <source>Harmony configuration (*.EZHex *.ezhex)</source>
       <translation>Конфигурация Harmony (*.EZHex *.ezhex)</translation>
@@ -3798,11 +3798,6 @@ Copy saved: %2</source>
       <location filename="../../../app/src/widgets/aboutDialog.cpp" />
       <source>Harmony is free software: you can redistribute it and modify it under the terms of the GNU General Public License version 3 (%1). It comes without any warranty.</source>
       <translation>Harmony — свободная программа: её можно распространять и изменять на условиях GNU General Public License версии 3 (%1). Программа поставляется без каких-либо гарантий.</translation>
-    </message>
-    <message>
-      <location filename="../../../app/src/widgets/aboutDialog.cpp" />
-      <source>Harmony One configuration</source>
-      <translation>настройка Harmony One</translation>
     </message>
     <message>
       <location filename="../../../transport/src/concordTransfer.cpp" />
@@ -4600,7 +4595,7 @@ The file contains device names and models, but no IR codes, account or e-mail. Y
     <message>
       <location filename="../../../app/src/widgets/aboutDialog.cpp" />
       <source>Logitech and Harmony are trademarks of Logitech. This program is not affiliated with Logitech.</source>
-      <translation>Logitech и Harmony — товарные знаки Logitech. Программа не связана с Logitech.</translation>
+      <translation type="unfinished" />
     </message>
     <message>
       <location filename="../../../app/src/widgets/configView.cpp" />
@@ -6315,11 +6310,6 @@ The file contains device names and models, but no IR codes, account or e-mail. Y
       <translation>Повторить: %1 (%2)</translation>
     </message>
     <message>
-      <location filename="../../../app/src/widgets/aboutDialog.cpp" />
-      <source>Related projects</source>
-      <translation>Другие проекты</translation>
-    </message>
-    <message>
       <location filename="../../../app/src/widgets/zoneEditorRemoteFile.cpp" />
       <source>Reload and discard my edits</source>
       <translation>Загрузить заново, отбросив мои правки</translation>
@@ -7464,7 +7454,7 @@ Their buttons and start steps in this activity, including input switching, will 
     <message>
       <location filename="../../../app/src/widgets/aboutDialog.cpp" />
       <source>Support the project</source>
-      <translation>Поддержать проект</translation>
+      <translation type="unfinished" />
     </message>
     <message>
       <location filename="../../../app/src/widgets/compareDevicesDialog.cpp" />
@@ -7549,7 +7539,7 @@ Translate the strings and restart the program — the language will appear in th
     <message>
       <location filename="../../../app/src/widgets/aboutDialog.cpp" />
       <source>Thanks</source>
-      <translation>Благодарности</translation>
+      <translation type="unfinished" />
     </message>
     <message>
       <location filename="../../../app/src/widgets/findByRemoteDialog.cpp" />

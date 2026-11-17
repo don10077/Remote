@@ -127,16 +127,11 @@ AboutDialog::AboutDialog(QWidget* parent) : QDialog(parent) {
                 tr("IR protocol programs, descriptions of device and activity properties")) +
         project(QStringLiteral("Concordance"), QStringLiteral("https://github.com/jaymzh/concordance"),
                 tr("libconcord: configuration transfer over USB")) +
+        project(QStringLiteral("harmony-hub-root"), QStringLiteral("https://github.com/Ripthulhu/harmony-hub-root"),
+                tr("Assistance with working with Harmony Hub :)")) +
         project(QStringLiteral("logitech-harmony-ir-archive"),
                 QStringLiteral("https://github.com/pickysysadmin/logitech-harmony-ir-archive"),
                 tr("archive of Logitech's IR codes")) +
-        QStringLiteral("</table>");
-    const QString related =
-        QStringLiteral("<table cellspacing=\"0\">") +
-        project(QStringLiteral("harmony900tools"), QStringLiteral("https://github.com/martin-wagner/harmony900tools"),
-                tr("Harmony 900 editor")) +
-        project(QStringLiteral("RE-HARMONY"), QStringLiteral("https://github.com/Unkn0wn-dx/RE-HARMONY"),
-                tr("Harmony One configuration")) +
         QStringLiteral("</table>");
     const QString components =
         QStringLiteral("<table cellspacing=\"0\">") +
@@ -155,10 +150,10 @@ AboutDialog::AboutDialog(QWidget* parent) : QDialog(parent) {
         component(QStringLiteral("Tabler Icons"), QStringLiteral("https://tabler.io/icons"), tr("icons"),
                   QStringLiteral("MIT")) +
         QStringLiteral("</table>");
-    details->setHtml(QStringLiteral("<p>%1</p><h4>%2</h4>%3<h4>%4</h4>%5<h4>%6</h4>%7<h4>%8</h4>%9"
-                                    "<p class=\"note\">%10</p>")
+    details->setHtml(QStringLiteral("<p>%1</p><h4>%2</h4>%3<h4>%4</h4>%5<h4>%6</h4>%7"
+                                    "<p class=\"note\">%8</p>")
                          .arg(license, tr("Support the project").toHtmlEscaped(), donate,
-                              tr("Thanks").toHtmlEscaped(), thanks, tr("Related projects").toHtmlEscaped(), related,
+                              tr("Thanks").toHtmlEscaped(), thanks,
                               tr("Components").toHtmlEscaped(), components,
                               tr("Logitech and Harmony are trademarks of Logitech. This program is not "
                                  "affiliated with Logitech.")
