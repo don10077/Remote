@@ -1,343 +1,204 @@
-# Harmony — настройка пультов Logitech Harmony
+# Harmony — Logitech Harmony remote configuration editor
+
+**English** · [Русский](README.ru.md)
 
 [![CI](https://github.com/don10077/Remote/actions/workflows/ci.yml/badge.svg)](https://github.com/don10077/Remote/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/don10077/Remote?include_prereleases)](https://github.com/don10077/Remote/releases)
 
-Harmony — редактор конфигураций универсальных пультов **Logitech Harmony**.
-В нём можно переназначить кнопки, добавить устройства и
-активности, обучить пульт ИК-командам и сохранить резервную копию в формате
-`.EZHex`. Приложение доступно для Windows, Linux и macOS.
+Configure your **Logitech Harmony** remote on your computer. Edit devices, activities,
+physical buttons and screen commands, learn infrared signals, and keep local backups
+without using Logitech's configuration software or cloud service.
 
-[Скачать Harmony](https://github.com/don10077/Remote/releases) ·
-[Как настроить Harmony 900](#как-настроить-logitech-harmony-900) ·
-[Поддерживаемые модели](#поддерживаемые-модели)
+Harmony is a free, open-source desktop application for **Windows, Linux and macOS**.
+Reading and writing configurations have been tested on a real **Harmony 900 under Windows**.
+Support for other models is experimental and varies by model.
 
-> Статус: рабочая версия. Программа сохраняет конфигурацию в единый файл
-> `.EZHex`, открывает также старые папки и встроенный пример, правит активности, устройства и кнопки с отменой,
-> читает и записывает конфигурацию на Harmony 900, учит ИК-команды с родного пульта,
-> добавляет устройства из базы ИК-кодов Logitech, находит модель по кнопкам родного
-> пульта, проверяет конфигурацию и перед записью показывает, что изменится на
-> пульте, хранит версии конфигурации. Готовые пакеты: установщик для Windows,
-> AppImage для Linux, DMG для macOS.
+[Website](https://don10077.github.io/Remote/) ·
+[Download Harmony](https://github.com/don10077/Remote/releases) ·
+[Get started](#get-started-with-harmony-900) ·
+[Remote support](#remote-support) ·
+[Report a problem](https://github.com/don10077/Remote/issues)
 
-> **Внимание.** Программа неофициальная, распространяется «как есть», без гарантий
-> (GPL-3.0). Запись на пульт меняет его память; запись проверена только на
-> **Harmony 900**, остальные модели — экспериментальные. Перед записью держите
-> резервную копию конфигурации.
+![Harmony main window showing activities, devices and button assignments on a Harmony 900](website/assets/base.jpg)
 
-## Как настроить Logitech Harmony 900
+## Features
 
-1. [Скачайте и запустите Harmony](#скачать-и-запустить).
-2. [Подключите пульт по USB](#подключение-пульта). В Windows нужен драйвер из
-   Logitech Harmony Remote Software 7.8.
-3. Прочитайте текущую конфигурацию с пульта и сохраните её в файл `.EZHex`.
-4. Измените кнопки, устройства или активности и [проверьте конфигурацию перед записью](docs/user-guide.md#проверка-и-запись).
+- Edit devices, activities, physical and screen buttons, macros, delays and properties.
+- Add devices from the Logitech IR code database, identify a device using its original
+  remote, learn IR commands or enter codes manually.
+- Review configuration checks and changes before writing, with automatic backups,
+  configuration history, undo and redo.
+- Open and save `.EZHex` configuration files, including files from Concordance and Afterglow.
+- Capture a remote into one `*.remote.json` file containing the original configuration,
+  model and firmware details, timestamp, program version and SHA-256.
+- Define remote photos, button zones and screen layouts with the built-in zone editor.
+- Use the graphical editor or the bundled `harmony-cli`. English and Russian are included.
 
-## Скачать и запустить
+## Remote support
 
-1. Откройте [Releases](https://github.com/don10077/Remote/releases) и скачайте
-   файл для своей системы (таблица ниже).
-2. Установите и запустите. При первом запуске программа покажет предупреждение
-   о рисках — прочитайте и примите его.
-3. Подключите пульт по USB — см. [Подключение пульта](#подключение-пульта).
-   Список моделей и что с ними можно делать — в [docs/models.md](docs/models.md).
+| Remote or feature | Current status |
+|---|---|
+| Harmony 900 | Configuration reading, editing and writing tested on hardware under Windows |
+| Harmony One, 600, 650, 665 and 700 | Experimental USB configuration capture. Captured configurations need format-specific editor support |
+| Other Harmony models | Transfer capabilities vary. Run `harmony-cli models` for the catalog |
+| Harmony Hub | Experimental network configuration reading |
+| Visual remote profiles | Photos, button zones and screen layouts can be edited independently of configuration transfer support |
 
-**Windows: «Windows защитила ваш компьютер».** Программа не подписана
-сертификатом издателя, поэтому SmartScreen предупреждает о неизвестном
-приложении. Нажмите «Подробнее» → «Выполнить в любом случае». Если файл
-заблокирован после скачивания: правый щелчок → «Свойства» → отметить
-«Разблокировать» → «OK». Проверить, что файл не подменён, можно по
-`SHA256SUMS.txt` из того же релиза: `certutil -hashfile <файл> SHA256`.
+Harmony 665 capture is awaiting a hardware test by its owner. Changing the target model
+or adding its photo and button zones requires the corresponding configuration format
+and transport support before a configuration can be written to that model.
 
-**macOS** — см. ниже, про запуск без сертификата Apple. **Linux** — после
-`chmod +x` AppImage запускается без установки; для связи с пультом по USB
-программа предложит настроить систему (нужен пароль администратора).
+Keep a backup before writing. Harmony is an unofficial project, distributed under
+GPL-3.0-only without warranty. Writing changes the remote's configuration memory.
 
-Ошибки и вопросы — в [Issues](https://github.com/don10077/Remote/issues);
-кнопка «Копировать сведения о версии» в окне «О программе» добавит к сообщению
-версии программы, Qt и системы.
+## Get started with Harmony 900
 
-## Установка
+1. Download and install the package for your operating system from Releases.
+2. Connect the remote by USB. On Windows, install the USB network driver supplied with
+   Logitech Harmony Remote Software 7.8, then close Logitech's application.
+3. In Harmony, read the remote and save a backup as `.EZHex`.
+4. Edit your devices, activities and button assignments.
+5. Review configuration checks and the proposed changes before writing to the remote.
 
-Готовые пакеты собирает CI на каждый коммит (вкладка Actions → запуск →
-Artifacts); у версий с тегом `v*` они лежат в Releases.
+Harmony 900 uses a USB network connection. The remote normally listens at
+`169.254.1.2`, TCP port `3074`. Connection settings are available in the application.
 
-| Система | Пакет | Как поставить |
+On Linux, use **Set up USB connection…** in the connection menu for the initial setup.
+The application installs the required USB network and HID access rules with administrator
+permission. Reconnect the remote afterwards. The USB network setup requires `dnsmasq`,
+`ip`, systemd and udev. Allow incoming UDP port 67 on that interface if a firewall is enabled.
+
+## Download and run
+
+| System | Package | Run |
 |---|---|---|
-| Windows 10/11 x64 | `Harmony-<версия>-setup.exe` | запустить; ярлык — в меню «Пуск» |
-| Windows без установки | `Harmony-<версия>-windows-portable.zip` | распаковать, запустить `harmony.exe` |
-| Linux x86_64 | `Harmony-<версия>-x86_64.AppImage` | `chmod +x Harmony-*.AppImage` и запустить |
-| macOS (Apple Silicon и Intel) | `Harmony-<версия>-macos.dmg` | открыть, перетащить Harmony в «Программы» |
+| Windows 10/11 x64 | `Harmony-<version>-setup.exe` | Run the installer |
+| Windows portable | `Harmony-<version>-windows-portable.zip` | Extract the entire archive and run `harmony.exe` |
+| Linux x86_64, glibc 2.39+ | `Harmony-<version>-x86_64.AppImage` | Make it executable with `chmod +x` and run it |
+| macOS, Apple Silicon and Intel | `Harmony-<version>-macos.dmg` | Open the image and drag Harmony to Applications |
 
-В пакетах есть и консольная `harmony-cli`: в папке программы (Windows), внутри
-AppImage (`./Harmony-*.AppImage` запускает приложение; утилита — после
-`--appimage-extract` в `squashfs-root/usr/bin`), в `Harmony.app/Contents/MacOS` (macOS).
+Download packages and `SHA256SUMS.txt` from the same release. On Windows, use
+`certutil -hashfile <file> SHA256` to check a package against the published checksum.
 
-Пакеты собираются с Qt 6.12 LTS (Windows — с Qt из MSYS2, он там всегда
-последний); минимальная версия macOS — та, что поддерживает Qt 6.12.
+The Windows application is unsigned and macOS builds use an ad-hoc signature. Windows
+SmartScreen or macOS Gatekeeper may ask you to approve the application on first launch.
+On macOS, use the option to open it in **System Settings → Privacy & Security** if needed.
+Remote communication on Linux and macOS still needs hardware testing.
 
-AppImage собирается на Ubuntu 24.04 и запускается на дистрибутивах того же
-возраста и новее (glibc 2.39+).
+Settings, configuration history and backups are stored separately from the application.
 
-Приложение для macOS подписано без сертификата Apple, поэтому при первом запуске
-macOS скажет, что не может проверить разработчика: щёлкните Harmony в
-«Программах» с Control → «Открыть» (или «Системные настройки → Конфиденциальность
-и безопасность → Всё равно открыть»). Связь с пультом на macOS пока не проверена.
+## Help add support for your remote
 
-Настройки, версии конфигураций и резервные копии хранятся отдельно от
-программы и при удалении остаются.
+If you can, read the configuration from your Harmony remote and email the capture to
+[don10077@mail.ru](mailto:don10077@mail.ru). Include the **remote model in the subject**,
+for example `Harmony 665 configuration`, and attach the `*.remote.json` file.
+Captures help us investigate formats and extend model support.
 
-## Архитектура
+1. Close Logitech's software and connect one Harmony remote by USB.
+2. Open **Remote → Configuration files — all models…**.
+3. Select your model and choose **Read configuration to file…**.
+4. Save the suggested `*.remote.json` file.
+5. Email the saved file with your remote model. If reading fails, include the error
+   text, program version and any file that was saved.
 
-```
-core/       ядро: модель конфигурации, форматы файлов, undo/redo — чистый C++23, без Qt
-transport/  связь с пультом (USB-Ethernet, адрес 169.254.1.2)
-app/        графическое приложение (Qt 6 Widgets)
-  src/widgets/      шапка, стартовый экран, экран конфигурации
-  src/theme.cpp     палитра — все цвета интерфейса в одном месте
-  resources/theme/  таблица стилей (цвета — токенами @имя из палитры)
-cli/        консольная утилита harmony-cli
-tests/      unit-тесты ядра (GoogleTest)
-  data/userconfig/  обезличенная реальная конфигурация: тесты и встроенный пример
-cmake/      общие CMake-модули: предупреждения, зависимости
-```
+The capture contains your remote's configuration and device information. Review it
+before sharing it publicly. For this capture procedure, use the read operation.
 
-Правило зависимостей: `app` и `cli` → `transport` → `core`. Ядро ничего не знает
-о Qt и GUI, поэтому тестируется отдельно и работает из консоли.
-
-## Сборка
-
-Нужны CMake ≥ 3.28, Ninja, компилятор с C++23 (GCC 13+ или Clang 19+) и Qt 6.5+.
-Clang 18 и более старые вместе с libstdc++ не видят `std::expected`, поэтому не подходят.
-
-### Windows (MSYS2)
-
-Нужен установленный [MSYS2](https://www.msys2.org/) (по умолчанию ищется в `D:\Install\MSYS2`,
-другой путь задаётся переменной `MSYS2_ROOT`).
-
-Запустить `build.cmd` — двойным щелчком или из консоли. Он сам доставит недостающие пакеты,
-соберёт Release, прогонит тесты и положит готовое приложение со всеми DLL в `dist\win`.
-Оттуда `harmony.exe` запускается без MSYS2; `run.cmd` делает то же самое.
-
-`build.cmd installer` ещё и собирает установщик `dist\Harmony-<версия>-setup.exe`
-(NSIS, сценарий — `packaging/windows/harmony.nsi`; пакет NSIS доставится сам).
-
-### Linux
+Command-line equivalent with automatic model detection follows.
 
 ```sh
-# Debian/Ubuntu
-sudo apt install cmake ninja-build g++ qt6-base-dev libgtest-dev libpugixml-dev
-
-cmake --preset debug
-cmake --build --preset debug
-ctest --preset debug
+harmony-cli transfer-read auto backup.remote.json
 ```
 
-Без Qt (только ядро, CLI и тесты): пресет `core-only`.
+## Remote zone editor
 
-Qt в Ubuntu 24.04 — 6.4, а нужен 6.5+: возьмите Qt из
-[официального установщика](https://www.qt.io/download-qt-installer-oss) или
-[aqtinstall](https://github.com/miurahr/aqtinstall) и укажите путь к нему:
-`cmake --preset release -DCMAKE_PREFIX_PATH=~/Qt/6.12.0/gcc_64`.
+Add or refine a model's visual profile by placing clickable button zones on its photo,
+assigning button identifiers and defining the screen area and layouts. The editor
+includes automatic zone detection, alignment tools and undo/redo.
 
-AppImage из готовой сборки (linuxdeploy скачивается сам):
+![Harmony zone editor showing button zones and the screen area of a Harmony 665](website/assets/zone-editor.jpg)
+
+Visual profiles are stored in `app/resources/remotes/<id>/remote.json` with a `photo.png`.
+Configuration parsing and USB communication need their own model support.
+See the [resource guide](app/resources/README.md) and [profile schema](app/resources/remotes/SCHEMA.md).
+
+## Command-line tools
+
+The packages include `harmony-cli` beside the Windows application, inside
+`Harmony.app/Contents/MacOS` on macOS, or in `usr/bin` after extracting the AppImage
+with `--appimage-extract`.
 
 ```sh
-cmake --preset release && cmake --build --preset release
-tools/make-appimage.sh build/release dist    # → dist/Harmony-<версия>-x86_64.AppImage
+harmony-cli models
+harmony-cli info configuration.EZHex
+harmony-cli check configuration.EZHex
+harmony-cli diff before.EZHex after.EZHex
+harmony-cli commands configuration.EZHex
+harmony-cli transfer-info auto
+harmony-cli transfer-read auto backup.remote.json
 ```
 
-### macOS
+Run the utility without arguments for all commands, including IR learning, device
+identification, database tools and remote operations.
 
-Нужны Xcode (или Command Line Tools), CMake, Ninja (`brew install cmake ninja`) и
-Qt 6.5+ (официальный установщик Qt, aqtinstall или `brew install qt`).
+## Build from source
+
+The project uses C++23, CMake 3.28+, Ninja and Qt 6.5+. Use GCC 13+ or Clang 19+
+with a standard library that supports `std::expected`. Dependencies also include
+GoogleTest, pugixml, libzip and pkg-config. libconcord is bundled.
+
+### Windows
+
+Install [MSYS2](https://www.msys2.org/) and run `build.cmd`. It installs missing packages,
+builds Release, runs tests and deploys the application and DLLs to `dist/win`.
+Use `build.cmd installer` to also create the Windows installer.
+
+The script looks for MSYS2 in `D:\Install\MSYS2` by default. Set `MSYS2_ROOT` for another location.
+
+### Linux and macOS
+
+Install the build dependencies and Qt, then configure with the appropriate Qt prefix.
 
 ```sh
-cmake --preset release -DCMAKE_PREFIX_PATH=~/Qt/6.12.0/macos
+cmake --preset release -DCMAKE_PREFIX_PATH=/path/to/Qt
 cmake --build --preset release
 ctest --preset release
-tools/make-macos.sh build/release dist       # → dist/Harmony-<версия>-macos.dmg
 ```
 
-Приложение собирается бандлом `Harmony.app` (значок — из тех же PNG через
-`iconutil`); `make-macos.sh` добавляет в него Qt (`macdeployqt`), `harmony-cli` и
-подписывает ad hoc. Универсальная сборка (arm64 + x86_64):
-`-DCMAKE_OSX_ARCHITECTURES="arm64;x86_64"`.
+The `core-only` preset builds the core, CLI and tests without the graphical application.
+Linux packaging uses `tools/make-appimage.sh`. macOS packaging uses `tools/make-macos.sh`
+and `macdeployqt`. For a universal macOS build, configure with
+`-DCMAKE_OSX_ARCHITECTURES="arm64;x86_64"` and a universal Qt installation.
 
-### CI
+CI builds and tests Linux, Windows and macOS packages. Release tags must match the version
+in `CMakeLists.txt`. Further platform setup and CLI details are in the
+[Russian documentation](README.ru.md#сборка).
 
-`.github/workflows/ci.yml` на каждый push и pull request: ядро с
-предупреждениями-ошибками (`core-only`) на GCC и на Clang с libc++, затем на Linux, Windows (MSYS2, как
-`build.cmd`) и macOS — сборка Release, тесты и пакет в артефактах запуска.
-Тег `v*` (например, `git tag v0.2.0 && git push --tags`) создаёт релиз с пакетами
-всех трёх систем. Версия пакетов — из `project(VERSION …)` в `CMakeLists.txt`.
-Тег должен точно совпадать с этой версией (`v0.1.0` для `VERSION 0.1.0`),
-иначе публикация остановится. К релизу прилагается `SHA256SUMS.txt`.
+## Contributing and feedback
 
-### Пресеты
+Hardware test reports, configuration format research, remote photos and button zones,
+translations and reproducible bug reports all help extend model support.
+When reporting a problem, include your remote model, operating system, steps to reproduce,
+and the text from **Help → Program journal…**. **Copy version info** in About adds version details.
 
-| Пресет | Что собирает |
-|---|---|
-| `debug` | приложение, CLI и тесты |
-| `release` | приложение, CLI и тесты (Release) |
-| `core-only` | ядро, CLI и тесты без Qt; предупреждения = ошибки (для CI) |
-| `win-debug`, `win-release` | то же, что `debug`/`release`, с тулчейном MSYS2 (из `CMakeUserPresets.json`) |
+To add a language, place a Qt Linguist `harmony_<code>.ts` file in the application's
+`translations` folder or `Documents/Harmony/translations`. Select it in Settings.
+Update the built-in translation templates with `python tools/updateTranslations.py`.
 
-Результаты сборки лежат в `build/<пресет>/`.
+## Acknowledgements
 
-## Поддерживаемые модели
+Harmony builds on code, format research and data shared by the Harmony community.
+Thanks to the authors and contributors of these projects.
 
-Актуальная таблица чтения, редактирования, фото/зон, записи и аппаратных проверок:
-[docs/models.md — Пульты и возможности](docs/models.md).
-Там же сравнение Concordance, обновлённого Afterglow, harmony900tools и re-harmony.
+- [Afterglow](https://github.com/harmonic-afterglow/afterglow) — IR protocol and configuration format research.
+- [Concordance / libconcord](https://github.com/jaymzh/concordance) — USB configuration transfer.
+- [Logitech Harmony IR Archive](https://github.com/pickysysadmin/logitech-harmony-ir-archive) — preserved IR device data.
+- [harmony-hub-root](https://github.com/Ripthulhu/harmony-hub-root) — help with Harmony Hub.
 
-## Подключение пульта
+## License and support
 
-### Перенос конфигураций всех моделей
+Licensed under [GNU GPL v3](LICENSE) (GPL-3.0-only). Third-party components and datasets
+retain their own licenses. Logitech and Harmony are trademarks of Logitech.
 
-«Пульт → Файлы конфигурации — все модели…» читает резервные копии и записывает готовые
-конфигурации независимо от фото и зон. Каталог содержит 63 модели и варианта из
-libconcord и визуальных профилей Harmony. [Таблица возможностей](docs/models.md) отдельно
-показывает чтение, редактирование, фото, зоны, запись и аппаратную проверку.
-Проверена пользователем только запись 900; остальные новые пути экспериментальные.
-
-CLI: `harmony-cli models`, `transfer-info auto`, `transfer-read one backup.EZHex`,
-`transfer-write one config.EZHex --backup before.EZHex --yes`. Для моделей без чтения
-нужно явно выбрать модель и использовать `--without-backup --yes`.
-Библиотека libconcord встроена. Для сборки Windows/Linux нужны libzip и pkg-config;
-на macOS libzip собирается из исходников для архитектур приложения.
-
-### Экспериментальные целевые модели
-
-Кнопка «Пульт: … · Сменить…» в шапке и пункт «Пульт → Сменить целевой пульт…»
-позволяют выбрать Harmony 900, One, 600,
-650, 665, 700, 1000, 1100 или 1100i в существующем проекте. Устройства, активности и исходные
-ИК-коды сохраняются; смена модели поддерживает отмену и сохранение проекта.
-Фотографии и зоны моделей находятся в `app/resources/remotes` и включены в ресурсы программы.
-
-Для One/600/650/665/700 добавлено экспериментальное чтение по USB HID прямо из
-программы. Реальный 665 пока не проверен. Преобразование внутреннего формата,
-редактирование прочитанного дампа пока не реализовано. Для чтения и записи готового
-EZHex используйте «Пульт → Файлы конфигурации — все модели…».
-Сохранённый `.EZHex` такого проекта сохраняет формат исходной конфигурации;
-это **не готовый файл для записи в 665**. Идентификатор в заголовке не подменяется.
-Запись экспериментального проекта блокируется и в интерфейсе, и в ядре.
-У каждой модели собственная интерактивная разметка кнопок.
-
-Для 1100 включено экспериментальное чтение EZHex через сетевой USB-адаптер.
-Его XML можно открыть, но полноценного редактора ИК-формата Device Sequence ещё нет.
-Готовые файлы 1100 и 1000/1000i можно записывать через окно файлов конфигурации.
-Для 1000/1000i недоступно чтение резервной копии; идентичность отдельного 1100i неизвестна.
-
-Для проверки выбрать пульт в шапке (можно без открытого проекта), подключить его
-по USB и нажать «Прочитать с пульта и сохранить». Программа предложит сохранить один файл
-`*.remote.json` (имя вроде `Harmony-665-20261116-1530.remote.json`) с исходной
-конфигурацией, данными пульта, версией программы, датой и SHA-256, и сразу проверит его.
-Этот файл можно прислать для анализа. Автоматическая копия остаётся в папке резервных копий.
-То же из командной строки: `harmony-cli transfer-read auto <папка>`.
-Внешние скрипты и Concordance не нужны. На пульт ничего не записывается.
-Инструкция для владельцев: [docs/read-remote.md](docs/read-remote.md).
-Подробности протокола и формата: [docs/hid-models.md](docs/hid-models.md).
-Для редактирования дампа нужен адаптер его формата. Перенос готового файла доступен отдельно.
-Совместимость всех моделей 600-й серии пока не подтверждена.
-На Linux для чтения без root один раз выполните «Настроить связь по USB…»
-(см. ниже): это правило udev для HID ставится вместе с настройкой 900.
-
-Harmony 900 подключается по USB и определяется как сетевая карта; программа
-обращается к нему по адресу `169.254.1.2` (TCP, порт 3074).
-
-**Windows.** Нужен драйвер из Logitech Harmony Remote Software 7.8 (серверы
-Logitech закрыты, установщик есть в архивах, например на archive.org). Саму
-программу Logitech запускать не нужно.
-
-**Linux.** Пульт ждёт адрес по DHCP. Настройка делается один раз: меню кнопки
-состояния справа вверху → «Настроить связь по USB…» (или кнопка «Настроить USB» в окне «Как подключить
-пульт…»). Программа спросит пароль администратора (pkexec) и поставит правило
-udev `/etc/udev/rules.d/99-harmony-usbnet.rules` и скрипт
-`/usr/local/libexec/harmony-usbnet.sh`, а для 600/650/665/700 — правило
-`/etc/udev/rules.d/70-harmony-hid.rules` (доступ к HID). После этого при каждом подключении пульта
-(USB `046d:c11f`) компьютер получает адрес `169.254.1.1`, пульт по DHCP получает
-`169.254.1.2`, а NetworkManager этот интерфейс не трогает. Уже подключённый пульт
-нужно переподключить. Нужны `dnsmasq` (в Debian/Ubuntu пакет `dnsmasq-base`),
-`ip`, systemd и udev.
-
-Без программы то же самое ставится из исходников:
-
-```sh
-sudo sh packaging/linux/usbnet/install-usbnet.sh            # поставить
-sudo sh packaging/linux/usbnet/install-usbnet.sh --remove   # убрать
-```
-
-Если включён брандмауэр, разрешите на этом интерфейсе входящий UDP 67.
-
-Перед любой записью программа сама сохраняет резервную копию текущей
-конфигурации пульта в «Документы/Harmony/BackUp».
-
-## Консольная утилита
-
-```sh
-harmony-cli info <путь>          # папка, UserConfiguration.xml или файл .EZHex
-harmony-cli check <путь> [--fix] # что не сработает на пульте; --fix — исправить и сохранить
-harmony-cli diff <было> <станет> # что изменится на пульте
-harmony-cli commands <путь>      # ИК-команды: протокол, адрес, команда, код как в IRremote
-harmony-cli remote               # какой пульт подключён
-harmony-cli backup <файл.EZHex>  # конфигурация с пульта в файл
-harmony-cli write <путь> --yes [--force]  # записать на пульт: проверка, резервная копия, отличия;
-                                          # с ошибками проверки — только с --force
-harmony-cli learn                # выучить ИК-сигнал с родного пульта и показать его
-harmony-cli bench-device <путь> [<файл.EZHex>] [--name TEST]  # устройство TEST: команда и экранная
-                                          # кнопка на каждый протокол encode (стенд RM4)
-harmony-cli irdb build <устройства> <протоколы> <база>   # собрать базу ИК-кодов
-harmony-cli irdb search <база> <слова…>                  # найти устройства
-harmony-cli irdb show <база> <номер>                     # команды устройства из базы
-harmony-cli irdb identify <база>                         # модель по кнопкам родного пульта
-harmony-cli settings [<файл>]    # настройки пульта: подключённого или в файле
-harmony-cli set <ключ> <значение> [<файл.EZHex>]          # изменить настройку
-harmony-cli log                  # системный журнал пульта
-harmony-cli shell <команда…>     # команда в консоли пульта (telnet)
-```
-
-Команды, работающие с пультом, принимают `--host <адрес>` (по умолчанию 169.254.1.2).
-Коды выхода: 0 — успех, 1 — ошибка в аргументах, 2 — команда не удалась,
-3 — в конфигурации ошибки (`check`, `write` без `--force`).
-
-Утилита пишет по-английски.
-
-## Дорожная карта
-
-Текущий план работ — [docs/PLAN.md](docs/PLAN.md), план поддержки других моделей —
-[docs/core-refactoring-plan.md](docs/core-refactoring-plan.md).
-
-## Документация
-
-- [Руководство пользователя](docs/user-guide.md) — база ИК-кодов, проверка и запись, обучение, макросы, кнопки и другие функции.
-- [Пульты и возможности](docs/models.md), [One и 600-серия](docs/hid-models.md), [Harmony Hub](docs/hub-reading.md).
-- [ИК-протоколы](docs/ir-protocols.md), [ресурсы пультов](app/resources/README.md), [схема remote.json](app/resources/remotes/SCHEMA.md).
-- [Другие проекты](docs/research.md), [как снять настройки пульта](docs/read-remote.md).
-
-## Переводы
-
-Исходный язык интерфейса — английский, русский перевод встроен. Переводится
-всё, включая сообщения об ошибках ядра: у каждой ошибки есть шаблон с
-аргументами (`makeError(code, "file not found: %1", {path})`), интерфейс
-переводит шаблон. В коде нет русских строк, кроме названия языка «Русский».
-
-Свой язык или правка перевода — без пересборки: файл `harmony_<код>.ts`
-(формат Qt Linguist) в папку `translations` рядом с программой или в
-«Документы/Harmony/translations». Язык появится в «Настройки → Язык»; файл
-`harmony_ru.ts` там же правит встроенный русский; непереведённые строки
-остаются по-английски. Заготовку со всеми строками сохраняет «Настройки →
-Заготовка перевода…».
-
-Встроенный перевод — `app/resources/i18n/harmony_ru.ts`. Под Windows `build.cmd`
-обновляет его сам перед сборкой; в остальных случаях после правки строк в коде:
-
-```sh
-python3 tools/updateTranslations.py   # добавит новые строки, сохранит готовые переводы
-```
-
-## Лицензия
-
-Исходный код проекта распространяется по GNU GPL версии 3 (GPL-3.0-only).
-Полный текст — в [LICENSE](LICENSE). Сторонние библиотеки и исходные архивы
-ИК-кодов сохраняют собственные условия распространения.
+[Report an issue](https://github.com/don10077/Remote/issues) ·
+[Support development on DonationAlerts](https://www.donationalerts.com/r/alexshkurko)

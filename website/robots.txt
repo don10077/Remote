@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://don10077.github.io/Remote/sitemap.xml
