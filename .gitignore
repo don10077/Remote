@@ -29,5 +29,5 @@ __pycache__/
 *.zip
 ideas.txt
 /docs/
-/myback/
+/support/
 tools/restore880.py
