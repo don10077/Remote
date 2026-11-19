@@ -263,6 +263,9 @@ ZoneEditorDialog::ZoneEditorDialog(const QString& model, QWidget* parent) : QDia
     }
     connect(canvas_, &ZoneCanvas::geometryEdited, this, &ZoneEditorDialog::onCanvasGeometry);
     connect(canvas_, &ZoneCanvas::zoneDrawn, this, &ZoneEditorDialog::addZone);
+    // Линии шапки и подвала, перетянутые мышью, пишутся так же, как поля «Header»/«Footer».
+    connect(canvas_, &ZoneCanvas::backgroundBandChanged, this,
+            [this](const QString& zone, qreal height) { setBackgroundZoneHeight(zone, height); });
     connect(canvas_, &ZoneCanvas::drawModeChanged, drawAction_, &QAction::setChecked);
     connect(canvas_, &ZoneCanvas::selectionChanged, this, [this]() {
         syncListSelection();
@@ -413,6 +416,11 @@ ZoneEditorDialog::ZoneEditorDialog(const QString& model, QWidget* parent) : QDia
     connect(panelRoleBox_, qOverload<int>(&QComboBox::activated), this, &ZoneEditorDialog::applyPanelRole);
     propsLayout->addRow(tr("Panel shape:"), panelRoleBox_);
     propsForm_ = propsLayout;
+    zoneColorEdit_ = new QLineEdit(this);
+    zoneColorEdit_->setPlaceholderText(tr("Screen default"));
+    zoneColorEdit_->setToolTip(tr("Fill colour of this button or tile, like #2a6fdb. Empty: the colour common to the screen."));
+    connect(zoneColorEdit_, &QLineEdit::editingFinished, this, &ZoneEditorDialog::applyZoneColor);
+    propsLayout->addRow(tr("Colour:"), zoneColorEdit_);
 
     actionPanel_ = new QWidget(this);
     auto* actions = new QFormLayout(actionPanel_);
@@ -605,6 +613,40 @@ ZoneEditorDialog::ZoneEditorDialog(const QString& model, QWidget* parent) : QDia
     const auto [bgImageRow, bgImageBrowse] = imageRow(backgroundImageEdit_, "zoneBackgroundImage",
         screenImage(backgroundImageEdit_, {QStringLiteral("background"), QStringLiteral("image")}));
     selectedForm->addRow(tr("Background picture:"), bgImageRow);
+    // Зоны фона: шапка и подвал (высота + цвет); между ними — тело для плиток (цвет — background.color).
+    // Пустой цвет зоны — зона прозрачна.
+    const auto heightRow = [this](QDoubleSpinBox*& box, const QString& name, const QString& zone) {
+        box = new QDoubleSpinBox(this);
+        box->setObjectName(name);
+        box->setDecimals(1);
+        box->setRange(0, 400);
+        box->setSpecialValueText(tr("none"));
+        box->setToolTip(tr("Height in screen units. The zone stays in place when tiles scroll."));
+        QDoubleSpinBox* field = box;
+        connect(field, &QDoubleSpinBox::editingFinished, this, [this, field, zone] {
+            setBackgroundZoneHeight(zone, field->value());
+        });
+        return field;
+    };
+    const auto zoneColour = [&](QLineEdit*& input, const QString& name, const QString& zone) {
+        const QStringList keys{QStringLiteral("background"), zone, QStringLiteral("color")};
+        return colourRow(input, name, nullptr, screenColour(input, keys), screenLive(keys));
+    };
+    const auto zoneRow = [&](QDoubleSpinBox* height, const std::pair<QHBoxLayout*, QPushButton*>& colour) {
+        auto* row = new QHBoxLayout;
+        row->setSpacing(6);
+        if (height != nullptr) row->addWidget(height);
+        row->addLayout(colour.first, 1);
+        return row;
+    };
+    heightRow(headerHeightBox_, "zoneHeaderHeight", QStringLiteral("header"));
+    const auto headerColour = zoneColour(headerColorEdit_, "zoneHeaderColor", QStringLiteral("header"));
+    headerColorEdit_->setPlaceholderText(tr("transparent"));
+    selectedForm->addRow(tr("Header:"), zoneRow(headerHeightBox_, headerColour));
+    heightRow(footerHeightBox_, "zoneFooterHeight", QStringLiteral("footer"));
+    const auto footerColour = zoneColour(footerColorEdit_, "zoneFooterColor", QStringLiteral("footer"));
+    footerColorEdit_->setPlaceholderText(tr("transparent"));
+    selectedForm->addRow(tr("Footer:"), zoneRow(footerHeightBox_, footerColour));
     const auto [cellImageRow, cellImageBrowse] = imageRow(cellImageEdit_, "zoneCellImage",
         screenImage(cellImageEdit_, {QStringLiteral("cell"), QStringLiteral("image")}));
     cellImageEdit_->setToolTip(tr("A tile picture replaces the tile colour and border of the remote."));
@@ -644,6 +686,8 @@ ZoneEditorDialog::ZoneEditorDialog(const QString& model, QWidget* parent) : QDia
     screenHint_->setWordWrap(true);
     selectedForm->addRow(screenHint_);
     screenWidgets_ = {arrangeColsBox_, arrangeRowsBox_, gapBox_, backgroundColorEdit_, bgColourPick,
+                      headerHeightBox_, headerColorEdit_, headerColour.second,
+                      footerHeightBox_, footerColorEdit_, footerColour.second,
                       backgroundImageEdit_, bgImageBrowse, cellImageEdit_, cellImageBrowse, panelColorEdit_,
                       panelColourPick, panelTextEdit_, panelTextPick, centerLastRowCheck_};
     for (QCheckBox* check : serviceChecks_) screenWidgets_.append(check);
@@ -871,6 +915,8 @@ QString ZoneEditorDialog::remotePath() const {
 }
 
 bool ZoneEditorDialog::loadModel(const QString& model) {
+    // Папка с одним photo.png: создаём заготовку remote.json, иначе запись увидит «внешнее изменение».
+    if (const QString stub = remoteResources::createStub(model); !stub.isEmpty()) note(stub);
     // Один разбор файла: описание и текст зон берутся из того же текста, что сверяется при записи.
     const remoteResources::RemoteFile file = remoteResources::readRemote(model);
     const QJsonObject& remote = file.remote;
@@ -956,6 +1002,16 @@ bool ZoneEditorDialog::loadModel(const QString& model) {
         if (l.body() || l.original.ownArea || !l.original.screen || !common) continue;
         if (tilesArea.isValid()) l.original.screen = common; // зона из файла
         else if (*l.original.screen != *common) l.original.ownArea = true;
+        l.current = l.original;
+    }
+    // Зона плиток не больше остатка между шапкой и подвалом: заходящая под них обрезается.
+    for (Layer& l : layers) {
+        if (l.body() || !l.original.screen) continue;
+        const auto zones = remoteResources::screenZones(l.screen);
+        if (!zones.any) continue;
+        const QRectF inside = l.original.screen->intersected(zones.body);
+        if (inside.isValid() && !inside.isEmpty()) l.original.screen = inside;
+        else l.original.screen = zones.body;
         l.current = l.original;
     }
 

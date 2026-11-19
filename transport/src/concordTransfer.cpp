@@ -1,6 +1,7 @@
 #include "harmony/transport/concordTransfer.h"
 #include "harmony/transport/harmony900Link.h"
 #include "harmony/core/remoteCatalog.h"
+#include "harmony/core/formats/container.h"
 #include "harmony/core/formats/zipArchive.h"
 
 #include <libconcord.h>
@@ -47,26 +48,25 @@ bool looksLikeJson(std::span<const std::uint8_t> bytes) {
 }
 
 /**
- * @brief Рамка образа GSPM (One — arch 12, 600–700 — arch 14): признак, вектор конца,
- * «PTYY», XOR16 перед ним; у One ещё «LWJL» и граница защищённой памяти.
+ * @brief Рамка образа GSPM (One — arch 12, 600–700 — arch 14): общий разбор контейнера
+ * (признак, N слотов, таблица секций, маркеры, XOR16) плюс то, что важно при записи:
+ * семейство контейнера и адрес отображения должны совпадать с архитектурой пульта.
  * Для других архитектур ничего не проверяет.
  */
 Result<void> checkGspmFrame(std::span<const std::uint8_t> b, int arch) {
     if (arch != 12 && arch != 14) return {};
+    if (arch == 12 && b.size() >= 0x390000)
+        return makeError(ErrorCode::Format, "Harmony One configuration overlaps protected memory");
+    auto container = formats::parseContainer(b);
+    if (!container) return std::unexpected(std::move(container).error());
+    if (container->family->architecture != arch)
+        return makeError(ErrorCode::Format, "The container is architecture %1, while the remote reads %2 configurations",
+                         {std::to_string(container->family->architecture), std::to_string(arch)});
     const std::uint32_t base = arch == 12 ? 0x040000u : 0x030000u;
-    if (b.size() < 12 || !std::equal(b.begin(), b.begin() + 4, "GSPM"))
-        return makeError(ErrorCode::Format, "Invalid GSPM signature");
-    const auto end = static_cast<std::uint32_t>(b[4]) | (static_cast<std::uint32_t>(b[5]) << 8) |
-                     (static_cast<std::uint32_t>(b[6]) << 16);
-    if (end < base + 2 || end - base != b.size() - 4 ||
-        !std::equal(b.end() - 4, b.end(), "PTYY"))
-        return makeError(ErrorCode::Format, "Invalid GSPM end vector");
-    const std::size_t close = b.size() - 6;
-    if (close % 2 != 0 || xor16(b.first(close), 0x4321) != (b[close] | (b[close + 1] << 8)))
-        return makeError(ErrorCode::Format, "Invalid GSPM XOR16 checksum");
-    if (arch == 12 && (b.size() >= 0x390000 || b.size() < 0x67 ||
-        !std::equal(b.begin() + 0x63, b.begin() + 0x67, "LWJL")))
-        return makeError(ErrorCode::Format, "Harmony One configuration overlaps protected memory or has no LWJL signature");
+    if (container->base != base)
+        return makeError(ErrorCode::Format,
+                         "The container is mapped at address %1, while this remote keeps its configuration at %2",
+                         {std::to_string(container->base), std::to_string(base)});
     return {};
 }
 

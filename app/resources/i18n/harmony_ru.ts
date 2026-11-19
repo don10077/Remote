@@ -194,7 +194,7 @@ The configuration from %1 will be copied into this archive.</source>
     <message>
       <location filename="../../../core/src/configDocument.cpp" />
       <source>%1 was read from %2 for analysis; this model cannot be opened in the editor yet</source>
-      <translation type="unfinished" />
+      <translation>%1 — снятие с %2 только для анализа; эта модель пока не открывается в редакторе</translation>
     </message>
     <message>
       <location filename="../../../app/src/widgets/commandDialog.cpp" />
@@ -292,6 +292,11 @@ The configuration from %1 will be copied into this archive.</source>
       <translation>%1 → %2</translation>
     </message>
     <message>
+      <location filename="../../../app/src/widgets/configTransferDialog.cpp" />
+      <source>%1, %2 bytes; SHA-256 and container checksum are correct.</source>
+      <translation>%1, %2 байт; SHA-256 и контрольная сумма контейнера верны.</translation>
+    </message>
+    <message>
       <location filename="../../../app/src/widgets/configView.cpp" />
       <source>%1, address %2 (%3)</source>
       <translation>%1, адрес %2 (%3)</translation>
@@ -314,7 +319,7 @@ The configuration from %1 will be copied into this archive.</source>
     <message>
       <location filename="../../../transport/src/concordTransfer.cpp" />
       <source>%1: %2 (libconcord %3)</source>
-      <translation type="unfinished" />
+      <translation>%1: %2 (libconcord %3)</translation>
     </message>
     <message>
       <location filename="../../../core/src/formats/irTables.cpp" />
@@ -588,8 +593,8 @@ The configuration from %1 will be copied into this archive.</source>
     </message>
     <message>
       <location filename="../../../app/src/helpContent.cpp" />
-      <source>&lt;b&gt;Read from remote&lt;/b&gt; (top right): reads the configuration from a connected remote, saves it as a backup and opens it. See %1.</source>
-      <translation>&lt;b&gt;Чтение с пульта&lt;/b&gt; (справа вверху): читает конфигурацию с подключённого пульта, сохраняет её как резервную копию и открывает. См. %1.</translation>
+      <source>&lt;b&gt;Read from remote&lt;/b&gt; (top right): reads the configuration from any connected remote and saves it as one file for analysis; the remote is not changed. See %1.</source>
+      <translation>&lt;b&gt;Чтение с пульта&lt;/b&gt; (справа вверху): читает конфигурацию с любого подключённого пульта и сохраняет её одним файлом для разбора; пульт не изменяется. См. %1.</translation>
     </message>
     <message>
       <location filename="../../../app/src/helpContent.cpp" />
@@ -635,13 +640,6 @@ The configuration from %1 will be copied into this archive.</source>
       <location filename="../../../transport/src/concordTransfer.cpp" />
       <source>A backup filename is required</source>
       <translation>Укажите имя файла резервной копии</translation>
-    </message>
-    <message>
-      <location filename="../../../app/src/widgets/configTransferDialog.cpp" />
-      <source>A backup will be saved before writing:
-%1</source>
-      <translation>Перед записью будет сохранена резервная копия:
-%1</translation>
     </message>
     <message>
       <location filename="../../../app/src/mainWindowClipboard.cpp" />
@@ -856,7 +854,7 @@ The configuration from %1 will be copied into this archive.</source>
     <message>
       <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
       <source>Activity %1</source>
-      <translation type="unfinished" />
+      <translation>Активность %1</translation>
     </message>
     <message>
       <location filename="../../../core/src/formats/userConfiguration.cpp" />
@@ -1138,12 +1136,12 @@ Add a device?</source>
     <message>
       <location filename="../../../transport/src/concordTransfer.cpp" />
       <source>An old HID dump has no configuration container and cannot be written</source>
-      <translation type="unfinished" />
+      <translation>Старый HID-дамп не содержит контейнера конфигурации и не может быть записан</translation>
     </message>
     <message>
       <location filename="../../../transport/src/concordTransfer.cpp" />
       <source>An old HID dump has no configuration container to check</source>
-      <translation type="unfinished" />
+      <translation>Старый HID-дамп не содержит контейнера конфигурации, проверять нечего</translation>
     </message>
     <message>
       <location filename="../../../app/src/widgets/activityDialog.cpp" />
@@ -1377,11 +1375,6 @@ Add a device?</source>
       <location filename="../../../transport/src/concordTransfer.cpp" />
       <source>Backup verification failed; remote was not written</source>
       <translation>Проверка резервной копии не пройдена; запись в пульт не выполнялась</translation>
-    </message>
-    <message>
-      <location filename="../../../app/src/widgets/configTransferDialog.cpp" />
-      <source>Backup: %1</source>
-      <translation>Резервная копия: %1</translation>
     </message>
     <message>
       <location filename="../../../app/src/helpContent.cpp" />
@@ -1657,11 +1650,6 @@ Add a device?</source>
       <translation>Не удалось открыть элемент ZIP: %1</translation>
     </message>
     <message>
-      <location filename="../../../app/src/widgets/configTransferDialog.cpp" />
-      <source>Cannot read the configuration file.</source>
-      <translation>Не удалось прочитать файл конфигурации.</translation>
-    </message>
-    <message>
       <location filename="../../../app/src/zoneEditing.cpp" />
       <source>Cannot save an unknown resource: %1</source>
       <translation>Нельзя сохранить неизвестный ресурс: %1</translation>
@@ -1715,6 +1703,11 @@ Add a device?</source>
       <location filename="../../../app/src/widgets/zoneEditorProperties.cpp" />
       <source>Change button action</source>
       <translation>Изменить действие кнопки</translation>
+    </message>
+    <message>
+      <location filename="../../../app/src/widgets/zoneEditorProperties.cpp" />
+      <source>Change button colour</source>
+      <translation type="unfinished" />
     </message>
     <message>
       <location filename="../../../app/src/widgets/zoneEditorProperties.cpp" />
@@ -2005,6 +1998,11 @@ Add a device?</source>
     </message>
     <message>
       <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <source>Colour:</source>
+      <translation type="unfinished" />
+    </message>
+    <message>
+      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
       <source>Columns × rows:</source>
       <translation>Колонки × ряды:</translation>
     </message>
@@ -2019,7 +2017,7 @@ Add a device?</source>
     <message>
       <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
       <source>Command %1</source>
-      <translation type="unfinished" />
+      <translation>Команда %1</translation>
     </message>
     <message>
       <location filename="../../../app/src/widgets/learnWizardDialog.cpp" />
@@ -2247,7 +2245,7 @@ Add a device?</source>
     <message>
       <location filename="../../../app/src/widgets/aboutDialog.cpp" />
       <source>Components</source>
-      <translation type="unfinished" />
+      <translation>Компоненты</translation>
     </message>
     <message>
       <location filename="../../../app/src/labels.cpp" />
@@ -2285,11 +2283,6 @@ Add a device?</source>
       <translation>Файлы конфигурации — все модели…</translation>
     </message>
     <message>
-      <location filename="../../../app/src/widgets/configTransferDialog.cpp" />
-      <source>Configuration files — all remote models</source>
-      <translation>Файлы конфигурации — все модели пультов</translation>
-    </message>
-    <message>
       <location filename="../../../transport/src/harmony900Link.cpp" />
       <source>configuration for a different remote (%1), but %2 is connected</source>
       <translation>конфигурация для другого пульта (%1), а подключён %2</translation>
@@ -2320,11 +2313,6 @@ Add a device?</source>
       <translation>Конфигурация прочитана с пульта: %1, %2.</translation>
     </message>
     <message>
-      <location filename="../../../app/src/widgets/configTransferDialog.cpp" />
-      <source>Configuration saved: %1</source>
-      <translation>Конфигурация сохранена: %1</translation>
-    </message>
-    <message>
       <location filename="../../../app/src/widgets/remoteProfileDialog.cpp" />
       <source>Configuration writing supported</source>
       <translation>Запись конфигурации поддерживается</translation>
@@ -2348,11 +2336,6 @@ Add a device?</source>
       <location filename="../../../app/src/mainWindowRemote.cpp" />
       <source>Configuration written, remote restarted.&lt;br&gt;&lt;br&gt;The remote's previous configuration is saved: %1</source>
       <translation>Конфигурация записана, пульт перезапущен.&lt;br&gt;&lt;br&gt;Прежняя конфигурация пульта сохранена: %1</translation>
-    </message>
-    <message>
-      <location filename="../../../app/src/widgets/configTransferDialog.cpp" />
-      <source>Configuration written.</source>
-      <translation>Конфигурация записана.</translation>
     </message>
     <message>
       <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
@@ -2385,6 +2368,11 @@ Add a device?</source>
       <translation>Подключить пульт</translation>
     </message>
     <message>
+      <location filename="../../../app/src/widgets/configTransferDialog.cpp" />
+      <source>Connect the remote by USB and read its configuration into one file (*.remote.json). The model is detected automatically and the file is checked after saving; the remote is not changed. Remotes paired with a Hub (Elite, Ultimate, Touch, 950, Companion) are read with the Hub button instead.</source>
+      <translation>Подключите пульт по USB и снимите его конфигурацию в один файл (*.remote.json). Модель определяется сама, файл после сохранения проверяется; пульт не изменяется. Пульты, привязанные к хабу (Elite, Ultimate, Touch, 950, Companion), читаются кнопкой хаба.</translation>
+    </message>
+    <message>
       <location filename="../../../app/src/mainWindowMenus.cpp" />
       <source>Connect the remote by USB, close other Logitech applications and click Read from remote and save. The model is detected automatically and one file for analysis (*.remote.json) is saved and checked; the remote is not changed. No external utility is needed. Windows uses its HID driver; on Linux, access to the hidraw device is required.</source>
       <translation>Подключите пульт по USB, закройте другие приложения Logitech и нажмите «Прочитать с пульта и сохранить». Модель определится сама, будет сохранён и проверен один файл для анализа (*.remote.json); пульт не меняется. Отдельные утилиты не нужны. Windows использует системный HID-драйвер; в Linux нужны права доступа к устройству hidraw.</translation>
@@ -2412,6 +2400,7 @@ Add a device?</source>
     </message>
     <message>
       <location filename="../../../app/src/mainWindowRemote.cpp" />
+      <location filename="../../../app/src/widgets/configTransferDialog.cpp" />
       <location filename="../../../app/src/widgets/findByRemoteDialog.cpp" />
       <location filename="../../../app/src/widgets/learnWizardDialog.cpp" />
       <source>Connecting to the remote…</source>
@@ -3331,8 +3320,8 @@ Copy saved: %2</source>
     </message>
     <message>
       <location filename="../../../app/src/widgets/configTransferDialog.cpp" />
-      <source>Elite, Ultimate, Ultimate Home, 950, Companion and other remotes paired with a Hub: devices, commands and activities are read from the Hub on your network. No rooting is needed. A stock Hub does not give out IR codes: they are picked from the IR database by model and command names and may differ from the codes in the Hub. Account data is not included.</source>
-      <translation>Elite, Ultimate, Ultimate Home, 950, Companion и другие пульты, привязанные к Hub: устройства, команды и активности читаются с Hub по локальной сети. Взлом не нужен. Стоковый Hub не выдаёт ИК-коды: они подбираются из базы ИК-кодов по модели и именам команд и могут отличаться от кодов в Hub. Данные учётной записи в файл не попадают.</translation>
+      <source>Elite, Ultimate, Ultimate Home, Touch, 950, Companion and other remotes paired with a Hub: devices, commands and activities are read from the Hub on your network. Rooting is not needed to read. The Hub's whole answer is saved as it is: a stock Hub gives out no IR codes (they are picked from the IR database by model and command names and may differ), while a rooted Hub gives out everything it has. Account data is not included.</source>
+      <translation>Elite, Ultimate, Ultimate Home, Touch, 950, Companion и другие пульты, привязанные к хабу: устройства, команды и активности читаются с хаба в вашей сети. Рутинг для чтения не нужен. Ответ хаба сохраняется как есть: стоковый хаб ИК-коды не выдаёт (они подбираются из базы ИК по модели и именам команд и могут отличаться), а рутованный выдаёт всё, что у него есть. Данные учётной записи не включаются.</translation>
     </message>
     <message>
       <location filename="../../../app/src/widgets/newConfigDialog.cpp" />
@@ -3512,6 +3501,11 @@ Copy saved: %2</source>
       <translation>Сюда скачиваются файлы, отсюда они индексируются. Подойдёт и папка с уже скачанными файлами (сжатыми .gz или распакованными).</translation>
     </message>
     <message>
+      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <source>Fill colour of this button or tile, like #2a6fdb. Empty: the colour common to the screen.</source>
+      <translation type="unfinished" />
+    </message>
+    <message>
       <location filename="../../../app/src/widgets/deviceStatesDialog.cpp" />
       <source>Fill from commands</source>
       <translation>Заполнить по командам</translation>
@@ -3609,6 +3603,11 @@ Copy saved: %2</source>
     </message>
     <message>
       <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <source>Footer:</source>
+      <translation>Подвал:</translation>
+    </message>
+    <message>
+      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
       <source>For a side cell, choose the physical button next to the screen that activates it.</source>
       <translation>Для боковой ячейки выберите кнопку на корпусе рядом с экраном, которая её активирует.</translation>
     </message>
@@ -3701,6 +3700,21 @@ Copy saved: %2</source>
       <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
       <source>GSPM (One)</source>
       <translation>GSPM (One)</translation>
+    </message>
+    <message>
+      <location filename="../../../core/src/formats/gspm.cpp" />
+      <source>GSPM: slot %1 points somewhere where architecture 12 leaves it empty</source>
+      <translation>GSPM: слот %1 указывает туда, где архитектура 12 оставляет его пустым</translation>
+    </message>
+    <message>
+      <location filename="../../../core/src/formats/gspm.cpp" />
+      <source>GSPM: the container is architecture %1, not the Harmony One layout of 22 slots</source>
+      <translation>GSPM: контейнер архитектуры %1, а не раскладки Harmony One из 22 слотов</translation>
+    </message>
+    <message>
+      <location filename="../../../core/src/formats/gspm.cpp" />
+      <source>GSPM: the section table is not the 19-section layout of architecture 12</source>
+      <translation>GSPM: таблица секций не соответствует раскладке архитектуры 12 из 19 секций</translation>
     </message>
     <message>
       <location filename="../../../app/src/widgets/deviceStatesDialog.cpp" />
@@ -3796,8 +3810,8 @@ Copy saved: %2</source>
     </message>
     <message>
       <location filename="../../../transport/src/concordTransfer.cpp" />
-      <source>Harmony One configuration overlaps protected memory or has no LWJL signature</source>
-      <translation>Конфигурация Harmony One пересекает защищённую память или не содержит сигнатуры LWJL</translation>
+      <source>Harmony One configuration overlaps protected memory</source>
+      <translation>Конфигурация Harmony One попадает в защищённую область памяти</translation>
     </message>
     <message>
       <location filename="../../../transport/src/hidChannel.cpp" />
@@ -3826,8 +3840,18 @@ Copy saved: %2</source>
     </message>
     <message>
       <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <source>Header:</source>
+      <translation>Шапка:</translation>
+    </message>
+    <message>
+      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
       <source>Height</source>
       <translation>Одинаковая высота</translation>
+    </message>
+    <message>
+      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <source>Height in screen units. The zone stays in place when tiles scroll.</source>
+      <translation>Высота в экранных единицах. Зона остаётся на месте при прокрутке плиток.</translation>
     </message>
     <message>
       <location filename="../../../app/src/modern/remoteView.cpp" />
@@ -3853,7 +3877,7 @@ Copy saved: %2</source>
     <message>
       <location filename="../../../app/src/widgets/aboutDialog.cpp" />
       <source>help with Harmony Hub :)</source>
-      <translation type="unfinished" />
+      <translation>помощь с Harmony Hub :)</translation>
     </message>
     <message>
       <location filename="../../../app/src/widgets/settingsDialog.cpp" />
@@ -4069,10 +4093,10 @@ Copy saved: %2</source>
       <location filename="../../../app/src/widgets/configTransferDialog.cpp" />
       <source>Hub “%1”, firmware %2: %3 devices, %4 activities.
 Saved: %5
-The file contains device names and models, but no IR codes, account or e-mail. You can send it to the developers.</source>
-      <translation>Hub «%1», прошивка %2: устройств — %3, активностей — %4.
+The file holds the Hub's answer as it is — device names, models and commands, plus IR codes if this Hub gives them out. Account and e-mail are not included. You can send it to the developers.</source>
+      <translation>Хаб «%1», прошивка %2: устройств — %3, активностей — %4.
 Сохранено: %5
-В файле есть названия и модели устройств, но нет ИК-кодов, учётной записи и e-mail. Его можно отправить разработчикам.</translation>
+В файле ответ хаба как есть: имена устройств, модели и команды, а также ИК-коды, если этот хаб их выдаёт. Учётная запись и e-mail не включаются. Файл можно отправить разработчикам.</translation>
     </message>
     <message>
       <location filename="../../../app/src/widgets/disclaimerDialog.cpp" />
@@ -4239,21 +4263,6 @@ The file contains device names and models, but no IR codes, account or e-mail. Y
       <location filename="../../../transport/src/concordTransfer.cpp" />
       <source>Invalid EZHex header</source>
       <translation>Некорректный заголовок EZHex</translation>
-    </message>
-    <message>
-      <location filename="../../../transport/src/concordTransfer.cpp" />
-      <source>Invalid GSPM end vector</source>
-      <translation>Неверный указатель конца GSPM</translation>
-    </message>
-    <message>
-      <location filename="../../../transport/src/concordTransfer.cpp" />
-      <source>Invalid GSPM signature</source>
-      <translation>Неверная сигнатура GSPM</translation>
-    </message>
-    <message>
-      <location filename="../../../transport/src/concordTransfer.cpp" />
-      <source>Invalid GSPM XOR16 checksum</source>
-      <translation>Неверная контрольная сумма XOR16 GSPM</translation>
     </message>
     <message>
       <location filename="../../../transport/src/harmonyHidReader.cpp" />
@@ -4595,7 +4604,7 @@ The file contains device names and models, but no IR codes, account or e-mail. Y
     <message>
       <location filename="../../../app/src/widgets/aboutDialog.cpp" />
       <source>Logitech and Harmony are trademarks of Logitech. This program is not affiliated with Logitech.</source>
-      <translation type="unfinished" />
+      <translation>Logitech и Harmony — товарные знаки Logitech. Эта программа не связана с Logitech.</translation>
     </message>
     <message>
       <location filename="../../../app/src/widgets/configView.cpp" />
@@ -5023,7 +5032,6 @@ The file contains device names and models, but no IR codes, account or e-mail. Y
     </message>
     <message>
       <location filename="../../../app/src/mainWindow.cpp" />
-      <location filename="../../../app/src/mainWindowMenus.cpp" />
       <source>No connection driver</source>
       <translation>Драйвер подключения не задан</translation>
     </message>
@@ -5332,11 +5340,6 @@ The file contains device names and models, but no IR codes, account or e-mail. Y
       <location filename="../../../app/src/widgets/deviceStatesDialog.cpp" />
       <source>OK</source>
       <translation>OK</translation>
-    </message>
-    <message>
-      <location filename="../../../core/src/formats/remoteCapture.cpp" />
-      <source>old HID dumps are only read, not written</source>
-      <translation type="unfinished" />
     </message>
     <message>
       <location filename="../../../app/src/widgets/remoteSettingsDialog.cpp" />
@@ -6096,11 +6099,6 @@ The file contains device names and models, but no IR codes, account or e-mail. Y
       <translation>запись сырого ИК-кода повреждена (%1 байт)</translation>
     </message>
     <message>
-      <location filename="../../../app/src/widgets/configTransferDialog.cpp" />
-      <source>Read a backup or write an existing configuration file from Concordance, Afterglow, re-harmony or Harmony. A photo and button zones are not required. Writing a file does not convert it to another model.</source>
-      <translation>Считайте резервную копию или запишите готовую конфигурацию из Concordance, Afterglow, re-harmony или Harmony. Фото и зоны кнопок не требуются. Файл должен соответствовать модели пульта.</translation>
-    </message>
-    <message>
       <location filename="../../../app/src/mainWindowMenus.cpp" />
       <source>Read configuration from remote</source>
       <translation>Прочитать конфигурацию с пульта</translation>
@@ -6114,6 +6112,11 @@ The file contains device names and models, but no IR codes, account or e-mail. Y
       <location filename="../../../app/src/widgets/configTransferDialog.cpp" />
       <source>Read configuration to file…</source>
       <translation>Прочитать конфигурацию в файл…</translation>
+    </message>
+    <message>
+      <location filename="../../../app/src/widgets/configTransferDialog.cpp" />
+      <source>Read configuration — all remote models</source>
+      <translation>Чтение конфигурации — все модели пультов</translation>
     </message>
     <message>
       <location filename="../../../app/src/mainWindowRemote.cpp" />
@@ -6186,8 +6189,8 @@ The file contains device names and models, but no IR codes, account or e-mail. Y
     </message>
     <message>
       <location filename="../../../app/src/mainWindowMenus.cpp" />
-      <source>Reads the configuration from the remote, saves it as a backup and opens it</source>
-      <translation>Снимает конфигурацию с пульта, сохраняет её как резервную копию и открывает</translation>
+      <source>Reads the configuration from any connected remote and saves it as one file; the remote is not changed</source>
+      <translation>Читает конфигурацию с любого подключённого пульта и сохраняет её одним файлом; пульт не изменяется</translation>
     </message>
     <message>
       <location filename="../../../app/src/widgets/activityDialog.cpp" />
@@ -6380,11 +6383,6 @@ The file contains device names and models, but no IR codes, account or e-mail. Y
       <location filename="../../../app/src/mainWindow.cpp" />
       <source>Remote configuration (*.EZHex *.ezhex *.remote.json UserConfiguration.xml);;Remote backup (*.EZHex *.ezhex *.remote.json);;XML files (*.xml);;All files (*)</source>
       <translation>Конфигурация пульта (*.EZHex *.ezhex *.remote.json UserConfiguration.xml);;Резервная копия с пульта (*.EZHex *.ezhex *.remote.json);;XML-файлы (*.xml);;Все файлы (*)</translation>
-    </message>
-    <message>
-      <location filename="../../../app/src/widgets/configTransferDialog.cpp" />
-      <source>Remote configuration (*.EZHex *.ezhex *.zip *.hex *.remote.json);;All files (*)</source>
-      <translation>Конфигурация пульта (*.EZHex *.ezhex *.zip *.hex *.remote.json);;Все файлы (*)</translation>
     </message>
     <message>
       <location filename="../../../app/src/widgets/compareConfigsDialog.cpp" />
@@ -6711,11 +6709,6 @@ Their buttons and start steps in this activity, including input switching, will 
 %1</translation>
     </message>
     <message>
-      <location filename="../../../app/src/widgets/configTransferDialog.cpp" />
-      <source>Restarting remote…</source>
-      <translation>Перезапуск пульта…</translation>
-    </message>
-    <message>
       <location filename="../../../app/src/widgets/versionsDialog.cpp" />
       <source>Restore</source>
       <translation>Восстановить</translation>
@@ -6890,6 +6883,15 @@ Their buttons and start steps in this activity, including input switching, will 
       <translation>Сохранено: %1</translation>
     </message>
     <message>
+      <location filename="../../../app/src/widgets/configTransferDialog.cpp" />
+      <source>Saved: %1
+%2
+The remote was not changed. You can send this file to the developers.</source>
+      <translation>Сохранено: %1
+%2
+Пульт не изменялся. Этот файл можно отправить разработчикам.</translation>
+    </message>
+    <message>
       <location filename="../../../app/src/mainWindowRemote.cpp" />
       <source>Save…</source>
       <translation>Сохранить…</translation>
@@ -6996,6 +6998,11 @@ Their buttons and start steps in this activity, including input switching, will 
       <location filename="../../../app/src/widgets/zoneEditorProperties.cpp" />
       <source>Screen decoration</source>
       <translation>Оформление экрана</translation>
+    </message>
+    <message>
+      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <source>Screen default</source>
+      <translation type="unfinished" />
     </message>
     <message>
       <location filename="../../../app/src/widgets/zoneEditorProperties.cpp" />
@@ -7454,7 +7461,7 @@ Their buttons and start steps in this activity, including input switching, will 
     <message>
       <location filename="../../../app/src/widgets/aboutDialog.cpp" />
       <source>Support the project</source>
-      <translation type="unfinished" />
+      <translation>Поддержать проект</translation>
     </message>
     <message>
       <location filename="../../../app/src/widgets/compareDevicesDialog.cpp" />
@@ -7539,7 +7546,7 @@ Translate the strings and restart the program — the language will appear in th
     <message>
       <location filename="../../../app/src/widgets/aboutDialog.cpp" />
       <source>Thanks</source>
-      <translation type="unfinished" />
+      <translation>Благодарности</translation>
     </message>
     <message>
       <location filename="../../../app/src/widgets/findByRemoteDialog.cpp" />
@@ -7674,12 +7681,12 @@ Translate the strings and restart the program — the language will appear in th
     <message>
       <location filename="../../../transport/src/concordTransfer.cpp" />
       <source>The capture contains another capture instead of a configuration</source>
-      <translation type="unfinished" />
+      <translation>В снятии с пульта вместо конфигурации лежит другое снятие</translation>
     </message>
     <message>
       <location filename="../../../transport/src/concordTransfer.cpp" />
       <source>The capture says %1, but the data is a different container</source>
-      <translation type="unfinished" />
+      <translation>В снятии указано %1, но данные — другой контейнер</translation>
     </message>
     <message>
       <location filename="../../../app/src/widgets/zoneEditorZones.cpp" />
@@ -7789,18 +7796,28 @@ Checked: %1
     </message>
     <message>
       <location filename="../../../app/src/widgets/configTransferDialog.cpp" />
-      <source>The connected remote and the file's intended model will be checked before writing.</source>
-      <translation>Перед записью будет проверено соответствие файла подключённому пульту.</translation>
+      <source>The connected remote is detected by itself; the file records which remote it came from.</source>
+      <translation>Подключённый пульт определяется сам; в файле записано, с какого пульта он снят.</translation>
+    </message>
+    <message>
+      <location filename="../../../transport/src/concordTransfer.cpp" />
+      <source>The container is architecture %1, while the remote reads %2 configurations</source>
+      <translation>Контейнер архитектуры %1, а пульт читает конфигурации архитектуры %2</translation>
     </message>
     <message>
       <location filename="../../../transport/src/concordTransfer.cpp" />
       <source>The container is for protocol %1, but the remote reported protocol %2</source>
-      <translation type="unfinished" />
+      <translation>Контейнер предназначен для протокола %1, а пульт сообщил протокол %2</translation>
     </message>
     <message>
       <location filename="../../../transport/src/concordTransfer.cpp" />
       <source>The container is for skin %1, but the capture was read from skin %2</source>
-      <translation type="unfinished" />
+      <translation>Контейнер предназначен для skin %1, а снятие сделано с skin %2</translation>
+    </message>
+    <message>
+      <location filename="../../../transport/src/concordTransfer.cpp" />
+      <source>The container is mapped at address %1, while this remote keeps its configuration at %2</source>
+      <translation>Контейнер отображён по адресу %1, а этот пульт хранит конфигурацию по адресу %2</translation>
     </message>
     <message>
       <location filename="../../../app/src/widgets/activityDialog.cpp" />
@@ -7975,12 +7992,12 @@ They will not be sent to the remote either. When the device is made active again
       <location filename="../../../core/src/formats/hubConfig.cpp" />
       <location filename="../../../transport/src/hubConfigReader.cpp" />
       <source>the Harmony Hub configuration file has no configuration</source>
-      <translation type="unfinished" />
+      <translation>в файле конфигурации Harmony Hub нет конфигурации</translation>
     </message>
     <message>
       <location filename="../../../core/src/formats/hubConfig.cpp" />
       <source>the Harmony Hub resource file has no devices or activities</source>
-      <translation type="unfinished" />
+      <translation>в файле ресурсов Harmony Hub нет ни устройств, ни активностей</translation>
     </message>
     <message>
       <location filename="../../../transport/src/hubConfigReader.cpp" />
@@ -8025,7 +8042,7 @@ They will not be sent to the remote either. When the device is made active again
     <message>
       <location filename="../../../transport/src/hubConfigReader.cpp" />
       <source>the Hub interrupted a fragmented message</source>
-      <translation type="unfinished" />
+      <translation>Hub прервал фрагментированное сообщение</translation>
     </message>
     <message>
       <location filename="../../../transport/src/hubConfigReader.cpp" />
@@ -8040,32 +8057,32 @@ They will not be sent to the remote either. When the device is made active again
     <message>
       <location filename="../../../transport/src/hubConfigReader.cpp" />
       <source>the Hub sent an invalid HTTP chunk</source>
-      <translation type="unfinished" />
+      <translation>Hub прислал неверный фрагмент HTTP</translation>
     </message>
     <message>
       <location filename="../../../transport/src/hubConfigReader.cpp" />
       <source>the Hub sent an invalid HTTP length: %1</source>
-      <translation type="unfinished" />
+      <translation>Hub прислал неверную длину HTTP: %1</translation>
     </message>
     <message>
       <location filename="../../../transport/src/hubConfigReader.cpp" />
       <source>the Hub sent an invalid WebSocket control frame</source>
-      <translation type="unfinished" />
+      <translation>Hub прислал неверный управляющий кадр WebSocket</translation>
     </message>
     <message>
       <location filename="../../../transport/src/hubConfigReader.cpp" />
       <source>the Hub sent an oversized HTTP header</source>
-      <translation type="unfinished" />
+      <translation>Hub прислал слишком большой заголовок HTTP</translation>
     </message>
     <message>
       <location filename="../../../transport/src/hubConfigReader.cpp" />
       <source>the Hub sent an oversized HTTP line</source>
-      <translation type="unfinished" />
+      <translation>Hub прислал слишком длинную строку HTTP</translation>
     </message>
     <message>
       <location filename="../../../transport/src/hubConfigReader.cpp" />
       <source>the Hub sent an unexpected continuation frame</source>
-      <translation type="unfinished" />
+      <translation>Hub прислал неожиданный кадр продолжения</translation>
     </message>
     <message>
       <location filename="../../../transport/src/hubConfigReader.cpp" />
@@ -8075,7 +8092,7 @@ They will not be sent to the remote either. When the device is made active again
     <message>
       <location filename="../../../transport/src/hubConfigReader.cpp" />
       <source>the Hub sent an unsupported WebSocket frame (%1)</source>
-      <translation type="unfinished" />
+      <translation>Hub прислал неподдерживаемый кадр WebSocket (%1)</translation>
     </message>
     <message>
       <location filename="../../../app/src/widgets/buttonDialog.cpp" />
@@ -8311,37 +8328,37 @@ They will not be sent to the remote either. When the device is made active again
     <message>
       <location filename="../../../core/src/formats/remoteCapture.cpp" />
       <source>the remote capture data is damaged: SHA-256 does not match</source>
-      <translation type="unfinished" />
+      <translation>данные снятия с пульта повреждены: SHA-256 не совпадает</translation>
     </message>
     <message>
       <location filename="../../../core/src/formats/remoteCapture.cpp" />
       <source>the remote capture data is not valid Base64</source>
-      <translation type="unfinished" />
+      <translation>данные снятия с пульта не являются корректным Base64</translation>
     </message>
     <message>
       <location filename="../../../core/src/formats/remoteCapture.cpp" />
       <source>the remote capture data size does not match: %1 bytes, expected %2</source>
-      <translation type="unfinished" />
+      <translation>размер данных снятия с пульта не совпадает: %1 байт, ожидалось %2</translation>
     </message>
     <message>
       <location filename="../../../core/src/formats/remoteCapture.cpp" />
       <source>the remote capture does not say which remote it was read from</source>
-      <translation type="unfinished" />
+      <translation>в снятии с пульта не указано, с какого пульта оно сделано</translation>
     </message>
     <message>
       <location filename="../../../core/src/formats/remoteCapture.cpp" />
       <source>the remote capture has no data or the data is too large</source>
-      <translation type="unfinished" />
+      <translation>в снятии с пульта нет данных, или они слишком большие</translation>
     </message>
     <message>
       <location filename="../../../core/src/formats/remoteCapture.cpp" />
       <source>the remote capture has no data size or the data is too large</source>
-      <translation type="unfinished" />
+      <translation>в снятии с пульта не указан размер данных, или они слишком большие</translation>
     </message>
     <message>
       <location filename="../../../core/src/formats/remoteCapture.cpp" />
       <source>the remote capture has no remote or data section</source>
-      <translation type="unfinished" />
+      <translation>в снятии с пульта нет раздела сведений о пульте или раздела данных</translation>
     </message>
     <message>
       <location filename="../../../app/src/widgets/propertiesDialog.cpp" />
@@ -8805,7 +8822,7 @@ They will not be sent to the remote either. When the device is made active again
     <message>
       <location filename="../../../core/src/formats/hubConfig.cpp" />
       <source>this is not a Harmony Hub configuration file</source>
-      <translation type="unfinished" />
+      <translation>это не файл конфигурации Harmony Hub</translation>
     </message>
     <message>
       <location filename="../../../core/src/irdb/irDatabase.cpp" />
@@ -8815,7 +8832,7 @@ They will not be sent to the remote either. When the device is made active again
     <message>
       <location filename="../../../core/src/formats/remoteCapture.cpp" />
       <source>this is not a remote capture file</source>
-      <translation type="unfinished" />
+      <translation>это не файл снятия с пульта</translation>
     </message>
     <message>
       <location filename="../../../core/src/formats/ezhex.cpp" />
@@ -8839,18 +8856,18 @@ They will not be sent to the remote either. When the device is made active again
     </message>
     <message>
       <location filename="../../../app/src/widgets/configTransferDialog.cpp" />
-      <source>This model does not support configuration readback through this transport.</source>
-      <translation>Эта модель не поддерживает чтение конфигурации через данный транспорт.</translation>
+      <source>This model is not read over USB. If it is paired with a Hub, use “Read Harmony Hub over network”.</source>
+      <translation>Эта модель не читается по USB. Если она привязана к хабу, нажмите «Чтение Harmony Hub по сети…».</translation>
+    </message>
+    <message>
+      <location filename="../../../app/src/widgets/configTransferDialog.cpp" />
+      <source>This model is read over USB.</source>
+      <translation>Эта модель читается по USB.</translation>
     </message>
     <message>
       <location filename="../../../core/src/configDocumentCheck.cpp" />
       <source>this problem has to be fixed by hand</source>
       <translation>эту проблему нужно исправить вручную</translation>
-    </message>
-    <message>
-      <location filename="../../../app/src/widgets/configTransferDialog.cpp" />
-      <source>This remote cannot be backed up through this connection. Continue without a backup?</source>
-      <translation>Через это подключение нельзя считать резервную копию. Продолжить без резервной копии?</translation>
     </message>
     <message>
       <location filename="../../../app/src/widgets/remoteProfileDialog.cpp" />
@@ -8995,16 +9012,6 @@ They will not be sent to the remote either. When the device is made active again
       <translation>Сенсорный экран</translation>
     </message>
     <message>
-      <location filename="../../../app/src/widgets/configTransferDialog.cpp" />
-      <source>Transfer code is available. Writing from Harmony has not been tested on this model.</source>
-      <translation>Перенос конфигурации реализован. Запись из Harmony на этой модели пока не проверена.</translation>
-    </message>
-    <message>
-      <location filename="../../../app/src/widgets/configTransferDialog.cpp" />
-      <source>Transferring configuration…</source>
-      <translation>Передача конфигурации…</translation>
-    </message>
-    <message>
       <location filename="../../../app/src/widgets/settingsDialog.cpp" />
       <source>Translation template</source>
       <translation>Заготовка перевода</translation>
@@ -9023,6 +9030,11 @@ They will not be sent to the remote either. When the device is made active again
       <location filename="../../../app/src/widgets/settingsDialog.cpp" />
       <source>Translations folder</source>
       <translation>Папка переводов</translation>
+    </message>
+    <message>
+      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <source>transparent</source>
+      <translation>прозрачный</translation>
     </message>
     <message>
       <location filename="../../../app/src/widgets/remoteSettingsDialog.cpp" />
@@ -9175,6 +9187,11 @@ They will not be sent to the remote either. When the device is made active again
       <translation>неизвестный тип активности «%1»</translation>
     </message>
     <message>
+      <location filename="../../../app/src/widgets/zoneEditorProperties.cpp" />
+      <source>Unknown colour. Use a name or #rrggbb.</source>
+      <translation type="unfinished" />
+    </message>
+    <message>
       <location filename="../../../transport/src/harmonyHidReader.cpp" />
       <source>Unknown HID flash chip: %1</source>
       <translation>Неизвестная микросхема памяти HID: %1</translation>
@@ -9187,7 +9204,7 @@ They will not be sent to the remote either. When the device is made active again
     <message>
       <location filename="../../../core/src/formats/remoteCapture.cpp" />
       <source>unknown remote capture container: %1</source>
-      <translation type="unfinished" />
+      <translation>неизвестный контейнер снятия с пульта: %1</translation>
     </message>
     <message>
       <location filename="../../../transport/src/concordTransfer.cpp" />
@@ -9228,7 +9245,7 @@ They will not be sent to the remote either. When the device is made active again
     <message>
       <location filename="../../../core/src/formats/remoteCapture.cpp" />
       <source>unsupported remote capture version %1</source>
-      <translation type="unfinished" />
+      <translation>неподдерживаемая версия снятия с пульта: %1</translation>
     </message>
     <message>
       <location filename="../../../core/src/propertyCatalog.cpp" />
@@ -9412,7 +9429,7 @@ They will not be sent to the remote either. When the device is made active again
     <message>
       <location filename="../../../app/src/mainWindowMenus.cpp" />
       <source>Wait for the current remote operation to finish.</source>
-      <translation type="unfinished" />
+      <translation>Дождитесь окончания текущей операции с пультом.</translation>
     </message>
     <message>
       <location filename="../../../app/src/widgets/journalDialog.cpp" />
@@ -9547,33 +9564,10 @@ They will not be sent to the remote either. When the device is made active again
       <translation>в записи сырого ИК-кода не сходится число слов</translation>
     </message>
     <message>
-      <location filename="../../../app/src/widgets/configTransferDialog.cpp" />
-      <source>Write %1 to %2?
-
-%3
-
-Do not disconnect the remote while writing.</source>
-      <translation>Записать %1 в %2?
-
-%3
-
-Не отключайте пульт во время записи.</translation>
-    </message>
-    <message>
       <location filename="../../../app/src/mainWindowRemote.cpp" />
       <location filename="../../../app/src/widgets/writePreviewDialog.cpp" />
       <source>Write anyway</source>
       <translation>Всё равно записать</translation>
-    </message>
-    <message>
-      <location filename="../../../app/src/widgets/configTransferDialog.cpp" />
-      <source>Write configuration file</source>
-      <translation>Запись файла конфигурации</translation>
-    </message>
-    <message>
-      <location filename="../../../app/src/widgets/configTransferDialog.cpp" />
-      <source>Write configuration file…</source>
-      <translation>Записать файл конфигурации…</translation>
     </message>
     <message>
       <location filename="../../../app/src/mainWindowRemote.cpp" />
@@ -9611,11 +9605,6 @@ Do not disconnect the remote while writing.</source>
       <location filename="../../../core/src/configDocumentPackage.cpp" />
       <source>writing configurations for target remote %1 is not implemented; this is an experimental project profile</source>
       <translation>Запись конфигурации для пульта %1 ещё не реализована. Выбран экспериментальный профиль проекта</translation>
-    </message>
-    <message>
-      <location filename="../../../app/src/widgets/configTransferDialog.cpp" />
-      <source>Writing from Harmony has been tested on this model.</source>
-      <translation>Запись из Harmony проверена на этой модели.</translation>
     </message>
     <message>
       <location filename="../../../app/src/remoteSession.cpp" />

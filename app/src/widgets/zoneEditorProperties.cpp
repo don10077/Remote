@@ -88,11 +88,17 @@ void ZoneEditorDialog::refreshProperties() {
     radiusBox_->setEnabled(zone);
     propsForm_->setRowVisible(panelRoleBox_, zone && zoneAt(item).value("kind") == "ScreenPanel");
     for (auto* box : {xBox_, yBox_, wBox_, hBox_}) box->setEnabled(one);
+    {
+        const QString kind = zone ? zoneAt(item).value("kind").toString("ScreenSlot") : QString();
+        propsForm_->setRowVisible(zoneColorEdit_, zone && !layer().body() &&
+            (kind == "ScreenKey" || kind == "ScreenSide" || kind == "ScreenSlot"));
+    }
 
-    const QList<QObject*> widgets{idEdit_, kindBox_, panelRoleBox_, radiusBox_, xBox_, yBox_, wBox_, hBox_, actionBox_, commandBox_, targetBox_, buttonBox_};
+    const QList<QObject*> widgets{zoneColorEdit_, idEdit_, kindBox_, panelRoleBox_, radiusBox_, xBox_, yBox_, wBox_, hBox_, actionBox_, commandBox_, targetBox_, buttonBox_};
     for (QObject* widget : widgets) widget->blockSignals(true);
 
     idEdit_->clear();
+    zoneColorEdit_->clear();
     kindBox_->clear();
     radiusBox_->setValue(0);
     const QRectF rect = one ? canvas_->itemRect(item) : QRectF();
@@ -103,6 +109,7 @@ void ZoneEditorDialog::refreshProperties() {
     if (zone) {
         const QJsonObject z = zoneAt(item);
         idEdit_->setText(z.value("id").toString());
+        zoneColorEdit_->setText(z.value("color").toString());
         QStringList kinds = layer().body() ? zoneEditing::bodyKinds() : zoneEditing::screenKinds();
         const QString kind = z.value("kind").toString();
         if (!kinds.contains(kind)) kinds.append(kind);
@@ -255,6 +262,27 @@ void ZoneEditorDialog::applyPanelRole(int index) {
     State after = layer().current;
     after.zones[item] = zone;
     edit(tr("Change panel shape"), after);
+}
+
+void ZoneEditorDialog::applyZoneColor() {
+    const auto selection = canvas_->selection();
+    if (!hasLayer() || layer().body() || selection.size() != 1 || selection.first() < 0) return;
+    const int item = selection.first();
+    QJsonObject zone = zoneAt(item);
+    const QString kind = zone.value(QStringLiteral("kind")).toString(QStringLiteral("ScreenSlot"));
+    if (kind != QLatin1String("ScreenKey") && kind != QLatin1String("ScreenSide") && kind != QLatin1String("ScreenSlot")) return;
+    const QString colour = zoneColorEdit_->text().trimmed();
+    if (!colour.isEmpty() && !QColor::isValidColorName(colour)) {
+        note(tr("Unknown colour. Use a name or #rrggbb."));
+        zoneColorEdit_->setText(zone.value(QStringLiteral("color")).toString());
+        return;
+    }
+    if (colour == zone.value(QStringLiteral("color")).toString()) return;
+    if (colour.isEmpty()) zone.remove(QStringLiteral("color"));
+    else zone.insert(QStringLiteral("color"), colour);
+    State after = layer().current;
+    after.zones[item] = zone;
+    edit(tr("Change button colour"), after);
 }
 
 void ZoneEditorDialog::applyAction() {

@@ -1,5 +1,6 @@
 #include "../app/src/remoteResources.h"
 #include "../app/src/modern/remoteView.h"
+#include <QBuffer>
 #include <QDir>
 #include <QApplication>
 #include <QMouseEvent>
@@ -329,6 +330,96 @@ TEST_F(RemoteResourcesTest, LeftoverFilesOfOldSchemaAreIgnored) {
     EXPECT_TRUE(resources::data(":/res/remotes/900/zones.json").isEmpty());
     for (const auto& file : resources::exportFiles({}))
         if (file.endsWith(".json")) { EXPECT_TRUE(file.endsWith("/remote.json")) << file.toStdString(); }
+}
+
+TEST_F(RemoteResourcesTest, FolderWithOnlyPhotoIsListedAndGetsStub) {
+    // Папка с одним photo.png: редактор зон показывает её и создаёт заготовку remote.json.
+    ASSERT_TRUE(QDir().mkpath(dir.path() + "/remotes/fresh"));
+    QImage photo(120, 300, QImage::Format_ARGB32);
+    photo.fill(Qt::transparent);
+    QByteArray png;
+    QBuffer buffer(&png);
+    ASSERT_TRUE(buffer.open(QIODevice::WriteOnly));
+    ASSERT_TRUE(photo.save(&buffer, "PNG"));
+    write("remotes/fresh/photo.png", png);
+    root = dir.path();
+    EXPECT_TRUE(resources::modelIds(root).contains("fresh"));
+    EXPECT_TRUE(resources::createStub("fresh", root).isEmpty());
+    ASSERT_TRUE(resources::reload(root).isEmpty());
+    const auto remote = resources::remote("fresh");
+    EXPECT_EQ(remote.value("id").toString(), "fresh");
+    EXPECT_EQ(remote.value("hardware").toObject().value("size").toArray().at(0).toInt(), 120);
+    EXPECT_TRUE(remote.value("hardware").toObject().value("zones").toArray().isEmpty());
+    EXPECT_EQ(remote.value("screens").toArray().size(), 1);
+    EXPECT_NE(harmony::remoteProfile("fresh"), nullptr);
+    // Существующий remote.json заготовка не трогает; папка без photo.png — ошибка.
+    const auto before = resources::readRemote("fresh", root).text;
+    EXPECT_TRUE(resources::createStub("fresh", root).isEmpty());
+    EXPECT_EQ(resources::readRemote("fresh", root).text, before);
+    ASSERT_TRUE(QDir().mkpath(dir.path() + "/remotes/empty"));
+    EXPECT_FALSE(resources::createStub("empty", root).isEmpty());
+}
+
+/// Экран 100×200 с сеткой 1×2 и зонами фона из background.
+QJsonObject zonedScreen(const QJsonObject& background, const QJsonObject& grid = {{"cols", 1}, {"rows", 2}, {"gap", 0}}) {
+    return {{"id", "devices"}, {"ref", QJsonArray{100, 200}}, {"grid", grid}, {"background", background},
+            {"cells", QJsonArray{QJsonObject{{"col", 0}, {"row", 0}}, QJsonObject{{"col", 0}, {"row", 1}}}}};
+}
+
+TEST(RemoteResources, ScreenZonesParseHeaderBodyFooter) {
+    const auto none = resources::screenZones(zonedScreen({{"color", "#000000"}}));
+    EXPECT_FALSE(none.any);
+    const auto zones = resources::screenZones(zonedScreen(
+        {{"header", QJsonObject{{"height", 30}, {"color", "#112233"}}},
+         {"footer", QJsonObject{{"height", 20}}}}));
+    ASSERT_TRUE(zones.any);
+    EXPECT_EQ(zones.header, QRectF(0, 0, 100, 30));
+    EXPECT_EQ(zones.body, QRectF(0, 30, 100, 150));
+    EXPECT_EQ(zones.footer, QRectF(0, 180, 100, 20));
+    EXPECT_EQ(zones.headerColor, QColor("#112233"));
+    EXPECT_FALSE(zones.footerColor.isValid()); // без color зона прозрачна
+    // Только шапка: тело — всё остальное.
+    const auto headerOnly = resources::screenZones(zonedScreen({{"header", QJsonObject{{"height", 50}}}}));
+    ASSERT_TRUE(headerOnly.any);
+    EXPECT_EQ(headerOnly.body, QRectF(0, 50, 100, 150));
+    // Шапка и подвал не помещаются: зон нет.
+    EXPECT_FALSE(resources::screenZones(zonedScreen(
+        {{"header", QJsonObject{{"height", 120}}}, {"footer", QJsonObject{{"height", 80}}}})).any);
+}
+
+TEST(RemoteResources, TilesDefaultToBodyZone) {
+    const QJsonObject background{{"header", QJsonObject{{"height", 40}}}, {"footer", QJsonObject{{"height", 20}}}};
+    const auto screen = resources::normalizeScreen(zonedScreen(background), {});
+    const auto cells = screen.value("cells").toArray();
+    // Тело 100×140 от y=40, сетка 1×2 без зазоров: плитки по 70 высотой.
+    EXPECT_EQ(cells.at(0).toObject().value("rect").toArray().at(1).toDouble(), 40);
+    EXPECT_EQ(cells.at(1).toObject().value("rect").toArray().at(1).toDouble(), 110);
+    // Своя grid.area главнее общей, но не выходит за тело: (0,0,100,100) обрезается до (0,40,100,60).
+    const auto own = resources::normalizeScreen(
+        zonedScreen(background, {{"cols", 1}, {"rows", 2}, {"gap", 0}, {"area", QJsonArray{0, 0, 100, 100}}}), {});
+    EXPECT_EQ(own.value("cells").toArray().at(0).toObject().value("rect").toArray().at(1).toDouble(), 40);
+    EXPECT_EQ(own.value("cells").toArray().at(1).toObject().value("rect").toArray().at(1).toDouble(), 70);
+    // Общая tiles.area тоже обрезается телом.
+    const auto common = resources::normalizeScreen(zonedScreen(background), QJsonArray{0, 0, 100, 200});
+    EXPECT_EQ(common.value("cells").toArray().at(1).toObject().value("rect").toArray().at(1).toDouble(), 110);
+}
+
+TEST_F(RemoteResourcesTest, InvalidBackgroundZonesRejectModel) {
+    ASSERT_TRUE(QDir().mkpath(dir.path() + "/remotes/zoned"));
+    auto remote = remoteOf("600");
+    remote["id"] = "zoned";
+    auto screens = remote["screens"].toArray();
+    auto screen = screens.at(0).toObject();
+    screen["background"] = QJsonObject{{"header", QJsonObject{{"height", -5}}}};
+    screens[0] = screen;
+    remote["screens"] = screens;
+    write("remotes/zoned/remote.json", toBytes(remote));
+    write("remotes/zoned/photo.png", resources::data(":/res/remotes/600/photo.png"));
+    root = dir.path();
+    EXPECT_TRUE(resources::reload(root).isEmpty());
+    EXPECT_EQ(harmony::remoteProfile("zoned"), nullptr);
+    ASSERT_EQ(resources::skipped().size(), 1);
+    EXPECT_TRUE(resources::skipped().first().contains("background"));
 }
 
 TEST_F(RemoteResourcesTest, ZoneEditorListsRejectedModelFolders) {

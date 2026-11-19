@@ -29,6 +29,7 @@ add_library(harmony_core
     src/configDocumentStates.cpp
     src/configDiff.cpp
     src/formats/digest.cpp
+    src/formats/container.cpp
     src/formats/ezhex.cpp
     src/formats/gspm.cpp
     src/formats/gspmFonts.cpp

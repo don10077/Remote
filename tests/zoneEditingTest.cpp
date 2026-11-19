@@ -304,6 +304,29 @@ TEST(ZoneEditing, PatchValueInsideOneScreen) {
     EXPECT_FALSE(ze::patchValue(kRemote, {}, {"screens", "x"}, 1).has_value());
 }
 
+TEST(ZoneEditing, PatchBackgroundZones) {
+    // Шапка создаётся вложенными объектами, цвет дописывается рядом с высотой.
+    const auto height = ze::patchValue(kRemote, "Home", {"background", "header", "height"}, 30);
+    ASSERT_TRUE(height.has_value());
+    const auto color = ze::patchValue(*height, "Home", {"background", "header", "color"}, "#112233");
+    ASSERT_TRUE(color.has_value());
+    const auto header = QJsonDocument::fromJson(*color).object()["screens"].toArray()[0].toObject()
+                            ["background"].toObject()["header"].toObject();
+    EXPECT_EQ(header["height"].toInt(), 30);
+    EXPECT_EQ(header["color"].toString(), "#112233");
+    // «Прозрачная»: цвет убирается, высота остаётся.
+    const auto clear = ze::patchValue(*color, "Home", {"background", "header", "color"}, QJsonValue(QJsonValue::Undefined));
+    ASSERT_TRUE(clear.has_value());
+    const auto kept = QJsonDocument::fromJson(*clear).object()["screens"].toArray()[0].toObject()
+                          ["background"].toObject()["header"].toObject();
+    EXPECT_FALSE(kept.contains("color"));
+    EXPECT_EQ(kept["height"].toInt(), 30);
+    // Шапка убирается целиком; у экрана не остаётся пустого background.
+    const auto gone = ze::patchValue(*clear, "Home", {"background", "header"}, QJsonValue(QJsonValue::Undefined));
+    ASSERT_TRUE(gone.has_value());
+    EXPECT_FALSE(QJsonDocument::fromJson(*gone).object()["screens"].toArray()[0].toObject().contains("background"));
+}
+
 TEST(ZoneEditing, AppendAndRemoveScreen) {
     const QJsonObject screen{{"id", "Extra"}, {"ref", QJsonArray{240, 320}}, {"role", "numpad"},
                              {"cells", QJsonArray{QJsonObject{{"id", "S"}, {"rect", QJsonArray{1, 2, 3, 4}}, {"kind", "ScreenSlot"}}}}};
@@ -338,6 +361,18 @@ TEST(ZoneEditing, PatchDisplayChangesRect) {
     EXPECT_DOUBLE_EQ(rect[2].toDouble(), 180.0);
     EXPECT_DOUBLE_EQ(rect[3].toDouble(), 140.0);
     EXPECT_EQ(display["tint"].toString(), "#ffffff");
+}
+
+TEST(ZoneEditing, PatchDisplayCreatesMissingDisplay) {
+    // Заготовка нового пульта (createStub) без display: рамка экрана создаётся.
+    const QByteArray stub = "{\n  \"id\": \"x\",\n  \"hardware\": {\"zones\": []},\n  \"screens\": []\n}\n";
+    const auto patched = ze::patchDisplay(stub, QRectF(1, 2, 3, 4));
+    ASSERT_TRUE(patched.has_value());
+    const auto rect = QJsonDocument::fromJson(*patched).object()["display"].toObject()["rect"].toArray();
+    ASSERT_EQ(rect.size(), 4);
+    EXPECT_DOUBLE_EQ(rect[3].toDouble(), 4.0);
+    // Снять рамку там, где её не было, — файл не меняется.
+    EXPECT_EQ(ze::patchDisplay(stub, std::nullopt), stub);
 }
 
 TEST(ZoneEditing, PatchDisplayToNull) {

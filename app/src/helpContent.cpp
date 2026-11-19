@@ -113,8 +113,8 @@ QString HelpText::start() {
                    "software and cloud. You change the configuration on the computer and write it to the "
                    "remote when it is ready.")) +
            heading(tr("Where to begin")) +
-           list({tr("<b>Read from remote</b> (top right): reads the configuration from a connected remote, "
-                    "saves it as a backup and opens it. See %1.")
+           list({tr("<b>Read from remote</b> (top right): reads the configuration from any connected remote "
+                    "and saves it as one file for analysis; the remote is not changed. See %1.")
                      .arg(ref(Topic::Connect)),
                  tr("<b>Open configuration</b>: an .EZHex file (a remote backup, also made by concordance "
                     "and afterglow) or UserConfiguration.xml in a configuration folder."),

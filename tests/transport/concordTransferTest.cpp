@@ -23,11 +23,15 @@ formats::Bytes mhFile(std::string_view target = "/cfg/usercfg", int skin = 78, b
     return formats::writeZip(archive);
 }
 
-/// Минимальный образ GSPM с указателем конца, LWJL и XOR: One (база 0x040000) или 600–700 (0x030000).
-formats::Bytes gspmImage(std::uint32_t base = 0x040000u) {
+/// Минимальная рамка GSPM: One (arch 12, 22 слота, база 0x040000) или 600–700
+/// (arch 14, 20 слотов, база 0x030000). Указатели секций нулевые: проверяется рамка.
+formats::Bytes gspmImage(int architecture = 12) {
+    const std::uint32_t base = architecture == 12 ? 0x040000u : 0x030000u;
+    const std::size_t slots = architecture == 12 ? 22 : 20;
     formats::Bytes b(128, 0);
     std::copy_n("GSPM", 4, b.begin());
-    std::copy_n("LWJL", 4, b.begin() + 0x63);
+    b[9] = static_cast<std::uint8_t>(slots);
+    std::copy_n("LWJL", 4, b.begin() + 0x0B + 4 * slots);
     const auto end = base + static_cast<unsigned>(b.size()) - 4;
     b[4] = static_cast<std::uint8_t>(end); b[5] = static_cast<std::uint8_t>(end >> 8); b[6] = static_cast<std::uint8_t>(end >> 16);
     std::uint16_t sum = 0x4321;
@@ -148,7 +152,7 @@ TEST(ConcordTransfer, UnknownModelsAndConcurrentSessionsNeverOpenHardware) {
 }
 
 TEST(RemoteCaptureTransfer, CaptureOf665PassesContainerAndFrameChecks) {
-    const auto capture = makeCapture(info665(), ezhex665(gspmImage(0x030000u)));
+    const auto capture = makeCapture(info665(), ezhex665(gspmImage(14)));
     EXPECT_EQ(capture.modelId, "665");
     EXPECT_EQ(capture.model, "Harmony 665");
     EXPECT_EQ(capture.identity.skin, 99);
@@ -160,21 +164,21 @@ TEST(RemoteCaptureTransfer, CaptureOf665PassesContainerAndFrameChecks) {
     ASSERT_TRUE(check) << check.error().message;
     EXPECT_TRUE(check->checksum);
     EXPECT_TRUE(check->frame);
-    EXPECT_EQ(check->file.payload, gspmImage(0x030000u));
+    EXPECT_EQ(check->file.payload, gspmImage(14));
 }
 
 TEST(RemoteCaptureTransfer, BrokenFrameOrForeignIdentityIsReported) {
-    auto image = gspmImage(0x030000u);
+    auto image = gspmImage(14);
     image[20] ^= 1; // XOR16 образа больше не сходится, а сумма EZHex пересчитана
     EXPECT_EQ(inspectCapture(makeCapture(info665(), ezhex665(image))).error().code, ErrorCode::Format);
-    // Образ One (база 0x040000) у 665: вектор конца не тот.
+    // Образ One (22 слота, база 0x040000) внутри снятия 665: семейство и база не те.
     EXPECT_FALSE(inspectCapture(makeCapture(info665(), ezhex665(gspmImage()))));
     auto other = info665();
     other.remote.identity.skin = 100; // контейнер для skin 99
-    EXPECT_EQ(inspectCapture(makeCapture(other, ezhex665(gspmImage(0x030000u)))).error().code, ErrorCode::Format);
+    EXPECT_EQ(inspectCapture(makeCapture(other, ezhex665(gspmImage(14)))).error().code, ErrorCode::Format);
     other = info665();
     other.mh = true; // сказано MH, а внутри EZHex
-    EXPECT_EQ(inspectCapture(makeCapture(other, ezhex665(gspmImage(0x030000u)))).error().code, ErrorCode::Format);
+    EXPECT_EQ(inspectCapture(makeCapture(other, ezhex665(gspmImage(14)))).error().code, ErrorCode::Format);
 }
 
 TEST(RemoteCaptureTransfer, MhCaptureHasNoFrameCheckYet) {
@@ -188,7 +192,7 @@ TEST(RemoteCaptureTransfer, MhCaptureHasNoFrameCheckYet) {
 }
 
 TEST(RemoteCaptureTransfer, WritingAcceptsCaptureJsonAndUnwrapsContainer) {
-    const auto container = ezhex665(gspmImage(0x030000u));
+    const auto container = ezhex665(gspmImage(14));
     const auto json = formats::writeRemoteCapture(makeCapture(info665(), container));
     ASSERT_TRUE(json);
     const auto bytes = asBytes(*json);
@@ -208,7 +212,7 @@ TEST(RemoteCaptureTransfer, WritingAcceptsCaptureJsonAndUnwrapsContainer) {
 }
 
 TEST(RemoteCaptureTransfer, OldHidDumpIsReadOnly) {
-    formats::RemoteCapture legacy = makeCapture(info665(), gspmImage(0x030000u));
+    formats::RemoteCapture legacy = makeCapture(info665(), gspmImage(14));
     legacy.container = formats::CaptureContainer::Raw;
     EXPECT_EQ(inspectCapture(legacy).error().code, ErrorCode::Unsupported);
     const std::string json = R"({"format":"harmony-hid-backup","version":1,"skin":99,"configSize":3,)"

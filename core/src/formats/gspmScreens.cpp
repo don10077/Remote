@@ -1,6 +1,6 @@
 /**
  * @file gspmScreens.cpp
- * @brief Разбор экранов (секция 6) и тач-зон (секция 19) образа One.
+ * @brief Разбор экранов (секция 6) и тач-зон (базовый слот 17) образа One.
  */
 
 #include "harmony/core/formats/gspmScreens.h"
@@ -8,6 +8,11 @@
 namespace harmony::formats {
 
 namespace {
+
+constexpr std::size_t kScreenSection = 6;   ///< Базовый слот индекса экранов
+/// Базовый слот карты попаданий тач-панели: у One это тач-зоны, у остальных архитектур
+/// там начало банка картинок. В таблице One слот 17 лежит на сыром слоте 19.
+constexpr std::size_t kTouchSlotMap = 17;
 
 std::unexpected<Error> bad(const char* text) {
     return makeError(ErrorCode::Format, text);
@@ -37,9 +42,9 @@ bool fits(std::span<const std::uint8_t> d, std::size_t at, std::size_t count) {
 } // namespace
 
 Result<std::vector<GspmScreen>> readGspmScreens(std::span<const std::uint8_t> d, const GspmImage& image) {
-    const auto range = gspmSectionRange(image, 6);
+    const auto range = gspmSectionRange(image, kScreenSection);
     if (!range || range->end > d.size() || range->begin + 3 > range->end) {
-        return bad("GSPM screens: section 6 is missing");
+        return bad("GSPM screens: the screen section is missing");
     }
     const std::size_t begin = range->begin;
     const std::size_t count = u16(d, begin);
@@ -91,9 +96,9 @@ Result<std::vector<GspmScreen>> readGspmScreens(std::span<const std::uint8_t> d,
 
 Result<std::vector<GspmTouchTemplate>> readGspmTouchTemplates(std::span<const std::uint8_t> d,
                                                               const GspmImage& image) {
-    const auto range = gspmSectionRange(image, 19);
+    const auto range = gspmSectionRange(image, kTouchSlotMap);
     if (!range || range->end > d.size() || range->begin + 1 > range->end) {
-        return bad("GSPM touch: section 19 is missing");
+        return bad("GSPM touch: the slot 17 hit map is missing");
     }
     const std::size_t begin = range->begin;
     const std::size_t count = d[begin];

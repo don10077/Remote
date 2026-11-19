@@ -118,12 +118,39 @@ TEST(RemoteCapture, RejectsOtherFilesAndVersions) {
     root["version"] = 1;
     root["data"]["container"] = "tar";
     EXPECT_EQ(parseRemoteCapture(root.dump()).error().code, ErrorCode::Unsupported);
+    root["data"]["container"] = "raw"; // raw теперь известен: ошибки быть не должно
+    EXPECT_TRUE(parseRemoteCapture(root.dump()));
 }
 
-TEST(RemoteCapture, RawIsOnlyRead) {
+TEST(RemoteCapture, RawRoundTripKeepsBaseAndIdentity) {
+    // Неизвестная архитектура: образ памяти без контейнера, разбирается позже по identityHex и адресу.
+    RemoteCapture capture = sample();
+    capture.modelId.clear();
+    capture.model = "unknown remote (skin 99)";
+    capture.container = CaptureContainer::Raw;
+    capture.rawBase = 0x030000;
+    capture.identityHex = "0102ff";
+    const std::string json = written(capture);
+    const auto root = nlohmann::json::parse(json);
+    EXPECT_EQ(root["data"]["container"], "raw");
+    EXPECT_EQ(root["data"]["base"], 0x030000);
+    EXPECT_EQ(root["data"]["identityHex"], "0102ff");
+    EXPECT_EQ(root["data"]["sha256"], sha256Hex(capture.data));
+    const auto parsed = parseRemoteCapture(json);
+    ASSERT_TRUE(parsed) << parsed.error().message;
+    EXPECT_EQ(parsed->container, CaptureContainer::Raw);
+    EXPECT_FALSE(parsed->legacy);
+    EXPECT_TRUE(parsed->modelId.empty());
+    EXPECT_EQ(parsed->rawBase, 0x030000u);
+    EXPECT_EQ(parsed->identityHex, "0102ff");
+    EXPECT_EQ(parsed->data, capture.data);
+}
+
+TEST(RemoteCapture, RawWithoutDataIsRejected) {
     RemoteCapture capture = sample();
     capture.container = CaptureContainer::Raw;
-    EXPECT_EQ(writeRemoteCapture(capture).error().code, ErrorCode::Unsupported);
+    capture.data.clear();
+    EXPECT_EQ(writeRemoteCapture(capture).error().code, ErrorCode::Format);
     capture = sample();
     capture.data.clear();
     EXPECT_EQ(writeRemoteCapture(capture).error().code, ErrorCode::Format);

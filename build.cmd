@@ -12,7 +12,7 @@ rem       обновляет MSYS2 (pacman -Syu) и ставит недоста�
 rem    3. настраивает отдельную сборку UCRT64 (пресет release, как в CI);
 rem    4. обновляет переводы (tools\updateTranslations.py), если есть Python;
 rem    5. собирает Release и прогоняет тесты;
-rem    6. кладёт harmony.exe со всеми DLL в dist\ucrt64\win - оттуда он запускается
+rem    6. кладёт harmony.exe со всеми DLL в dist\win - оттуда он запускается
 rem       без MSYS2 и его можно копировать на другой компьютер;
 rem    7. с параметром installer (build.cmd installer) ещё и собирает установщик
 rem       dist\Harmony-<версия>-setup.exe (NSIS ставится через pacman сам).
@@ -23,7 +23,7 @@ rem ===========================================================================
 if not defined MSYS2_ROOT set "MSYS2_ROOT=D:\Install\MSYS2"
 set "PRESET=win-release"
 set "BUILD_DIR=build\ucrt64\%PRESET%"
-set "DIST=dist\ucrt64\win"
+set "DIST=dist\win"
 set "NSIS_PACKAGE=mingw-w64-ucrt-x86_64-nsis"
 set "PACKAGES=mingw-w64-ucrt-x86_64-toolchain mingw-w64-ucrt-x86_64-cmake mingw-w64-ucrt-x86_64-ninja mingw-w64-ucrt-x86_64-qt6-base mingw-w64-ucrt-x86_64-qt6-svg mingw-w64-ucrt-x86_64-qt6-translations mingw-w64-ucrt-x86_64-gtest mingw-w64-ucrt-x86_64-pugixml mingw-w64-ucrt-x86_64-libzip mingw-w64-ucrt-x86_64-pkgconf"
 

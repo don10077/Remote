@@ -2,7 +2,7 @@
 
 /**
  * @file gspmScreens.h
- * @brief Экраны (секция 6) и тач-зоны (секция 19) образа Harmony One.
+ * @brief Экраны (секция 6) и тач-зоны (базовый слот 17) образа Harmony One.
  *
  * Описание формата — docs/harmony_one/gspm.md в afterglow:
  * @code
@@ -10,7 +10,7 @@
  *   трейлер    u8 флаг, u24 → заголовок, u16 число слотов, u24 → слот × N
  *   слот       7 байт: u8 шаблон, u24 → ключевой регистр, u24 → программа рисования
  *   регистр    u8 число записей, затем 4 байта: u8 код клавиши, u16 операнд, u8 категория
- *   секция 19  u8 число шаблонов, u24 → шаблон × N
+ *   слот 17    u8 число шаблонов, u24 → шаблон × N
  *   шаблон     u8 число зон, u24 → зона × N
  *   зона       u16 x, u16 ширина, u16 y, u16 высота, u8 тег, u24 → сама зона (замыкает), …
  * @endcode
@@ -38,7 +38,7 @@ struct GspmKeyEntry {
 
 /// Слот экрана (страница или область).
 struct GspmScreenSlot {
-    int templateIndex = 0;            ///< Номер шаблона тач-зон в секции 19
+    int templateIndex = 0;            ///< Номер шаблона тач-зон в слоте 17
     std::size_t keyRegister = 0;      ///< Смещение ключевого регистра
     std::size_t program = 0;          ///< Смещение программы рисования
     std::vector<GspmKeyEntry> entries;
@@ -67,7 +67,8 @@ using GspmTouchTemplate = std::vector<GspmTouchZone>;
 [[nodiscard]] Result<std::vector<GspmScreen>> readGspmScreens(std::span<const std::uint8_t> payload,
                                                               const GspmImage& image);
 
-/// @brief Читает секцию 19. @return ErrorCode::Format — указатель вне образа или зона не замыкается.
+/// @brief Читает карту попаданий тач-панели (базовый слот 17).
+/// @return ErrorCode::Format — указатель вне образа или зона не замыкается.
 [[nodiscard]] Result<std::vector<GspmTouchTemplate>> readGspmTouchTemplates(
     std::span<const std::uint8_t> payload, const GspmImage& image);
 

@@ -299,6 +299,15 @@ void ZoneEditorDialog::setScreenField(const QStringList& keys, const QJsonValue&
     if (!writeField(screenId, keys, value, l.key)) refreshAll();
 }
 
+void ZoneEditorDialog::setBackgroundZoneHeight(const QString& zone, qreal height) {
+    const QStringList whole{QStringLiteral("background"), zone};
+    if (height <= 0) {
+        setScreenField(whole, QJsonValue(QJsonValue::Undefined)); // без высоты зона недействительна: убираем всю
+        return;
+    }
+    setScreenField({QStringLiteral("background"), zone, QStringLiteral("height")}, zoneEditing::round2(height));
+}
+
 void ZoneEditorDialog::previewScreenField(const QStringList& keys, const QString& text) {
     if (!hasLayer() || layer().body()) return;
     const QString colour = text.trimmed();

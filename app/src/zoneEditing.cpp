@@ -598,9 +598,13 @@ std::optional<QByteArray> removeScreen(const QByteArray& text, const QString& sc
 
 std::optional<QByteArray> patchDisplay(const QByteArray& text, const std::optional<QRectF>& rect) {
     const auto display = memberValue(text, rootStart(text), QStringLiteral("display"));
-    if (!display) return std::nullopt;
-    const auto value = memberValue(text, display->begin, QStringLiteral("rect"));
-    if (!value) return std::nullopt;
+    const auto value = display ? memberValue(text, display->begin, QStringLiteral("rect")) : std::nullopt;
+    if (!value) {
+        // В заготовке (createStub) display ещё нет: создаём display.rect, а при снятой рамке писать нечего.
+        if (!rect) return text;
+        return patchValue(text, {}, {QStringLiteral("display"), QStringLiteral("rect")},
+                          QJsonArray{rect->x(), rect->y(), rect->width(), rect->height()});
+    }
     if (!rect) return replaced(text, *value, "null");
     // Многострочный вид, как у прежнего значения; у `null` — однострочный.
     const bool multiline = text.mid(value->begin, value->end - value->begin).contains('\n');

@@ -426,9 +426,10 @@ void MainWindow::updateTitle() {
     if (open) selectedRemote_ = QString::fromStdString(document_->targetRemote());
     const auto* target = remoteProfile(selectedRemote_.toStdString());
     writeRemoteAction_->setEnabled(canWrite && target && target->writable);
-    readRemoteAction_->setEnabled(target && target->driver != driver::kNone);
+    // Чтение — сбор сведений с любого подключённого пульта: профиль и целевая модель на него не влияют.
+    readRemoteAction_->setEnabled(true);
     header_->setWriteEnabled(canWrite && target && target->writable);
-    header_->setReadSavesFile(target && target->driver != driver::kNone && !usesUsbNet(selectedRemote_.toStdString()));
+    header_->setReadSavesFile(true);
     if (!target || target->driver == driver::kNone)
         header_->setConnectionState(false, tr("No connection driver"));
     else if (target->driver == driver::kUsbHid)

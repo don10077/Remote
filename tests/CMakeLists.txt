@@ -19,6 +19,7 @@ add_executable(harmony_tests
     irEncodeTest.cpp
     configEditTest.cpp
     configEzHexTest.cpp
+    formats/containerTest.cpp
     formats/digestTest.cpp
     formats/ezhexTest.cpp
     formats/gspmTest.cpp

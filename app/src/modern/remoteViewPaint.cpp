@@ -686,7 +686,11 @@ void RemoteView::paintGridScreen(QPainter& p, const QJsonObject& layout) {
     p.setRenderHint(QPainter::SmoothPixmapTransform);
     const QImage& bgImage = image(background.value("image").toString());
     // Как на реальном пульте 900: «стеклянный» фон с подсветкой в центре, если нет картинки.
-    const bool glass = !background.contains("image");
+    // Явное background.glass главнее; без него стекло — только у экрана без картинки и без зон фона
+    // (готовые экраны 900 не меняются, новый экран с зонами или с glass:false — обычная заливка).
+    const resources::ScreenZones zones = resources::screenZones(layout);
+    const bool glass = background.contains("glass") ? background.value("glass").toBool()
+                                                    : !background.contains("image") && !zones.any;
     if (!bgImage.isNull()) p.drawImage(QRectF(0, 0, refW, refH), bgImage);
     else if (glass) {
         if (bgColor == DEFAULT_TILE_COLOUR) paintLcdBackdrop(p, refW, refH);
@@ -697,7 +701,16 @@ void RemoteView::paintGridScreen(QPainter& p, const QJsonObject& layout) {
             glow.setColorAt(1.0, bgColor.darker(300));
             p.fillRect(QRectF(0, 0, refW, refH), glow);
         }
-    } else p.fillRect(QRectF(0, 0, refW, refH), bgColor);
+    } else {
+        // Без картинки и без цвета фон — чёрный прямоугольник (под прозрачными зонами тоже).
+        const bool plain = !background.contains("color") && !background.contains("image");
+        p.fillRect(QRectF(0, 0, refW, refH), plain ? QColor(Qt::black) : bgColor);
+    }
+    // Зоны фона поверх картинки или заливки; без color зона прозрачна.
+    if (zones.any) {
+        if (zones.headerColor.isValid()) p.fillRect(zones.header, zones.headerColor);
+        if (zones.footerColor.isValid() && !zones.footer.isEmpty()) p.fillRect(zones.footer, zones.footerColor);
+    }
 
     const int capacity = std::max(1, slotsPerPage(activeMode));
     const int first = currentPage() * capacity;
@@ -791,7 +804,10 @@ void RemoteView::paintGridScreen(QPainter& p, const QJsonObject& layout) {
             paintTileHighlight(p, rect, radius, active, hover);
         } else {
             // Плитка ровно такая же, как у 900; перекрашивается цветом плиток пульта.
-            paintPill(p, rect, active, hover, cellColor, borderColor);
+            // Кнопка экрана (ScreenKey/ScreenSide) может иметь свои цвета: поля color и border ячейки.
+            const QColor own(zone.value("color").toString());
+            const QColor ownBorder(zone.value("border").toString());
+            paintPill(p, rect, active, hover, own.isValid() ? own : cellColor, ownBorder.isValid() ? ownBorder : borderColor);
         }
         if (!label.isEmpty()) {
             // Те же размеры шрифта и расположение, что у классических списков и команд.

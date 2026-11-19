@@ -150,7 +150,11 @@ Result<RemoteCapture> parseRemoteCapture(std::string_view json) {
     const std::string container = textOf(*data, "container");
     if (container == containerName(CaptureContainer::EzHex)) capture.container = CaptureContainer::EzHex;
     else if (container == containerName(CaptureContainer::Mh)) capture.container = CaptureContainer::Mh;
-    else return makeError(ErrorCode::Unsupported, "unknown remote capture container: %1", {container});
+    else if (container == containerName(CaptureContainer::Raw)) {
+        capture.container = CaptureContainer::Raw;
+        capture.rawBase = static_cast<std::uint32_t>(unsignedOf(*data, "base", 0xFFFFFFFF).value_or(0));
+        capture.identityHex = textOf(*data, "identityHex");
+    } else return makeError(ErrorCode::Unsupported, "unknown remote capture container: %1", {container});
 
     auto bytes = checkedData(textOf(*data, "base64"), unsignedOf(*data, "size", kMaxData), textOf(*data, "sha256"));
     if (!bytes) return std::unexpected(bytes.error());
@@ -159,8 +163,6 @@ Result<RemoteCapture> parseRemoteCapture(std::string_view json) {
 }
 
 Result<std::string> writeRemoteCapture(const RemoteCapture& capture) {
-    if (capture.container == CaptureContainer::Raw)
-        return makeError(ErrorCode::Unsupported, "old HID dumps are only read, not written");
     if (capture.data.empty() || capture.data.size() > kMaxData)
         return makeError(ErrorCode::Format, "the remote capture has no data or the data is too large");
     // Порядок ключей — как в описании: человеку удобнее читать сверху вниз.
@@ -178,6 +180,11 @@ Result<std::string> writeRemoteCapture(const RemoteCapture& capture) {
     data["container"] = std::string(containerName(capture.container));
     data["size"] = capture.data.size();
     data["sha256"] = sha256Hex(capture.data);
+    if (capture.container == CaptureContainer::Raw) {
+        // Образ памяти без контейнера: адрес и ответ пульта нужны, чтобы разобрать его позже.
+        data["base"] = capture.rawBase;
+        data["identityHex"] = capture.identityHex;
+    }
     data["base64"] = base64Encode(capture.data);
     Json root = Json::object();
     root["format"] = std::string(kFormat);

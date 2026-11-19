@@ -150,7 +150,7 @@ GoogleTest, pugixml, libzip and pkg-config. libconcord is bundled.
 ### Windows (MSYS2 UCRT64)
 
 Install [MSYS2](https://www.msys2.org/) and run `build.cmd`. It installs missing packages,
-builds Release, runs tests and deploys the application and DLLs to `dist/ucrt64/win`.
+builds Release, runs tests and deploys the application and DLLs to `dist/win`.
 Use `build.cmd installer` to also create the Windows installer.
 
 Windows builds use MSYS2 UCRT64, both locally and in GitHub Actions. Local build files are kept in `build/ucrt64/<preset>/` to separate them from previous MinGW64 builds.

@@ -113,15 +113,14 @@ void MainWindow::showRemoteProgress(transport::Stage stage, qint64 done, qint64 
 }
 
 void MainWindow::readFromRemote() {
-    // Открытую конфигурацию не трогаем до конца чтения: потом спросим, что с ней делать.
+    // Открытую конфигурацию чтение не трогает: прочитанное уходит в файл.
     if (!remoteReady([this] { readFromRemote(); })) {
         return;
     }
-    const auto* profile = remoteProfile(selectedRemote_.toStdString());
-    if (!profile || profile->driver == driver::kNone) return;
+    // Чтение — сбор сведений: оно не зависит ни от профиля, ни от выбранной целевой модели.
+    // Пульт и транспорт определяются по подключённому железу, результат всегда ложится в файл.
     startRemoteProgress(tr("Read from remote"), tr("Reading from the remote failed"));
-    if (usesUsbNet(selectedRemote_.toStdString())) remote_->readConfig();
-    else remote_->readCapture();
+    remote_->readCapture();
 }
 
 void MainWindow::chooseRemote() {

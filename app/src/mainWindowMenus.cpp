@@ -123,8 +123,8 @@ void MainWindow::createActions() {
     chooseRemoteAction_ = connectionMenu->addAction(tr("Change target remote…"));
     connect(chooseRemoteAction_, &QAction::triggered, this, &MainWindow::chooseRemote);
     readRemoteAction_ = connectionMenu->addAction(tr("Read configuration from remote"));
-    readRemoteAction_->setToolTip(tr("Reads the configuration from the remote, saves it as a backup and "
-                                     "opens it"));
+    readRemoteAction_->setToolTip(tr("Reads the configuration from any connected remote and saves it as one "
+                                     "file; the remote is not changed"));
     connect(readRemoteAction_, &QAction::triggered, this, &MainWindow::readFromRemote);
     writeRemoteAction_ = connectionMenu->addAction(tr("Write to remote…"));
     connect(writeRemoteAction_, &QAction::triggered, this, &MainWindow::writeToRemote);
@@ -528,11 +528,7 @@ void MainWindow::openRemoteResourcesFolder() {
 }
 
 void MainWindow::showConnectionHelp() {
-    const auto* profile = remoteProfile(selectedRemote_.toStdString());
-    if (!profile || profile->driver == driver::kNone) {
-        QMessageBox::information(this, tr("Remote"), tr("No connection driver"));
-        return;
-    }
+    // Чтение не зависит от профиля выбранной модели, поэтому подсказка нужна всегда.
     QMessageBox box(this);
     box.setWindowTitle(tr("Connecting the remote"));
     box.setIcon(QMessageBox::Information);

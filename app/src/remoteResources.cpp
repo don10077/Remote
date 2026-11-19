@@ -16,6 +16,7 @@
 #include <QSet>
 #include <QRegularExpression>
 #include <algorithm>
+#include <string_view>
 #include <QSvgRenderer>
 #include <cmath>
 
@@ -61,6 +62,32 @@ quint64 revision() { return generation; }
 QStringList skipped() { return skippedModels; }
 QStringList migratedByReload() { return migratedFiles; }
 
+ScreenZones screenZones(const QJsonObject& screen) {
+    ScreenZones zones;
+    const auto ref = screen.value("ref").toArray();
+    const auto background = screen.value("background").toObject();
+    if (ref.size() != 2 || !(background.contains("header") || background.contains("footer")))
+        return zones;
+    const qreal w = ref[0].toDouble();
+    const qreal h = ref[1].toDouble();
+    const auto header = background.value("header").toObject();
+    const auto footer = background.value("footer").toObject();
+    const qreal headH = header.value("height").toDouble();
+    const qreal footH = footer.value("height").toDouble();
+    if (w <= 0 || h <= 0 || headH < 0 || footH < 0 || headH + footH >= h) return zones;
+    const auto color = [](const QJsonObject& zone) {
+        const QColor c(zone.value("color").toString());
+        return c.isValid() ? c : QColor();
+    };
+    zones.any = true;
+    zones.header = QRectF(0, 0, w, headH);
+    zones.body = QRectF(0, headH, w, h - headH - footH);
+    zones.footer = QRectF(0, h - footH, w, footH);
+    zones.headerColor = color(header);
+    zones.footerColor = color(footer);
+    return zones;
+}
+
 QJsonObject normalizeScreen(QJsonObject screen, const QJsonValue& defaultArea) {
     const auto grid = screen.value("grid").toObject();
     const auto ref = screen.value("ref").toArray();
@@ -73,6 +100,11 @@ QJsonObject normalizeScreen(QJsonObject screen, const QJsonValue& defaultArea) {
     QRectF area(0, 0, ref[0].toDouble(), ref[1].toDouble());
     if (const QRectF given = rect(grid.value("area")); given.isValid()) area = given;
     else if (const QRectF common = rect(defaultArea); common.isValid()) area = common;
+    // Плитки живут только в теле фона: между шапкой и подвалом.
+    if (const ScreenZones zones = screenZones(screen); zones.any) {
+        const QRectF inside = area.intersected(zones.body);
+        area = inside.isValid() && !inside.isEmpty() ? inside : zones.body;
+    }
     const qreal cw = (area.width() - gap * (cols + 1)) / cols;
     const qreal ch = (area.height() - gap * (rows + 1)) / rows;
     const auto round2 = [](qreal v) { return std::round(v * 100) / 100; };
@@ -379,6 +411,18 @@ QString reload(const QString& root) {
                 ref[1].toDouble() <= 0 || !screenObject.value("cells").isArray())
                 return source + ": invalid screen " + id;
             screenIds.insert(id);
+            // Зоны фона: высоты не отрицательные, цвета разбираются, шапка и подвал помещаются в экран.
+            const auto background = screenObject.value("background").toObject();
+            for (const auto* zoneName : {"header", "footer"}) {
+                if (!background.contains(zoneName)) continue;
+                const auto zone = background.value(zoneName).toObject();
+                if (!background.value(zoneName).isObject() ||
+                    (zone.contains("color") && !QColor(zone.value("color").toString()).isValid()) ||
+                    !zone.value("height").isDouble() || zone.value("height").toDouble() <= 0)
+                    return source + ": invalid background." + zoneName + " in screen " + id;
+            }
+            if (background.contains("header") || background.contains("footer"))
+                if (!screenZones(screenObject).any) return source + ": invalid background zones in screen " + id;
             for (const auto& cell : screenObject.value("cells").toArray())
                 if (!rect(cell.toObject().value("rect")).isValid()) return source + ": invalid cell in screen " + id;
             // Плитка-картинка обязательна (без неё плитки не рисуются); фон без картинки
@@ -438,10 +482,39 @@ QStringList modelIds(const QString& root) {
     for (const auto& profile : harmony::remoteProfiles) result.append(QString::fromStdString(profile.id));
     const QDir remotes(QDir(root).filePath(QStringLiteral("remotes")));
     for (const QString& id : remotes.entryList(QDir::Dirs | QDir::NoDotAndDotDot, QDir::Name)) {
-        if (!result.contains(id) && QFileInfo::exists(remotes.filePath(id + QStringLiteral("/remote.json"))))
+        // Папка с одним photo.png тоже модель: для неё редактор создаст заготовку (createStub).
+        if (!result.contains(id) && (QFileInfo::exists(remotes.filePath(id + QStringLiteral("/remote.json"))) ||
+                                     QFileInfo::exists(remotes.filePath(id + QStringLiteral("/photo.png")))))
             result.append(id);
     }
     return result;
+}
+
+QString createStub(const QString& modelId, const QString& root) {
+    const QDir dir(QDir(root).filePath("remotes/" + modelId));
+    const QString target = dir.filePath("remote.json");
+    if (QFileInfo::exists(target)) return {};
+    const QString photo = dir.filePath("photo.png");
+    const QImage image(photo);
+    if (image.isNull()) return photo + ": no valid photo.png";
+    const QJsonObject screen{
+        {"id", "devices"}, {"role", "devices"},
+        {"ref", QJsonArray{232, 290}},
+        {"background", QJsonObject{{"color", "#000000"}, {"glass", false}}},
+        {"cells", QJsonArray{}}};
+    const QJsonObject remote{
+        {"schemaVersion", 1}, {"id", modelId}, {"name", modelId},
+        {"capabilities", QJsonObject{{"touch", false}}},
+        {"connection", QJsonObject{{"driver", "none"}, {"format", "none"}}},
+        {"hardware", QJsonObject{{"image", "photo.png"},
+                                 {"size", QJsonArray{image.width(), image.height()}},
+                                 {"zones", QJsonArray{}}}},
+        {"screens", QJsonArray{screen}}};
+    QSaveFile out(target);
+    const QByteArray bytes = QJsonDocument(remote).toJson(QJsonDocument::Indented);
+    if (!out.open(QIODevice::WriteOnly) || out.write(bytes) != bytes.size() || !out.commit())
+        return target + ": " + out.errorString();
+    return {};
 }
 
 QStringList exportFiles(const QString& modelId) {

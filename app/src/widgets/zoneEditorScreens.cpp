@@ -114,6 +114,16 @@ void ZoneEditorDialog::refreshScreens() {
     };
     fill(backgroundColorEdit_, {QStringLiteral("background"), QStringLiteral("color")});
     fill(backgroundImageEdit_, {QStringLiteral("background"), QStringLiteral("image")});
+    for (const auto& [field, zone] : {std::pair{headerColorEdit_, "header"}, std::pair{footerColorEdit_, "footer"}})
+        fill(field, {QStringLiteral("background"), QLatin1String(zone), QStringLiteral("color")});
+    for (const auto& [box, zone] : {std::pair{headerHeightBox_, "header"}, std::pair{footerHeightBox_, "footer"}}) {
+        QSignalBlocker block(box);
+        box->setValue(valueAt(screen, {QStringLiteral("background"), QLatin1String(zone), QStringLiteral("height")}).toDouble());
+    }
+    // Линии шапки и подвала на холсте — только на экране.
+    canvas_->setBackgroundBands(
+        onScreen, valueAt(screen, {QStringLiteral("background"), QStringLiteral("header"), QStringLiteral("height")}).toDouble(),
+        valueAt(screen, {QStringLiteral("background"), QStringLiteral("footer"), QStringLiteral("height")}).toDouble());
     fill(cellImageEdit_, {QStringLiteral("cell"), QStringLiteral("image")});
     fill(panelColorEdit_, {QStringLiteral("panel"), QStringLiteral("color")});
     fill(panelTextEdit_, {QStringLiteral("panel"), QStringLiteral("text")});
@@ -128,8 +138,13 @@ void ZoneEditorDialog::refreshScreens() {
 
     // Что из оформления перекрыто картинками: поле есть, но на экране его не видно.
     QStringList hints;
+    // Те же правила, что у отрисовки: явное background.glass, иначе — нет картинки и нет зон фона.
+    const QJsonObject background = screen.value(QStringLiteral("background")).toObject();
+    const bool hasZones = background.contains(QStringLiteral("header")) || background.contains(QStringLiteral("footer"));
     const bool glass = onScreen && !screen.value(QStringLiteral("compose")).toBool() &&
-                       valueAt(screen, {QStringLiteral("background"), QStringLiteral("image")}).toString().isEmpty();
+                       (background.contains(QStringLiteral("glass"))
+                            ? background.value(QStringLiteral("glass")).toBool()
+                            : !background.contains(QStringLiteral("image")) && !hasZones);
     if (glass)
         hints.append(tr("Without a background picture the screen has the Harmony 900 header and footer: "
                         "the title, page, clock and battery are always drawn there."));

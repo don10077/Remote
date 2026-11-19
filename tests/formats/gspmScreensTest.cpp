@@ -1,12 +1,16 @@
 /**
  * @file gspmScreensTest.cpp
- * @brief Тесты экранов (секция 6) и тач-зон (секция 19) One на образе, собранном по описанию afterglow.
+ * @brief Тесты экранов (секция 6) и тач-зон (базовый слот 17, сырой слот 19) One на образе,
+ * собранном по описанию afterglow.
  */
 
 #include "harmony/core/formats/gspmScreens.h"
 
+#include "harmony/core/formats/container.h"
+
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <cstdint>
 #include <functional>
 #include <vector>
@@ -51,11 +55,12 @@ std::uint32_t address(std::size_t offset) {
 Image makeImage(const std::function<void(Image&)>& mutate = {}) {
     Image image(kSize, 0);
     image[0] = 'G'; image[1] = 'S'; image[2] = 'P'; image[3] = 'M';
-    put(image, 8, 0x1600, 4);
-    for (std::size_t i = 0; i < kGspmSectionCount; ++i) {
-        if (i != kGspmAbsentSection) {
-            put(image, 0x0C + 4 * i, address(kSectionsAt + kSectionStep * i), 4);
+    image[9] = static_cast<std::uint8_t>(kGspmRawSlotCount);
+    for (std::size_t slot = 0; slot < kGspmRawSlotCount; ++slot) {
+        if (std::ranges::find(kGspmEmptySlots, slot) != kGspmEmptySlots.end()) {
+            continue;
         }
+        put(image, kContainerTableOffset + 4 * slot + 1, address(kSectionsAt + kSectionStep * slot), 3);
     }
     image[0x63] = 'L'; image[0x64] = 'W'; image[0x65] = 'J'; image[0x66] = 'L';
     image[0x67] = 55;

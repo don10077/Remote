@@ -8,21 +8,22 @@ class QProgressBar;
 class QThread;
 
 namespace harmony::app {
-/// Чтение и запись готовых конфигураций всех моделей, независимо от редактора и фото.
+/// Снятие конфигурации с любого пульта в файл: USB (*.remote.json) и Hub по сети (*.hub.json).
+/// Записи здесь нет: окно только читает и сохраняет, пульт не изменяется.
 class ConfigTransferDialog final : public QDialog {
     Q_OBJECT
 public:
     explicit ConfigTransferDialog(QWidget* parent = nullptr);
     ~ConfigTransferDialog() override;
-    /// Не закрывает окно во время программирования памяти.
+    /// Не закрывает окно во время чтения.
     void reject() override;
     /// @return Файл *.hub.json, прочитанный с хаба (окно при этом закрывается); пусто — хаб не читали.
     [[nodiscard]] QString hubFile() const { return hubFile_; }
 private:
     /// Обновляет доступные операции по выбранной модели.
     void refresh();
-    /// Выбирает файл, подтверждает запись и запускает транспорт в отдельном потоке.
-    void transfer(bool writing);
+    /// Спрашивает, куда сохранить, и снимает конфигурацию по USB в отдельном потоке.
+    void readToFile();
     /// Спрашивает адрес Harmony Hub и читает его конфигурацию по сети в файл *.hub.json.
     void readHub();
     /// Блокирует или разблокирует элементы окна на время фоновой операции.
@@ -30,7 +31,6 @@ private:
     QComboBox* models_ = nullptr;
     QLabel* status_ = nullptr;
     QPushButton* read_ = nullptr;
-    QPushButton* write_ = nullptr;
     QPushButton* hub_ = nullptr;
     QPushButton* close_ = nullptr;
     QProgressBar* progress_ = nullptr;

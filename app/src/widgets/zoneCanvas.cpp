@@ -126,6 +126,27 @@ void ZoneCanvas::setFrameCaption(const QString& caption) {
     update();
 }
 
+void ZoneCanvas::setBackgroundBands(bool enabled, qreal headerHeight, qreal footerHeight) {
+    if (drag_ == Drag::BgBand) return; // жест идёт: значения приходят по его окончании
+    bgBands_ = enabled;
+    headerHeight_ = std::max<qreal>(0, headerHeight);
+    footerHeight_ = std::max<qreal>(0, footerHeight);
+    update();
+}
+
+qreal ZoneCanvas::bgBandY(int band) const { return band == 1 ? headerHeight_ : ref_.height() - footerHeight_; }
+
+int ZoneCanvas::bgBandAt(const QPointF& pos) const {
+    if (!bgBands_ || drawMode_) return 0;
+    const qreal header = std::abs(pos.y() - toWidget(QPointF(0, bgBandY(1))).y());
+    const qreal footer = std::abs(pos.y() - toWidget(QPointF(0, bgBandY(2))).y());
+    const QRectF layerRect = toWidget(QRectF(QPointF(0, 0), ref_));
+    if (pos.x() < layerRect.left() - EDGE || pos.x() > layerRect.right() + EDGE) return 0;
+    if (header > EDGE && footer > EDGE) return 0;
+    // Обе линии рядом (зон нет, экран мал): берём ближнюю; при равенстве — шапку.
+    return header <= footer ? 1 : 2;
+}
+
 void ZoneCanvas::setShowIds(bool on) {
     showIds_ = on;
     update();
@@ -139,8 +160,7 @@ QList<int> ZoneCanvas::allItems() const {
 }
 
 bool ZoneCanvas::mayLeave(int item) const {
-    const QRectF bounds(QPointF(0, 0), ref_);
-    if (!bounds.contains(itemRect(item))) return true;
+    if (!boundsOf(item).contains(itemRect(item))) return true;
     if (item < 0) return false;
     const auto zone = zones_[item].toObject();
     return zone.value("kind") == "ScreenPanel" && zone.value("role") == "band";
@@ -269,18 +289,25 @@ int ZoneCanvas::edgesAt(const QPointF& pos) const {
 
 void ZoneCanvas::setItemRect(int item, const QRectF& rect) { setRectIn(zones_, screen_, item, rect); }
 
-QRectF ZoneCanvas::keepInside(const QRectF& rect, bool move) const {
-    const QRectF bounds(QPointF(0, 0), ref_);
+QRectF ZoneCanvas::boundsOf(int item) const {
+    const QRectF whole(QPointF(0, 0), ref_);
+    // Зона плиток не заходит под шапку и подвал: она не больше остатка между ними.
+    if (item == SCREEN_ITEM && screenLayer_ && bgBands_ && headerHeight_ + footerHeight_ < ref_.height())
+        return QRectF(0, headerHeight_, ref_.width(), ref_.height() - headerHeight_ - footerHeight_);
+    return whole;
+}
+
+QRectF ZoneCanvas::keepInside(const QRectF& rect, bool move, const QRectF& bounds) const {
     QRectF r = rect;
     if (move) {
         if (r.right() > bounds.right()) r.moveRight(bounds.right());
         if (r.bottom() > bounds.bottom()) r.moveBottom(bounds.bottom());
-        if (r.left() < 0) r.moveLeft(0);
-        if (r.top() < 0) r.moveTop(0);
+        if (r.left() < bounds.left()) r.moveLeft(bounds.left());
+        if (r.top() < bounds.top()) r.moveTop(bounds.top());
         return r;
     }
-    r.setLeft(std::max<qreal>(r.left(), 0));
-    r.setTop(std::max<qreal>(r.top(), 0));
+    r.setLeft(std::max(r.left(), bounds.left()));
+    r.setTop(std::max(r.top(), bounds.top()));
     r.setRight(std::min(r.right(), bounds.right()));
     r.setBottom(std::min(r.bottom(), bounds.bottom()));
     return r;
@@ -351,7 +378,11 @@ void ZoneCanvas::dragMove(const QPointF& pos, Qt::KeyboardModifiers modifiers) {
             }
         }
     }
-    if (!free) d += keepInside(box.translated(d), true).topLeft() - box.translated(d).topLeft();
+    if (!free) {
+        // Рамка плиток двигается в теле фона, остальные зоны — по всему слою; вместе — по более узкой границе.
+        const QRectF limit = startRects_.contains(SCREEN_ITEM) ? boundsOf(SCREEN_ITEM) : boundsOf(NO_ITEM);
+        d += keepInside(box.translated(d), true, limit).topLeft() - box.translated(d).topLeft();
+    }
     for (auto it = startRects_.cbegin(); it != startRects_.cend(); ++it) setItemRect(it.key(), it.value().translated(d));
 }
 
@@ -396,7 +427,7 @@ void ZoneCanvas::dragResize(const QPointF& pos, Qt::KeyboardModifiers modifiers)
     if (resizeEdges_ & Top) t = std::min(t, b - minimum);
     if (resizeEdges_ & Bottom) b = std::max(b, t + minimum);
     QRectF rect(QPointF(l, t), QPointF(r, b));
-    if (!mayLeave(pressItem_)) rect = keepInside(rect, false);
+    if (!mayLeave(pressItem_)) rect = keepInside(rect, false, boundsOf(pressItem_));
     setItemRect(pressItem_, rect);
 }
 
@@ -415,6 +446,7 @@ void ZoneCanvas::dragBand(const QPointF& pos) {
 void ZoneCanvas::cancelDrag() {
     if (drag_ == Drag::Move || drag_ == Drag::Resize)
         for (auto it = startRects_.cbegin(); it != startRects_.cend(); ++it) setItemRect(it.key(), it.value());
+    if (drag_ == Drag::BgBand) (bgBand_ == 1 ? headerHeight_ : footerHeight_) = bgStart_;
     drag_ = Drag::None;
     clickPan_ = false;
     panMoved_ = false;
@@ -436,7 +468,7 @@ void ZoneCanvas::nudge(int dx, int dy, bool resize) {
         } else {
             r.translate(dx, dy);
         }
-        if (!mayLeave(item)) r = keepInside(r, !resize);
+        if (!mayLeave(item)) r = keepInside(r, !resize, boundsOf(item));
         setItemRect(item, r);
         ids.append(QString::number(item));
     }
@@ -465,6 +497,13 @@ void ZoneCanvas::mousePressEvent(QMouseEvent* event) {
         resizeEdges_ = edges;
         pressItem_ = selection_.first();
         startRects_ = {{pressItem_, itemRect(pressItem_)}};
+        return;
+    }
+    if (const int band = bgBandAt(pos); band != 0) {
+        // Линия шапки или подвала фона: тянется по вертикали, зоны на ней не выделяются.
+        drag_ = Drag::BgBand;
+        bgBand_ = band;
+        bgStart_ = band == 1 ? headerHeight_ : footerHeight_;
         return;
     }
     const auto modifiers = event->modifiers();
@@ -538,6 +577,13 @@ void ZoneCanvas::mouseMoveEvent(QMouseEvent* event) {
     case Drag::Draw:
         dragBand(pos);
         break;
+    case Drag::BgBand: {
+        // Целые единицы; шапка и подвал вместе оставляют телу хотя бы единицу.
+        const qreal y = std::round(toLayer(pos).y());
+        if (bgBand_ == 1) headerHeight_ = std::clamp<qreal>(y, 0, ref_.height() - footerHeight_ - 1);
+        else footerHeight_ = std::clamp<qreal>(ref_.height() - y, 0, ref_.height() - headerHeight_ - 1);
+        break;
+    }
     case Drag::None: {
         const int item = itemAt(pos);
         if (item != hover_) {
@@ -563,6 +609,14 @@ void ZoneCanvas::mouseReleaseEvent(QMouseEvent* event) {
     }
     guideX_.reset();
     guideY_.reset();
+    if (drag == Drag::BgBand) {
+        const qreal height = bgBand_ == 1 ? headerHeight_ : footerHeight_;
+        const int band = std::exchange(bgBand_, 0);
+        updateCursor(event->position());
+        update();
+        if (height != bgStart_) emit backgroundBandChanged(band == 1 ? QStringLiteral("header") : QStringLiteral("footer"), height);
+        return;
+    }
     if (drag == Drag::Move || drag == Drag::Resize) {
         bool changed = false;
         for (auto it = startRects_.cbegin(); it != startRects_.cend(); ++it)
@@ -676,6 +730,10 @@ void ZoneCanvas::resizeEvent(QResizeEvent* event) {
 void ZoneCanvas::updateCursor(const QPointF& pos) {
     if (drawMode_) {
         setCursor(Qt::CrossCursor);
+        return;
+    }
+    if (drag_ == Drag::BgBand || (edgesAt(pos) == 0 && bgBandAt(pos) != 0)) {
+        setCursor(Qt::SizeVerCursor);
         return;
     }
     switch (edgesAt(pos)) {
@@ -799,6 +857,21 @@ void ZoneCanvas::paintEvent(QPaintEvent*) {
         return rank(a) < rank(b);
     });
     for (int item : order) drawItem(item);
+
+    if (bgBands_) {
+        // Линии шапки и подвала: пунктир с ручкой посередине; перетаскиваются мышью.
+        const QRectF full = toWidget(QRectF(QPointF(0, 0), ref_));
+        const QColor line(0xff, 0xb0, 0x30);
+        for (int band : {1, 2}) {
+            const qreal y = toWidget(QPointF(0, bgBandY(band))).y();
+            const bool active = bgBand_ == band;
+            p.setPen(QPen(line, active ? 2.0 : 1.2, Qt::DashLine));
+            p.drawLine(QPointF(full.left(), y), QPointF(full.right(), y));
+            p.setPen(QPen(QColor(0x20, 0x24, 0x28), 1));
+            p.setBrush(line);
+            p.drawRect(QRectF(full.center().x() - 12, y - 3, 24, 6));
+        }
+    }
 
     if (selection_.size() == 1 && drag_ != Drag::Band && !drawMode_) {
         p.setPen(QPen(QColor(0x20, 0x24, 0x28), 1));

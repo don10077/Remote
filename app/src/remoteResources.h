@@ -1,7 +1,9 @@
 #pragma once
 
 #include <QByteArray>
+#include <QColor>
 #include <QJsonObject>
+#include <QRectF>
 #include <QString>
 #include <QStringList>
 
@@ -28,6 +30,33 @@ QString reload(const QString& root = folder());
  * @param root Корень папки ресурсов; явный путь используется в тестах.
  */
 QStringList modelIds(const QString& root = folder());
+
+/**
+ * @brief Создать заготовку remote.json для папки `remotes/<id>/`, где есть только photo.png.
+ *
+ * Размер берётся из PNG, зон нет, один экран `devices` 232×290 с чёрным фоном. Существующий
+ * remote.json не изменяется. Заготовка проходит проверку reload(), если id папки допустим.
+ * @param modelId id пульта (имя папки).
+ * @param root Корень папки ресурсов; явный путь используется в тестах.
+ * @return Пусто — файл есть или создан; иначе текст ошибки (нет photo.png, не PNG, не записан).
+ */
+QString createStub(const QString& modelId, const QString& root = folder());
+
+/**
+ * Зоны фона экрана `background.header|body|footer` в единицах `ref`.
+ * Зона без `color` прозрачна: под ней видна картинка или «стекло» фона.
+ */
+struct ScreenZones {
+    bool any = false;      ///< в background есть хотя бы одна из зон
+    QRectF header, body, footer; ///< прямоугольники; footer пустой, если подвала нет
+    QColor headerColor, footerColor; ///< невалидный цвет — зона прозрачна
+};
+/**
+ * @brief Разобрать зоны фона экрана.
+ * @param screen Экран из remote.json (нужны `ref` и `background`).
+ * @return `any == false`, если зон нет или высоты не помещаются в экран (шапка + подвал ≥ высота).
+ */
+ScreenZones screenZones(const QJsonObject& screen);
 
 /// Прочитать ресурс по штатному пути :/res/... из последнего корректного снимка.
 QByteArray data(const QString& path);

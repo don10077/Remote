@@ -87,6 +87,13 @@ public:
     void setShowIds(bool on);
     /// Подпись рамки (элемент SCREEN_ITEM): «Область экрана» на корпусе, «Зона плиток» на экране.
     void setFrameCaption(const QString& caption);
+    /**
+     * @brief Границы шапки и подвала фона экрана (`background.header/footer`), единицы слоя.
+     *
+     * Показываются двумя линиями, которые можно тянуть мышью по вертикали (0 — зоны нет, линия у края).
+     * @param enabled false — линий нет (корпус).
+     */
+    void setBackgroundBands(bool enabled, qreal headerHeight, qreal footerHeight);
 
     /// Вписать слой в окно.
     void fitView();
@@ -105,6 +112,8 @@ signals:
     /// Нарисована новая зона (единицы слоя).
     void zoneDrawn(const QRectF& rect);
     void drawModeChanged(bool on);
+    /// Линию шапки (`header`) или подвала (`footer`) отпустили: новая высота зоны, 0 — убрать зону.
+    void backgroundBandChanged(const QString& zone, qreal height);
     /// Двойной щелчок по элементу.
     void itemActivated(int item);
     /// Координаты под курсором и масштаб — для строки состояния.
@@ -124,7 +133,10 @@ protected:
 private:
     /// Края, которые тянет маркер.
     enum Edge { Left = 1, Top = 2, Right = 4, Bottom = 8 };
-    enum class Drag { None, Move, Resize, Band, Draw, Pan };
+    enum class Drag { None, Move, Resize, Band, Draw, Pan, BgBand };
+    /// Какая из линий фона под курсором: 1 — шапка, 2 — подвал, 0 — никакой.
+    int bgBandAt(const QPointF& pos) const;
+    qreal bgBandY(int band) const; ///< положение линии в единицах слоя
 
     QPointF layerToPhoto(const QPointF& point) const;
     QPointF toWidget(const QPointF& point) const;
@@ -142,7 +154,9 @@ private:
     void setItemRect(int item, const QRectF& rect);
     bool isSelected(int item) const { return selection_.contains(item); }
     /// Вернуть прямоугольник в слой: сдвигом (move) или обрезкой.
-    QRectF keepInside(const QRectF& rect, bool move) const;
+    QRectF keepInside(const QRectF& rect, bool move, const QRectF& bounds) const;
+    /// Границы, в которых держится элемент: слой, а для рамки плиток — тело между шапкой и подвалом.
+    QRectF boundsOf(int item) const;
 
     /// Ближайшая линия `targets` к одному из значений `moving` в пределах порога: сдвиг и линия.
     static std::optional<qreal> snap(const QList<qreal>& moving, const QList<qreal>& targets, qreal threshold,
@@ -193,6 +207,12 @@ private:
     std::optional<qreal> guideX_; ///< линия прилипания, единицы слоя
     std::optional<qreal> guideY_;
     int hover_ = NO_ITEM;
+
+    bool bgBands_ = false;
+    qreal headerHeight_ = 0;
+    qreal footerHeight_ = 0;
+    int bgBand_ = 0; ///< линия, которую тянут сейчас
+    qreal bgStart_ = 0; ///< высота тянутой зоны до жеста (для отмены Esc)
 };
 
 } // namespace harmony::app

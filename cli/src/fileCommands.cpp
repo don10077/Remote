@@ -8,15 +8,20 @@
 
 #include "harmony/core/configDiff.h"
 #include "harmony/core/configDocument.h"
+#include "harmony/core/formats/container.h"
 #include "harmony/core/formats/hubConfig.h"
+#include "harmony/core/formats/remoteCapture.h"
 #include "harmony/core/ir/irEncode.h"
+#include "harmony/transport/concordTransfer.h"
 
 #include <charconv>
 #include <cstdint>
 #include <fstream>
+#include <iomanip>
 #include <iostream>
 #include <iterator>
 #include <optional>
+#include <sstream>
 
 namespace harmony::cli {
 namespace {
@@ -73,6 +78,83 @@ int printModel(const harmony::model::RemoteConfig& model) {
 } // namespace
 
 /**
+ * @brief Сводка по контейнеру шести архитектур: рамка и итог проверок (`harmony-cli info`).
+ *
+ * Файл — снятый `*.remote.json` (EZHex или ZIP MH внутри) или сам EZHex/ZIP/MH. Если
+ * признак и число слотов соответствуют семейству arch 8/9/10/12/14/16 — печатаем
+ * семейство, модель, слоты с размерами секций и результат проверок рамки.
+ * @return Код завершения info; nullopt — файл не наш контейнер (обычный путь хаба и 900).
+ */
+std::optional<int> describeContainer(const std::filesystem::path& path) {
+    std::error_code ec;
+    if (!std::filesystem::is_regular_file(path, ec)) return std::nullopt;
+    const auto size = std::filesystem::file_size(path, ec);
+    if (ec || size == 0 || size > 64 * 1024 * 1024) return std::nullopt;
+    std::ifstream input(path, std::ios::binary);
+    const harmony::formats::Bytes bytes((std::istreambuf_iterator<char>(input)),
+                                       std::istreambuf_iterator<char>());
+
+    // Снятый файл: вместе с контейнером известно, какой пульт его отдал.
+    std::optional<harmony::formats::RemoteCapture> capture;
+    if (!bytes.empty() && bytes.front() == '{') {
+        const auto text = std::string_view{reinterpret_cast<const char*>(bytes.data()), bytes.size()};
+        if (harmony::formats::isRemoteCapture(text)) {
+            auto parsed = harmony::formats::parseRemoteCapture(text);
+            if (!parsed) return std::nullopt; // ошибку файла обычным путём сообщит ConfigDocument
+            capture = std::move(*parsed);
+        }
+    }
+    if (capture && capture->container == harmony::formats::CaptureContainer::Raw) return std::nullopt;
+
+    const harmony::formats::Bytes& data = capture ? capture->data : bytes;
+    auto file = harmony::transport::inspectTransferFile(data); // EZHex/ZIP → payload; не читается — пробуем как есть
+    const harmony::formats::Bytes& payload = file ? file->payload : data;
+    if (payload.size() < harmony::formats::kContainerTableOffset + 4) return std::nullopt;
+    const std::string_view cookie(reinterpret_cast<const char*>(payload.data()), 4);
+    const auto* family = harmony::formats::findFamily(cookie, payload[9]);
+    if (!family) return std::nullopt;
+
+    const auto hex = [](std::uint64_t value) {
+        std::ostringstream out;
+        out << "0x" << std::hex << value;
+        return out.str();
+    };
+    if (capture) {
+        std::cout << "Capture: " << capture->model << " (" << capture->modelId << "), arch "
+                  << capture->identity.architecture << ", skin " << capture->identity.skin << ", protocol "
+                  << capture->protocol << ", firmware " << capture->firmware << ", flash "
+                  << capture->identity.flash << ", board " << capture->identity.board << ", read "
+                  << capture->createdUtc << " by " << capture->program << "\n";
+    } else if (file) {
+        std::cout << "Container file for protocol " << file->protocol << ", skin " << file->skin << "\n";
+    }
+    std::cout << "Container: " << family->cookie << " (architecture " << family->architecture << "), "
+              << family->slots << " slots; marker " << family->marker << " at "
+              << hex(family->markerOffset()) << ", end marker " << family->endMarker << ", size "
+              << payload.size() << " bytes\n";
+
+    const auto parsed = harmony::formats::parseContainer(payload);
+    if (!parsed) {
+        std::cout << "Checks: FAILED — " << parsed.error().message << "\n";
+        return 3;
+    }
+    std::cout << "Checks: passed; base " << hex(parsed->base) << ", checksum "
+              << hex(parsed->checksumStored) << " matches\n"
+              << "Sections: " << parsed->sectionCount() << " of " << family->slots << "\n";
+    for (std::size_t slot = 0; slot < family->slots; ++slot) {
+        std::cout << "  slot " << std::setw(2) << slot << ": ";
+        if (const auto range = harmony::formats::containerSectionRange(*parsed, slot)) {
+            std::cout << hex(range->begin) << ".." << hex(range->end) << " (" << (range->end - range->begin)
+                      << " bytes)\n";
+        } else {
+            std::cout << "empty\n";
+        }
+    }
+    std::cout << "Opening this container in the editor is not implemented yet.\n";
+    return 0;
+}
+
+/**
  * @brief Команда info: читает конфигурацию и печатает устройства и активности.
  * @param path Папка, UserConfiguration.xml, .EZHex или файл конфигурации Harmony Hub.
  * @return 0 — успех, 2 — конфигурацию не удалось прочитать.
@@ -80,6 +162,8 @@ int printModel(const harmony::model::RemoteConfig& model) {
 int runInfo(const std::filesystem::path& path) {
     // Конфигурация хаба и конфигурация 900 показываются одинаково: модель общая.
     if (const auto hub = openHubConfig(path)) return printModel(*hub);
+    // Снятые файлы шести контейнерных архитектур: редактора ещё нет — показываем рамку.
+    if (const auto frame = describeContainer(path)) return *frame;
     const auto document = harmony::ConfigDocument::open(path);
     if (!document) {
         std::cerr << "Error: " << document.error().message << "\n";

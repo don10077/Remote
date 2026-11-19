@@ -16,7 +16,6 @@
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QLineEdit>
-#include <QMessageBox>
 #include <QProgressBar>
 #include <QPushButton>
 #include <QSaveFile>
@@ -25,10 +24,10 @@
 
 namespace harmony::app {
 ConfigTransferDialog::ConfigTransferDialog(QWidget* parent) : QDialog(parent) {
-    setWindowTitle(tr("Configuration files — all remote models"));
+    setWindowTitle(tr("Read configuration — all remote models"));
     resize(680, 350);
     auto* layout = new QVBoxLayout(this);
-    auto* description = new QLabel(tr("Read a backup or write an existing configuration file from Concordance, Afterglow, re-harmony or Harmony. A photo and button zones are not required. Writing a file does not convert it to another model."), this);
+    auto* description = new QLabel(tr("Connect the remote by USB and read its configuration into one file (*.remote.json). The model is detected automatically and the file is checked after saving; the remote is not changed. Remotes paired with a Hub (Elite, Ultimate, Touch, 950, Companion) are read with the Hub button instead."), this);
     description->setWordWrap(true);
     layout->addWidget(description);
     models_ = new QComboBox(this);
@@ -46,20 +45,18 @@ ConfigTransferDialog::ConfigTransferDialog(QWidget* parent) : QDialog(parent) {
     layout->addWidget(progress_);
     auto* buttons = new QHBoxLayout;
     read_ = new QPushButton(tr("Read configuration to file…"), this);
-    write_ = new QPushButton(tr("Write configuration file…"), this);
     hub_ = new QPushButton(tr("Read Harmony Hub over network…"), this);
-    hub_->setToolTip(tr("Elite, Ultimate, Ultimate Home, 950, Companion and other remotes paired with a Hub: "
-                        "devices, commands and activities are read from the Hub on your network. "
-                        "No rooting is needed. A stock Hub does not give out IR codes: they are picked from the "
-                        "IR database by model and command names and may differ from the codes in the Hub. "
-                        "Account data is not included."));
+    hub_->setToolTip(tr("Elite, Ultimate, Ultimate Home, Touch, 950, Companion and other remotes paired with a Hub: "
+                        "devices, commands and activities are read from the Hub on your network. Rooting is not "
+                        "needed to read. The Hub's whole answer is saved as it is: a stock Hub gives out no IR codes "
+                        "(they are picked from the IR database by model and command names and may differ), while a "
+                        "rooted Hub gives out everything it has. Account data is not included."));
     close_ = new QPushButton(tr("Close"), this);
-    buttons->addWidget(read_); buttons->addWidget(write_); buttons->addWidget(hub_);
+    buttons->addWidget(read_); buttons->addWidget(hub_);
     buttons->addStretch(); buttons->addWidget(close_);
     layout->addLayout(buttons);
     connect(models_, &QComboBox::currentIndexChanged, this, &ConfigTransferDialog::refresh);
-    connect(read_, &QPushButton::clicked, this, [this] { transfer(false); });
-    connect(write_, &QPushButton::clicked, this, [this] { transfer(true); });
+    connect(read_, &QPushButton::clicked, this, &ConfigTransferDialog::readToFile);
     connect(hub_, &QPushButton::clicked, this, &ConfigTransferDialog::readHub);
     connect(close_, &QPushButton::clicked, this, &ConfigTransferDialog::reject);
     refresh();
@@ -73,58 +70,35 @@ void ConfigTransferDialog::reject() {
 void ConfigTransferDialog::refresh() {
     const auto* model = catalogModel(models_->currentData().toString().toStdString());
     read_->setEnabled(model && model->readable && !worker_);
-    write_->setEnabled(model && model->writable && !worker_);
     if (!model) return;
-    status_->setText(model->id == "auto" ? tr("The connected remote and the file's intended model will be checked before writing.") :
+    status_->setText(model->id == "auto" ? tr("The connected remote is detected by itself; the file records which remote it came from.") :
         model->skins.empty() ? tr("The identity of this model is not known yet.") :
-        (model->writeTested ? tr("Writing from Harmony has been tested on this model.") :
-                             tr("Transfer code is available. Writing from Harmony has not been tested on this model.")) +
-        (model->readable ? QString() : "\n" + tr("This model does not support configuration readback through this transport.")));
+        model->readable ? tr("This model is read over USB.") :
+        tr("This model is not read over USB. If it is paired with a Hub, use “Read Harmony Hub over network”."));
 }
-void ConfigTransferDialog::transfer(bool writing) {
+void ConfigTransferDialog::readToFile() {
     if (worker_) return;
     const std::string id = models_->currentData().toString().toStdString();
     const auto* model = catalogModel(id);
-    if (!model || (writing ? !model->writable : !model->readable)) return;
-    const QString filter = tr("Remote configuration (*.EZHex *.ezhex *.zip *.hex *.remote.json);;All files (*)");
+    if (!model || !model->readable) return;
     // Читается в один файл *.remote.json: контейнер с пульта плюс сведения о снятии и SHA-256.
     const auto now = QDateTime::currentDateTime();
-    const QString suggested = QString::fromStdString(formats::captureFileName(
-        id, now.date().year(), now.date().month(), now.date().day(), now.time().hour(), now.time().minute()));
-    QString filename = writing ? QFileDialog::getOpenFileName(this, tr("Write configuration file"), {}, filter) :
-        QFileDialog::getSaveFileName(this, tr("Read configuration to file"), suggested,
-                                     tr("Remote capture (*.remote.json)"));
+    const QString suggested = QDir(library::backupFolder()).filePath(QString::fromStdString(formats::captureFileName(
+        id, now.date().year(), now.date().month(), now.date().day(), now.time().hour(), now.time().minute())));
+    QString filename = QFileDialog::getSaveFileName(this, tr("Read configuration to file"), suggested,
+                                                    tr("Remote capture (*.remote.json)"));
     const QString suffix = QString::fromLatin1(formats::kRemoteCaptureExtension);
-    if (!writing && !filename.isEmpty() && !filename.endsWith(suffix, Qt::CaseInsensitive)) filename += suffix;
+    if (!filename.isEmpty() && !filename.endsWith(suffix, Qt::CaseInsensitive)) filename += suffix;
     if (filename.isEmpty()) return;
-    QByteArray contents;
-    QString backup;
-    if (writing) {
-        QFile file(filename);
-        if (!file.open(QIODevice::ReadOnly) || file.size() > 64 * 1024 * 1024) {
-            QMessageBox::warning(this, windowTitle(), tr("Cannot read the configuration file.")); return;
-        }
-        contents = file.readAll();
-        const auto inspected = transport::inspectTransferFile({reinterpret_cast<const std::uint8_t*>(contents.constData()), static_cast<std::size_t>(contents.size())});
-        if (!inspected) { QMessageBox::warning(this, windowTitle(), labels::errorText(inspected.error())); return; }
-        backup = QDir(library::backupFolder()).filePath("Harmony-" + QString::fromStdString(id) + "-" + QDateTime::currentDateTimeUtc().toString("yyyyMMdd-HHmmss-zzz") + ".EZHex");
-        const QString detail = model->readable ? tr("A backup will be saved before writing:\n%1").arg(QDir::toNativeSeparators(backup)) :
-            tr("This remote cannot be backed up through this connection. Continue without a backup?");
-        if (QMessageBox::question(this, tr("Write configuration file"),
-            tr("Write %1 to %2?\n\n%3\n\nDo not disconnect the remote while writing.")
-                .arg(QDir::toNativeSeparators(filename), models_->currentText(), detail),
-            QMessageBox::Yes | QMessageBox::No, QMessageBox::No) != QMessageBox::Yes) return;
-    }
     const transport::Endpoint endpoint{settings::remoteHost().toStdString(), static_cast<std::uint16_t>(settings::remotePort())};
-    const bool allowWithoutBackup = writing && !model->readable;
     setBusy(true);
     status_->setText(tr("Connecting…"));
     progress_->setRange(0, 0);
-    worker_ = QThread::create([this, id, filename, contents, backup, writing, endpoint, allowWithoutBackup] {
+    worker_ = QThread::create([this, id, filename, endpoint] {
         const auto progress = [this](transport::Stage stage, std::size_t done, std::size_t total) {
             QMetaObject::invokeMethod(this, [this, stage, done, total] {
-                status_->setText(stage == transport::Stage::Read ? tr("Reading configuration…") :
-                    stage == transport::Stage::Restart ? tr("Restarting remote…") : tr("Transferring configuration…"));
+                status_->setText(stage == transport::Stage::Read ? tr("Reading configuration…")
+                                                                 : tr("Connecting to the remote…"));
                 progress_->setRange(0, total ? 100 : 0);
                 if (total) progress_->setValue(static_cast<int>(done * 100 / total));
             }, Qt::QueuedConnection);
@@ -133,16 +107,14 @@ void ConfigTransferDialog::transfer(bool writing) {
         transport::ConcordTransfer session;
         const auto connected = session.connect(id, endpoint);
         QString error;
+        QString summary;
         if (!connected) error = labels::errorText(connected.error());
-        else if (writing) {
-            const auto bytes = std::span(reinterpret_cast<const std::uint8_t*>(contents.constData()), static_cast<std::size_t>(contents.size()));
-            const auto result = session.write(bytes, std::filesystem::path(backup.toStdU16String()), allowWithoutBackup, progress);
-            if (!result) error = labels::errorText(result.error());
-        } else {
+        else {
             auto result = session.read(progress);
             if (!result) error = labels::errorText(result.error());
             else {
-                const auto json = formats::writeRemoteCapture(transport::makeCapture(*connected, std::move(*result)));
+                const auto capture = transport::makeCapture(*connected, std::move(*result));
+                const auto json = formats::writeRemoteCapture(capture);
                 if (!json) error = labels::errorText(json.error());
                 else {
                     QSaveFile output(filename);
@@ -156,15 +128,19 @@ void ConfigTransferDialog::transfer(bool writing) {
                         if (!parsed) error = labels::errorText(parsed.error());
                         else if (const auto check = transport::inspectCapture(*parsed); !check)
                             error = labels::errorText(check.error());
+                        else summary = tr("%1, %2 bytes; SHA-256 and container checksum are correct.")
+                                           .arg(QString::fromStdString(connected->remote.model))
+                                           .arg(static_cast<qulonglong>(capture.data.size()));
                     }
                 }
             }
         }
-        QMetaObject::invokeMethod(this, [this, error, writing, filename, backup, allowWithoutBackup] {
+        QMetaObject::invokeMethod(this, [this, error, filename, summary] {
             progress_->setRange(0, 100); progress_->setValue(error.isEmpty() ? 100 : 0);
-            status_->setText(error.isEmpty() ? (writing ? tr("Configuration written.") +
-                (allowWithoutBackup ? QString() : "\n" + tr("Backup: %1").arg(QDir::toNativeSeparators(backup))) :
-                tr("Configuration saved: %1").arg(QDir::toNativeSeparators(filename))) : error);
+            status_->setText(error.isEmpty()
+                ? tr("Saved: %1\n%2\nThe remote was not changed. You can send this file to the developers.")
+                      .arg(QDir::toNativeSeparators(filename), summary)
+                : error);
         }, Qt::QueuedConnection);
     });
     connect(worker_, &QThread::finished, this, [this] {
@@ -177,11 +153,11 @@ void ConfigTransferDialog::transfer(bool writing) {
 void ConfigTransferDialog::setBusy(bool busy) {
     models_->setEnabled(!busy); close_->setEnabled(!busy); hub_->setEnabled(!busy);
     if (busy) {
-        read_->setEnabled(false); write_->setEnabled(false);
+        read_->setEnabled(false);
         return;
     }
     const auto* selected = catalogModel(models_->currentData().toString().toStdString());
-    read_->setEnabled(selected && selected->readable); write_->setEnabled(selected && selected->writable);
+    read_->setEnabled(selected && selected->readable);
 }
 
 void ConfigTransferDialog::readHub() {
@@ -226,7 +202,8 @@ void ConfigTransferDialog::readHub() {
             } else {
                 ok = true;
                 text = tr("Hub “%1”, firmware %2: %3 devices, %4 activities.\nSaved: %5\n"
-                          "The file contains device names and models, but no IR codes, account or e-mail. "
+                          "The file holds the Hub's answer as it is — device names, models and commands, plus IR "
+                          "codes if this Hub gives them out. Account and e-mail are not included. "
                           "You can send it to the developers.")
                            .arg(QString::fromStdString(hub->hubName), QString::fromStdString(hub->firmware))
                            .arg(static_cast<qulonglong>(hub->devices.size()))

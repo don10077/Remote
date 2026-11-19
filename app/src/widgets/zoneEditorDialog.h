@@ -198,6 +198,8 @@ private:
     void applyRadius(double value);
     /// Применить роль подложки `ScreenPanel` (band, oval, side) из списка.
     void applyPanelRole(int index);
+    /// Записать цвет выбранной кнопки или плитки экрана (поле `color` ячейки); пусто — убрать.
+    void applyZoneColor();
     /// Применить действие экранной зоны из обычных полей формы.
     void applyAction();
 
@@ -232,6 +234,12 @@ private:
     void setRemoteField(const QStringList& keys, const QJsonValue& value);
     /// Значение поля открытого экрана: у черновика — в памяти, иначе сразу в файл.
     void setScreenField(const QStringList& keys, const QJsonValue& value);
+    /**
+     * @brief Высота шапки (`header`) или подвала (`footer`) фона открытого экрана.
+     * @param zone `header` или `footer`.
+     * @param height Единицы `ref`; 0 и меньше — зона убирается целиком вместе с цветом.
+     */
+    void setBackgroundZoneHeight(const QString& zone, qreal height);
     /// Показать на экране вводимый цвет поля экрана, не записывая файл; некорректный цвет не показывается.
     void previewScreenField(const QStringList& keys, const QString& text);
     /// Показать на экране вводимый цвет плиток пульта (`tiles.<key>`), не записывая файл.
@@ -310,6 +318,10 @@ private:
     QDoubleSpinBox* gapBox_ = nullptr;          ///< grid.gap открытого экрана
     QLineEdit* backgroundColorEdit_ = nullptr;  ///< background.color
     QLineEdit* backgroundImageEdit_ = nullptr;  ///< background.image
+    QDoubleSpinBox* headerHeightBox_ = nullptr; ///< background.header.height; 0 — шапки нет
+    QLineEdit* headerColorEdit_ = nullptr;      ///< background.header.color; пусто — прозрачная
+    QDoubleSpinBox* footerHeightBox_ = nullptr; ///< background.footer.height; 0 — подвала нет
+    QLineEdit* footerColorEdit_ = nullptr;      ///< background.footer.color; пусто — прозрачный
     QLineEdit* cellImageEdit_ = nullptr;        ///< cell.image
     QLineEdit* panelColorEdit_ = nullptr;       ///< panel.color
     QLineEdit* panelTextEdit_ = nullptr;        ///< panel.text
@@ -346,6 +358,7 @@ private:
     QComboBox* commandBox_ = nullptr;
     QComboBox* targetBox_ = nullptr;
     QComboBox* buttonBox_ = nullptr;
+    QLineEdit* zoneColorEdit_ = nullptr; ///< цвет заливки выбранной кнопки или плитки экрана (поле `color` ячейки)
     QLabel* selectionHint_ = nullptr;
     QLabel* checkLabel_ = nullptr;
     QListWidget* checkList_ = nullptr;
