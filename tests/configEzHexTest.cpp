@@ -5,6 +5,7 @@
 
 #include "harmony/core/configDocument.h"
 #include "harmony/core/formats/ezhex.h"
+#include "harmony/core/formats/container.h"
 #include "harmony/core/formats/zipArchive.h"
 #include "harmony/core/undo/documentEdit.h"
 
@@ -26,6 +27,40 @@ const std::filesystem::path kSample = kData / "ezhex" / "harmony900.EZHex";
 formats::Bytes readFile(const std::filesystem::path& path) {
     std::ifstream file(path, std::ios::binary);
     return {std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>()};
+}
+
+/// Minimal independent format fixture: one device and a four-duration infrared command.
+formats::Bytes binaryHidFixture() {
+    formats::EzHex file;
+    file.identity.architecture=14;
+    file.identity.skin=75;
+    auto& data=file.payload;
+    data.resize(224);
+    const auto put=[&](std::size_t at,std::uint32_t value,unsigned width) {
+        for(unsigned i=0;i<width;++i)data[at+i]=static_cast<std::uint8_t>(value>>(8*i));
+    };
+    std::copy_n("GSPM",4,data.begin());
+    put(4,0x30000+220,4);
+    data[9]=20;
+    std::copy_n("LWJL",4,data.begin()+91);
+    put(12+4*5,0x30000+128,3);
+    data[128]=1;
+    put(129,0x30000+132,3);
+    put(133,1,2);
+    put(135,0x30000+151,3);
+    put(145,26316,3);
+    put(148,13158,3);
+    data[151]=1;
+    put(152,0x30000+144,3);
+    data[155]=1;
+    put(156,0x30000+176,3);
+    put(176,0x8000+9000,2);
+    put(178,4500,2);
+    put(180,0x8000+560,2);
+    put(182,1690,2);
+    std::copy_n("PTYY",4,data.begin()+220);
+    put(218,formats::containerChecksum(data,218),2);
+    return *formats::writeEzHex(file);
 }
 
 /// Архив внутри .EZHex.
@@ -74,6 +109,104 @@ TEST(ConfigEzHex, OpensRemoteDump) {
     EXPECT_FALSE(document->hasFolder());
     EXPECT_EQ(document->identity().skin, 61);
     EXPECT_TRUE(document->checkIrData()); // таблицы ИК-данных пришли из архива
+}
+
+TEST(ConfigEzHex, RejectsTruncatedBinaryHidImages) {
+    for (const std::string signature : {"GSPM", "AHCM", "TPTP"}) {
+        formats::EzHex binary;
+        binary.payload.assign(signature.begin(), signature.end());
+        binary.identity.architecture = 14;
+        binary.identity.skin = 75;
+        const auto bytes = formats::writeEzHex(binary);
+        ASSERT_TRUE(bytes);
+        const auto document = ConfigDocument::fromEzHex(*bytes, "HID backup");
+        ASSERT_FALSE(document);
+        EXPECT_EQ(document.error().code, harmony::ErrorCode::Format);
+    }
+}
+
+TEST(ConfigEzHex, ImportsPublicBinaryHidFamiliesWithTheirCommands) {
+    if (!std::filesystem::exists(kData / "binaryhid" / "650.EZHex"))
+        GTEST_SKIP() << "Local binary HID reference corpus is not installed";
+    struct Sample { const char* file; std::size_t devices; std::size_t activities; std::size_t commands; int skin; };
+    for (const Sample sample : {Sample{"650.EZHex",4,4,236,72}, {"525.EZHex",4,3,200,22},
+                                {"880.EZHex",4,4,300,15}, {"890.EZHex",4,0,300,19}}) {
+        SCOPED_TRACE(sample.file);
+        const auto path = kData / "binaryhid" / sample.file;
+        auto document = ConfigDocument::open(path);
+        ASSERT_TRUE(document) << document.error().message;
+        EXPECT_EQ(document->backend()->format(), harmony::ConfigFormat::BinaryHid);
+        EXPECT_EQ(document->model().devices.size(), sample.devices);
+        EXPECT_EQ(document->model().userActivityCount(), sample.activities);
+        EXPECT_EQ(document->model().commandCount(), sample.commands);
+        EXPECT_EQ(document->identity().skin, sample.skin);
+        EXPECT_TRUE(document->location().empty()); // Save prompts for a project; original dump is retained.
+        EXPECT_FALSE(document->backend()->canWriteToRemote());
+        EXPECT_FALSE(document->toEzHex(true));
+        std::size_t rendered = 0;
+        for (const auto& device : document->model().devices)
+            for (const auto& command : device.commands)
+                if (document->commandDetails(device.id, command.name)) ++rendered;
+        EXPECT_GT(rendered, sample.commands / 2);
+        const auto bytes = document->toEzHex(false);
+        ASSERT_TRUE(bytes) << bytes.error().message;
+        const auto archive = archiveOf(*bytes);
+        ASSERT_NE(archive.find("source/Original.EZHex"), nullptr);
+        const auto original = formats::entryContent(*archive.find("source/Original.EZHex"));
+        ASSERT_TRUE(original);
+        EXPECT_EQ(*original, readFile(path));
+        auto reopened = ConfigDocument::fromEzHex(*bytes, "saved import");
+        ASSERT_TRUE(reopened) << reopened.error().message;
+        EXPECT_EQ(reopened->backend()->format(), harmony::ConfigFormat::BinaryHid);
+        EXPECT_EQ(reopened->model().commandCount(), sample.commands);
+        EXPECT_EQ(reopened->model().devices.front().controlGroups.size(), document->model().devices.front().controlGroups.size());
+        ASSERT_TRUE(document->setDeviceLabel(document->model().devices.front().id, "Imported device"));
+        const auto edited=document->toEzHex(false);
+        ASSERT_TRUE(edited);
+        auto editedDocument=ConfigDocument::fromEzHex(*edited,"edited import");
+        ASSERT_TRUE(editedDocument);
+        EXPECT_EQ(editedDocument->model().devices.front().label,"Imported device");
+        EXPECT_EQ(*formats::entryContent(*archiveOf(*edited).find("source/Original.EZHex")),readFile(path));
+    }
+}
+
+TEST(ConfigEzHex, RejectsBinaryDevicePointersOutsideTheImage) {
+    auto container=formats::parseEzHex(binaryHidFixture());
+    ASSERT_TRUE(container);
+    const auto frame=formats::parseContainer(container->payload);
+    ASSERT_TRUE(frame);
+    const auto table=*frame->sections[5];
+    std::fill_n(container->payload.begin()+static_cast<std::ptrdiff_t>(table+1),3,0xff);
+    const auto sum=formats::containerChecksum(container->payload,frame->checksumOffset);
+    container->payload[frame->checksumOffset]=static_cast<std::uint8_t>(sum);
+    container->payload[frame->checksumOffset+1]=static_cast<std::uint8_t>(sum>>8);
+    const auto bytes=formats::writeEzHex(*container);
+    ASSERT_TRUE(bytes);
+    const auto document=ConfigDocument::fromEzHex(*bytes,"bad pointer");
+    ASSERT_FALSE(document);
+    EXPECT_EQ(document.error().code,harmony::ErrorCode::Format);
+}
+
+TEST(ConfigEzHex, ImportsNativeHidWaveformWithoutAnExternalRuntime) {
+    const auto bytes=binaryHidFixture();
+    auto document=ConfigDocument::fromEzHex(bytes,"Synthetic 665");
+    ASSERT_TRUE(document) << document.error().message;
+    ASSERT_EQ(document->model().devices.size(),1U);
+    ASSERT_EQ(document->model().devices[0].commands.size(),1U);
+    const auto signal=document->commandSignal("hid0","Command1");
+    ASSERT_TRUE(signal);
+    EXPECT_EQ(signal->durations,(std::vector<int>{9000,-4500,560,-1690}));
+    EXPECT_NEAR(signal->frequency,38000,2);
+    EXPECT_EQ(document->backend()->format(),harmony::ConfigFormat::BinaryHid);
+    EXPECT_FALSE(document->toEzHex(true));
+    ASSERT_TRUE(document->setDeviceLabel("hid0","Receiver"));
+    const auto saved=document->toEzHex(false);
+    ASSERT_TRUE(saved);
+    auto reopened=ConfigDocument::fromEzHex(*saved,"Reopened project");
+    ASSERT_TRUE(reopened);
+    EXPECT_EQ(reopened->model().devices[0].label,"Receiver");
+    EXPECT_EQ(*reopened->commandSignal("hid0","Command1"),*signal);
+    EXPECT_EQ(*formats::entryContent(*archiveOf(*saved).find("source/Original.EZHex")),bytes);
 }
 
 TEST(ConfigEzHex, Recognizes1100IdentityButDoesNotEnableWriting) {

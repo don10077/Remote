@@ -11,9 +11,12 @@
 class QHBoxLayout;
 class QLabel;
 class QMouseEvent;
+class QEvent;
 class QSplitter;
+class QTimer;
 class QStackedWidget;
 class QVBoxLayout;
+class QToolButton;
 
 namespace harmony::app {
 
@@ -61,7 +64,7 @@ struct NavItem {
 /**
  * Navigation shell of the modern interface:
  * a sidebar on the left, a page header (title + meta), the pages in the
- * middle and an optional fixed panel on the right.
+ * middle and an optional resizable panel on the right.
  *
  * The sidebar holds, top to bottom:
  * - the remote card (opens the "card page"),
@@ -85,6 +88,16 @@ public:
 
     /** fixed panel right of the pages (remote preview). nullptr = none */
     void setSidePanel(QWidget* panel);
+    /// Показывает или скрывает правую панель, сохраняя её последнюю ширину.
+    void setSidePanelVisible(bool visible);
+    /// Видимость панели с учётом сворачивания разделителем до нулевой ширины.
+    [[nodiscard]] bool isSidePanelVisible() const;
+    /**
+     * @brief Сообщение «у пульта нет профиля»: панель на несколько секунд раскрывается и сворачивается.
+     * @param missing true — показать и свернуть; false — вернуть сохранённое состояние панели.
+     * Если пользователь сам тронул панель, автосворачивания не будет; в настройки оно не пишется.
+     */
+    void showSidePanelNotice(bool missing);
     /** виджет справа в заголовке страницы (кнопки действий над выбранным объектом) */
     void setHeaderWidget(QWidget* widget);
     /** виджет вплотную к названию страницы, слева от кнопок действий */
@@ -109,6 +122,9 @@ public:
     void setCurrentItem(const QString& section, uint32_t id);
     /** allow reordering the rows of a section by drag and drop (reports itemMoved) */
     void setItemsReorderable(const QString& section, bool on);
+
+protected:
+    bool eventFilter(QObject* watched, QEvent* event) override;
 
 signals:
     void currentPageChanged(const QString& id);
@@ -142,6 +158,11 @@ private:
     void dropItem(const QString& section, uint32_t id, int insertIndex);
 
     void updateHeader();
+    void saveSidePanelState();
+    /// Ставит язычок на перегородку перед панелью (у правого края окна, если панель свёрнута).
+    void positionToggle();
+    /// Пользователь взял управление панелью на себя: автосворачивание отменяется.
+    void cancelNotice();
     void updateChecked();
     int indexOf(const QString& id) const;
     ItemSection* findSection(const QString& id);
@@ -153,6 +174,13 @@ private:
     QHBoxLayout* rootLayout = nullptr;
     QSplitter* splitter = nullptr; ///< боковая панель и страницы: ширину можно менять
     QWidget* sidePanel = nullptr;
+    QToolButton* sidePanelToggle = nullptr;
+    int sidePanelWidth = 460;
+    bool restoringSidePanel = false;
+    int toggleGrabX = 0;             ///< где нажали на язычок (глобальная x)
+    bool toggleDragged = false;      ///< язычок потянули: щелчком это не считается
+    bool noticeActive = false;      ///< панель показана ненадолго: состояние не сохраняется
+    QTimer* noticeTimer = nullptr;   ///< через сколько свернуть панель после сообщения
     QWidget* pageHost = nullptr;
     QWidget* sidebar = nullptr;
     QVBoxLayout* itemsLayout = nullptr;

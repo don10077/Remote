@@ -4,9 +4,36 @@
 #include <gtest/gtest.h>
 #include <algorithm>
 #include <set>
+#include "../../third_party/libconcord/read_flash_packet.h"
 
 using namespace harmony;
 using namespace harmony::transport;
+
+TEST(ClassicHidPackets, ValidatesActualReportLengthAndChunkBoundary) {
+    const std::uint8_t packet[]{0x63, 0x12, 0xab, 0xcd};
+    EXPECT_EQ(harmony_flash_packet(packet, 4, 14, 0x12, 2), 2);
+    EXPECT_EQ(harmony_flash_packet(packet, 3, 14, 0x12, 2), -1);
+    EXPECT_EQ(harmony_flash_packet(packet, 4, 14, 0x12, 1), -1);
+    EXPECT_EQ(harmony_flash_packet(packet, 4, 14, 0x01, 2), -1);
+    EXPECT_EQ(harmony_flash_packet(packet, 1, 14, 0x12, 2), -1);
+}
+
+TEST(ClassicHidPackets, RejectsPrematureDoneAndUnknownLengthCodes) {
+    const std::uint8_t done[]{0xf1, 0x50};
+    EXPECT_EQ(harmony_flash_packet(done, 2, 14, 1, 0), 0);
+    EXPECT_EQ(harmony_flash_packet(done, 2, 14, 1, 1), -1);
+    std::uint8_t invalid[]{0x6b, 1, 0, 0};
+    EXPECT_EQ(harmony_flash_packet(invalid, 4, 14, 1, 2), -1);
+    invalid[0] = 0x20;
+    EXPECT_EQ(harmony_flash_packet(invalid, 4, 14, 1, 2), -1);
+}
+
+TEST(ClassicHidPackets, UsesLegacyLengthMapOnlyForProtocolZero) {
+    const std::uint8_t packet[]{0x68, 1, 1, 2, 3, 4, 5, 6, 7};
+    EXPECT_EQ(harmony_flash_packet(packet, 9, 0, 1, 7), 7);
+    EXPECT_EQ(harmony_flash_packet(packet, 9, 14, 1, 7), -1);
+}
+
 namespace {
 /// Самостоятельный контейнер MH без настоящих пользовательских данных.
 formats::Bytes mhFile(std::string_view target = "/cfg/usercfg", int skin = 78, bool badChecksum = false) {

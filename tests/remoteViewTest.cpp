@@ -1,5 +1,6 @@
 #include "../app/src/modern/remoteView.h"
 #include "../app/src/modern/remotePanel.h"
+#include "../app/src/modern/modernShell.h"
 #include "../app/src/remoteResources.h"
 #include "../app/src/labels.h"
 #include "../app/src/theme.h"
@@ -17,6 +18,10 @@
 #include <QMap>
 #include <QMouseEvent>
 #include <QSet>
+#include <QSettings>
+#include <QSplitter>
+#include <QToolButton>
+#include <QLabel>
 #include <QTemporaryDir>
 #include <algorithm>
 #include <utility>
@@ -518,6 +523,94 @@ TEST(RemotePanel, PreviewOmitsNotSentEntriesAndKeepsConfigurationIndices) {
     device = -1;
     click(*view, second);
     EXPECT_EQ(device, -1);
+}
+
+TEST(RemotePanel, MissingProfileMessageReplacesPreviewAndDisappearsForAKnownProfile) {
+    harmony::model::RemoteConfig config;
+    config.properties.emplace_back("HarmonyTargetRemote","missing-profile");
+    harmony::app::RemotePanel panel;
+    panel.resize(500,650);
+    panel.setConfig(&config);
+    panel.show();
+    QApplication::processEvents();
+    auto* missing=panel.findChild<QLabel*>("missingRemoteProfile");
+    auto* preview=panel.findChild<QWidget*>("remoteScroll");
+    ASSERT_NE(missing,nullptr);
+    ASSERT_NE(preview,nullptr);
+    EXPECT_TRUE(missing->isVisible());
+    EXPECT_FALSE(preview->isVisible());
+    config.properties[0].second="900";
+    panel.setConfig(&config);
+    QApplication::processEvents();
+    EXPECT_FALSE(missing->isVisible());
+    EXPECT_TRUE(preview->isVisible());
+}
+
+TEST(ModernShell, ResizesHidesAndRestoresTheRemotePanel) {
+    QTemporaryDir settingsDirectory;
+    ASSERT_TRUE(settingsDirectory.isValid());
+    const QStringList keys{"window/configSplitter","window/remotePanelWidth","window/remotePanelVisible"};
+    struct RestoreSettings {
+        QString organization=QCoreApplication::organizationName();
+        QString application=QCoreApplication::applicationName();
+        QSettings::Format format=QSettings::defaultFormat();
+        QMap<QString,QVariant> values;
+        ~RestoreSettings() {
+            QSettings settings;
+            for(auto it=values.cbegin();it!=values.cend();++it)
+                if(it.value().isValid())settings.setValue(it.key(),it.value());else settings.remove(it.key());
+            QCoreApplication::setOrganizationName(organization);
+            QCoreApplication::setApplicationName(application);
+            QSettings::setDefaultFormat(format);
+        }
+    } restore;
+    QCoreApplication::setOrganizationName("HarmonyGuiTests");
+    QCoreApplication::setApplicationName("RemotePanelState");
+    QSettings::setDefaultFormat(QSettings::IniFormat);
+    QSettings::setPath(QSettings::IniFormat,QSettings::UserScope,settingsDirectory.path());
+    QSettings settings;
+    for(const auto& key:keys){restore.values[key]=settings.value(key);settings.remove(key);}
+    harmony::app::ModernShell shell;
+    shell.resize(1400,750);
+    shell.addPage("test","Test",new QWidget);
+    shell.setSidePanel(new QWidget);
+    shell.show();
+    QApplication::processEvents();
+    auto* splitter=shell.findChild<QSplitter*>("mainSplitter");
+    auto* toggle=shell.findChild<QToolButton*>("remotePanelToggle");
+    ASSERT_NE(splitter,nullptr);
+    ASSERT_NE(toggle,nullptr);
+    ASSERT_EQ(splitter->count(),3);
+    EXPECT_TRUE(shell.isSidePanelVisible());
+    splitter->setSizes({250,750,350});
+    splitter->splitterMoved(1050,2);
+    const int width=splitter->sizes()[2];
+    EXPECT_GT(width,180);
+    toggle->click();
+    EXPECT_FALSE(shell.isSidePanelVisible());
+    EXPECT_FALSE(toggle->isChecked());
+    toggle->click();
+    EXPECT_TRUE(shell.isSidePanelVisible());
+    EXPECT_NEAR(splitter->sizes()[2],width,4);
+    toggle->click();
+    settings.sync();
+    EXPECT_EQ(settings.status(),QSettings::NoError);
+    harmony::app::ModernShell reopened;
+    reopened.resize(1400,750);
+    reopened.addPage("test","Test",new QWidget);
+    reopened.setSidePanel(new QWidget);
+    reopened.show();
+    QApplication::processEvents();
+    EXPECT_FALSE(reopened.isSidePanelVisible());
+    reopened.setSidePanelVisible(true);
+    auto* restored=reopened.findChild<QSplitter*>("mainSplitter");
+    ASSERT_NE(restored,nullptr);
+    EXPECT_NEAR(restored->sizes()[2],width,4);
+    restored->setSizes({250,1100,0});
+    restored->splitterMoved(restored->width(),2);
+    EXPECT_FALSE(reopened.isSidePanelVisible());
+    reopened.setSidePanelVisible(true);
+    EXPECT_TRUE(reopened.isSidePanelVisible());
 }
 
 TEST(Theme, DeviceColoursRepeatAndNoDeviceIsGrey) {

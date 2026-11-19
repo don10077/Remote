@@ -322,7 +322,7 @@ bool MainWindow::openFolder(const QString& folder) {
             return false;
         }
     }
-    library::touch(fromPath(document->location()));
+    library::touch(document->location().empty() ? folder : fromPath(document->location()));
     const bool isHub = document->backend()->format() == ConfigFormat::Hub;
     showDocument(std::move(*document));
     statusBar()->showMessage(tr("Opened: %1").arg(QDir::toNativeSeparators(folder)), 8000);
@@ -453,7 +453,8 @@ void MainWindow::updateTitle() {
     QString summary =
         labels::plural(static_cast<qsizetype>(model.devices.size()), "device", "devices") +
         " · " +
-        labels::plural(static_cast<qsizetype>(model.userActivityCount()), "activity", "activities");
+        (model.property("ActivitiesUndetermined") == "true" ? tr("activity count undetermined") :
+         labels::plural(static_cast<qsizetype>(model.userActivityCount()), "activity", "activities"));
     if (!document_->hasLocation()) {
         summary = tr("%1 · not saved").arg(summary);
     }

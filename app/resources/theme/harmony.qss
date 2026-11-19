@@ -105,6 +105,23 @@ QSplitter#mainSplitter::handle:hover {
   background: @accent;
 }
 
+/* Язычок на перегородке: сворачивает и возвращает панель пульта. */
+QToolButton#remotePanelToggle {
+  background: @surface;
+  border: 1px solid @border;
+  border-radius: 8px;
+  color: @text;
+  font-size: 11pt;
+  font-weight: 600;
+  padding: 0;
+}
+
+QToolButton#remotePanelToggle:hover {
+  background: @accentSoft;
+  border-color: @accent;
+  color: @accent;
+}
+
 /* «Добавить устройство / активность» в заголовке раздела: круглая кнопка
    с плюсом-значком на мягком акцентном фоне. */
 QToolButton#navAdd {

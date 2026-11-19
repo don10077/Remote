@@ -623,6 +623,11 @@ The configuration from %1 will be copied into this archive.</source>
     </message>
     <message>
       <location filename="../../../app/src/widgets/configView.cpp" />
+      <source>&lt;h3&gt;Imported HID configuration&lt;/h3&gt;&lt;p&gt;The original image is retained in the saved project. This project can be edited and saved; writing it back in the native HID format is not implemented.&lt;/p&gt;</source>
+      <translation>&lt;h3&gt;Импортированная конфигурация HID&lt;/h3&gt;&lt;p&gt;Исходный образ сохраняется внутри проекта. Проект можно редактировать и сохранять; сборка для записи обратно на HID-пульт пока не реализована.&lt;/p&gt;</translation>
+    </message>
+    <message>
+      <location filename="../../../app/src/widgets/configView.cpp" />
       <source>&lt;h3&gt;Off button&lt;/h3&gt;&lt;p&gt;Turns off: %1.&lt;/p&gt;&lt;p&gt;This is the remote's service activity “%2”: what to do on the Off button and from which state the remote starts activities. It cannot be deleted. A device with power commands is added to this list automatically.&lt;/p&gt;</source>
       <translation>&lt;h3&gt;Кнопка Off&lt;/h3&gt;&lt;p&gt;Выключает: %1.&lt;/p&gt;&lt;p&gt;Это служебная активность пульта «%2»: что делать по кнопке Off и из какого состояния пульт запускает активности. Удалить её нельзя. Устройство с командами питания попадает в этот список само.&lt;/p&gt;</translation>
     </message>
@@ -630,6 +635,11 @@ The configuration from %1 will be copied into this archive.</source>
       <location filename="../../../app/src/widgets/configView.cpp" />
       <source>&lt;p&gt;Configuration updated: &lt;b&gt;%1&lt;/b&gt;.&lt;/p&gt;&lt;p&gt;%2.&lt;/p&gt;&lt;p&gt;Select an activity or a device on the left. On the right you see how it looks on the remote: screen buttons and the colour of the device each button sends to.&lt;/p&gt;</source>
       <translation>&lt;p&gt;Конфигурация обновлена: &lt;b&gt;%1&lt;/b&gt;.&lt;/p&gt;&lt;p&gt;%2.&lt;/p&gt;&lt;p&gt;Выберите активность или устройство слева. Справа — как это выглядит на пульте: экранные кнопки и цвет устройства, которому уходит каждая кнопка.&lt;/p&gt;</translation>
+    </message>
+    <message>
+      <location filename="../../../app/src/widgets/configView.cpp" />
+      <source>&lt;p&gt;Some names and keys remain numbered. Conditional macros and activity start/stop logic are retained in the original image and have not been converted.&lt;/p&gt;</source>
+      <translation>&lt;p&gt;Часть имён и клавиш пока обозначена номерами. Условные макросы и программы запуска и завершения активностей сохранены в исходном образе и пока не преобразованы.&lt;/p&gt;</translation>
     </message>
     <message>
       <location filename="../../../app/src/widgets/configView.cpp" />
@@ -860,6 +870,12 @@ The configuration from %1 will be copied into this archive.</source>
       <location filename="../../../core/src/formats/userConfiguration.cpp" />
       <source>activity %1: button “%2” has an invalid position “%3”</source>
       <translation>активность %1: у кнопки «%2» неверная позиция «%3»</translation>
+    </message>
+    <message>
+      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/widgets/configView.cpp" />
+      <source>activity count undetermined</source>
+      <translation>число активностей не определено</translation>
     </message>
     <message>
       <location filename="../../../app/src/mainWindowMenus.cpp" />
@@ -3900,6 +3916,11 @@ Copy saved: %2</source>
       <translation>Неверный размер конфигурации HID</translation>
     </message>
     <message>
+      <location filename="../../../core/src/formats/binaryHid.cpp" />
+      <source>HID import: %1</source>
+      <translation type="unfinished" />
+    </message>
+    <message>
       <location filename="../../../transport/src/hidChannel.cpp" />
       <source>HID read failed or timed out. Check the USB cable and close other remote software.</source>
       <translation>Ошибка чтения HID или истекло время ожидания. Проверьте USB-кабель и закройте другие программы для пульта.</translation>
@@ -3948,6 +3969,11 @@ Copy saved: %2</source>
       <location filename="../../../core/src/propertyCatalog.cpp" />
       <source>Hide Play-mode page</source>
       <translation>Скрыть страницу режима воспроизведения</translation>
+    </message>
+    <message>
+      <location filename="../../../app/src/modern/modernShell.cpp" />
+      <source>Hide remote panel</source>
+      <translation>Скрыть панель пульта</translation>
     </message>
     <message>
       <location filename="../../../core/src/propertyCatalog.cpp" />
@@ -5198,6 +5224,11 @@ The file holds the Hub's answer as it is — device names, models and commands, 
       <translation>не преобразовано: %1</translation>
     </message>
     <message>
+      <location filename="../../../app/src/widgets/configView.cpp" />
+      <source>not determined by import</source>
+      <translation>при импорте не определено</translation>
+    </message>
+    <message>
       <location filename="../../../app/src/widgets/irDatabasePanel.cpp" />
       <source>not indexed yet</source>
       <translation>ещё не проиндексирована</translation>
@@ -6146,6 +6177,11 @@ The file holds the Hub's answer as it is — device names, models and commands, 
       <translation>Прочитать Harmony Hub по сети…</translation>
     </message>
     <message>
+      <location filename="../../../app/src/remoteSession.cpp" />
+      <source>Reading %1: model %2, architecture %3, protocol %4, skin %5, transport %6</source>
+      <translation type="unfinished" />
+    </message>
+    <message>
       <location filename="../../../transport/src/concordTransfer.cpp" />
       <location filename="../../../transport/src/harmonyHidReader.cpp" />
       <source>Reading cancelled</source>
@@ -6435,6 +6471,11 @@ The file holds the Hub's answer as it is — device names, models and commands, 
       <location filename="../../../app/src/mainWindowMenus.cpp" />
       <source>Remote overview</source>
       <translation>Обзор пульта</translation>
+    </message>
+    <message>
+      <location filename="../../../app/src/modern/remotePanel.cpp" />
+      <source>Remote profile has not been created</source>
+      <translation>Профиль пульта не создан</translation>
     </message>
     <message>
       <location filename="../../../app/src/mainWindowMenus.cpp" />
@@ -7279,6 +7320,11 @@ The remote was not changed. You can send this file to the developers.</source>
       <translation>Показать проблемы</translation>
     </message>
     <message>
+      <location filename="../../../app/src/modern/modernShell.cpp" />
+      <source>Show remote panel</source>
+      <translation>Показать панель пульта</translation>
+    </message>
+    <message>
       <location filename="../../../core/src/propertyCatalog.cpp" />
       <source>Show soft buttons</source>
       <translation>Показывать экранные кнопки</translation>
@@ -8110,6 +8156,16 @@ They will not be sent to the remote either. When the device is made active again
       <translation>Идентификатор этой модели пока неизвестен.</translation>
     </message>
     <message>
+      <location filename="../../../core/src/configDocumentCommands.cpp" />
+      <source>the imported HID command has no readable waveform</source>
+      <translation type="unfinished" />
+    </message>
+    <message>
+      <location filename="../../../core/src/configDocumentCommands.cpp" />
+      <source>the imported HID command waveform is invalid</source>
+      <translation type="unfinished" />
+    </message>
+    <message>
       <location filename="../../../app/src/widgets/irDatabasePanel.cpp" />
       <source>The index takes about 50 MB; the archive files are not needed after indexing.</source>
       <translation>Индекс занимает около 50 МБ; после индексации файлы архива не нужны.</translation>
@@ -8699,6 +8755,11 @@ They will not be sent to the remote either. When the device is made active again
       <location filename="../../../app/src/linuxUsbSetup.cpp" />
       <source>The USB connection setup is removed.</source>
       <translation>Настройка связи по USB убрана.</translation>
+    </message>
+    <message>
+      <location filename="../../../core/src/configDocumentCommands.cpp" />
+      <source>the waveform of this native HID command has not been decoded</source>
+      <translation type="unfinished" />
     </message>
     <message>
       <location filename="../../../core/src/configDocumentCheck.cpp" />

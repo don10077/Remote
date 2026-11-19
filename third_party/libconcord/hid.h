@@ -38,6 +38,6 @@ void ShutdownUSB();
 int FindRemote(THIDINFO &hid_info);
 
 int HID_WriteReport(const uint8_t *data);
-int HID_ReadReport(uint8_t *data, unsigned int timeout = 1000);
+int HID_ReadReport(uint8_t *data, unsigned int timeout = 1000, unsigned int *received = nullptr);
 
 #endif

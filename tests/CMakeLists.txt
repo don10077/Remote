@@ -100,6 +100,8 @@ if(HARMONY_BUILD_APP)
         ../app/src/zoneEditing.cpp
         ../app/src/modern/remotePanel.cpp
         ../app/src/modern/remotePanel.h
+        ../app/src/modern/modernShell.cpp
+        ../app/src/modern/modernShell.h
         ../app/src/icons.cpp
         ../app/src/modern/remoteView.cpp
         ../app/src/modern/remoteView.h

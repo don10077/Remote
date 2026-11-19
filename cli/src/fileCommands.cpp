@@ -150,7 +150,7 @@ std::optional<int> describeContainer(const std::filesystem::path& path) {
             std::cout << "empty\n";
         }
     }
-    std::cout << "Opening this container in the editor is not implemented yet.\n";
+    std::cout << "Binary image inspected; its devices and activities could not be imported.\n";
     return 0;
 }
 
@@ -162,10 +162,12 @@ std::optional<int> describeContainer(const std::filesystem::path& path) {
 int runInfo(const std::filesystem::path& path) {
     // Конфигурация хаба и конфигурация 900 показываются одинаково: модель общая.
     if (const auto hub = openHubConfig(path)) return printModel(*hub);
-    // Снятые файлы шести контейнерных архитектур: редактора ещё нет — показываем рамку.
-    if (const auto frame = describeContainer(path)) return *frame;
     const auto document = harmony::ConfigDocument::open(path);
     if (!document) {
+        if (const auto frame = describeContainer(path)) {
+            std::cerr << "Import error: " << document.error().message << "\n";
+            return *frame == 0 ? 3 : *frame;
+        }
         std::cerr << "Error: " << document.error().message << "\n";
         return 2;
     }

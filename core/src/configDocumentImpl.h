@@ -61,6 +61,7 @@ struct ConfigDocument::Impl {
     std::string name;             ///< Имя для показа
     std::filesystem::path folder; ///< Папка на диске; пусто — не папка
     std::filesystem::path ezhexFile; ///< Файл .EZHex на диске; пусто — не файл
+    bool importedFromBinary = false; ///< Исходный дамп при обычном «Сохранить» не заменяется проектом
     std::string actionLists;      ///< Прочитанный ActionLists.xml; пусто — файла не было
     /// IrProto.bin и SsIr.bin; не nullptr
     std::shared_ptr<const detail::IrData> ir = std::make_shared<const detail::IrData>();
@@ -82,6 +83,9 @@ namespace detail {
 inline constexpr const char* kSourceFormatProperty = "SourceFormat";
 /// Значение kSourceFormatProperty у конфигурации, собранной из файлов Harmony Hub.
 inline constexpr std::string_view kHubSourceFormat = "Hub";
+inline constexpr std::string_view kBinaryHidSourceFormat = "BinaryHid";
+/// Serialises a normalised imported model, retaining its source format marker.
+[[nodiscard]] std::string importedModelXml(const model::RemoteConfig& model, std::string_view format);
 
 /**
  * @brief Формат источника по модели.

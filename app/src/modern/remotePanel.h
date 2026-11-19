@@ -66,6 +66,9 @@ public:
     /// Подсвечивает экранную кнопку по позиции (-1 — снять выделение).
     void selectSoftButton(int position);
 
+    /// Есть ли для пульта конфигурации профиль (фото и зоны) в программе.
+    [[nodiscard]] bool hasProfile() const;
+
     /// Текущий экран пульта: id экрана из remote.json (например, «activities»).
     QString screenMode() const;
 
@@ -97,6 +100,8 @@ private:
     void refreshActivity();
     void rebuildLegend();
     void updateScreenButtons();
+    /// Ограничивает ширину панели: колонка подписей не должна заходить на фото пульта.
+    void updateWidthLimits();
 
     /// Индекс устройства по id из действия кнопки («<id>_<команда>_<модификатор>»), -1 — нет.
     [[nodiscard]] int deviceIndexOf(const std::string& actionId) const;
@@ -109,6 +114,7 @@ private:
     QWidget* interactiveRemote_ = nullptr;
     QWidget* remoteControls_ = nullptr;
     QLabel* remoteHint_ = nullptr;
+    QLabel* missingProfile_ = nullptr;
     QLabel* context_ = nullptr;
     QComboBox* screenModes_ = nullptr;
 

@@ -131,16 +131,17 @@ int HID_WriteReport(const uint8_t *data)
     newdata[0] = 0x00;
     memcpy(&newdata[1], data, USB_PACKET_LENGTH);
     int err = hid_write(h_dev, newdata, USB_PACKET_LENGTH + 1);
-    if (err < 0) {
+    if (err != USB_PACKET_LENGTH + 1) {
         debug("Failed to write to device: %d (%ls)", err, hid_error(h_dev));
-        return err;
+        return LC_ERROR_WRITE;
     }
 
     return 0;
 }
 
-int HID_ReadReport(uint8_t *data, unsigned int timeout)
+int HID_ReadReport(uint8_t *data, unsigned int timeout, unsigned int *received)
 {
+    if (received) *received = 0;
     int err = hid_read_timeout(h_dev, data, USB_PACKET_LENGTH, timeout);
     if (err < 0) {
         debug("Failed to read from device: %d (%ls)", err, hid_error(h_dev));
@@ -150,6 +151,7 @@ int HID_ReadReport(uint8_t *data, unsigned int timeout)
         return 1;
     }
 
+    if (received) *received = static_cast<unsigned int>(err);
     return 0;
 }
 

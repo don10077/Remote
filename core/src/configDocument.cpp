@@ -426,7 +426,7 @@ const char* transportName(model::Transport transport) {
 }
 
 /// Конфигурация хаба в виде UserConfiguration.xml: редактор правит её как обычную.
-std::string hubAsXml(const model::RemoteConfig& config) {
+std::string hubAsXml(const model::RemoteConfig& config, std::string_view format = detail::kHubSourceFormat) {
     using detail::appendProperty;
     using detail::appendText;
     pugi::xml_document document;
@@ -435,7 +435,7 @@ std::string hubAsXml(const model::RemoteConfig& config) {
     pugi::xml_node properties = root.append_child("Properties");
     appendProperty(properties, "version", "1.0");
     // Признак формата — в самом файле: переживает сохранение, повторное открытие и отмену.
-    appendProperty(properties, detail::kSourceFormatProperty, detail::kHubSourceFormat);
+    appendProperty(properties, detail::kSourceFormatProperty, format);
     for (const auto& [key, value] : config.properties) {
         if (key == "version" || key == detail::kSourceFormatProperty) {
             continue;
@@ -450,6 +450,18 @@ std::string hubAsXml(const model::RemoteConfig& config) {
         appendText(node, "Manufacturer", device.manufacturer);
         appendText(node, "Model", device.model);
         appendText(node.append_child("Presentation"), "Label", device.label);
+        for (const auto& group : device.controlGroups) {
+            auto groupNode = node.child("Presentation").append_child("ControlGroup");
+            groupNode.append_attribute("name") = group.name.c_str();
+            for (const auto& button : group.buttons) {
+                auto item = groupNode.append_child("Button");
+                item.append_attribute("name") = button.name.c_str();
+                appendText(item, "Label", button.label);
+                appendText(item, "Icon", button.icon);
+                appendText(item, "Position", std::to_string(button.position));
+                appendText(item, "ActionId", button.actionId);
+            }
+        }
         if (!device.inputs.empty()) {
             pugi::xml_node state = node.append_child("States").append_child("State");
             appendText(state, "Id", "Input");
@@ -509,6 +521,10 @@ std::string hubAsXml(const model::RemoteConfig& config) {
 }
 
 } // namespace
+
+std::string detail::importedModelXml(const model::RemoteConfig& model, std::string_view format) {
+    return hubAsXml(model, format);
+}
 
 Result<ConfigDocument> ConfigDocument::fromHub(const formats::HubConfiguration& hub, std::string name) {
     // Правится как обычная конфигурация, но на пульт не пишется: формат — свойство SourceFormat
@@ -601,7 +617,7 @@ Result<ConfigDocument> ConfigDocument::open(const std::filesystem::path& path) {
         if (!document) {
             return wrapError(document.error(), "%1", {pathToUtf8(file)});
         }
-        document->impl_->ezhexFile = path;
+        if (!document->impl_->importedFromBinary) document->impl_->ezhexFile = path;
         return document;
     }
 

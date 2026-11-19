@@ -27,6 +27,7 @@
 #include "libconcord.h"
 #include "lc_internal.h"
 #include "hid.h"
+#include "read_flash_packet.h"
 #include "protocol.h"
 #include "remote_info.h"
 
@@ -111,7 +112,8 @@ int CRemote::GetIdentity(TRemoteInfo &ri, THIDINFO &hid, lc_callback cb,
     }
 
     uint8_t rsp[68];
-    if ((err = HID_ReadReport(rsp))) {
+    unsigned int received = 0;
+    if ((err = HID_ReadReport(rsp, 1000, &received))) {
         debug("Failed to read from remote");
         return 1;
     }
@@ -121,7 +123,8 @@ int CRemote::GetIdentity(TRemoteInfo &ri, THIDINFO &hid, lc_callback cb,
       */
     const unsigned int rx_len = rsp[0] & 0x0F;
 
-    if ((rsp[0] & 0xF0) != RESPONSE_VERSION_DATA ||
+    const unsigned int required = rx_len == 5 ? 5 : (rx_len == 7 ? 8 : 7);
+    if (received < required || (rsp[0] & 0xF0) != RESPONSE_VERSION_DATA ||
         (rx_len != 5 && rx_len != 7 && rx_len != 8)) {
         debug("Bogus ident response: %02X", rsp[1]);
         return LC_ERROR_INVALID_DATA_FROM_REMOTE;
@@ -147,6 +150,10 @@ int CRemote::GetIdentity(TRemoteInfo &ri, THIDINFO &hid, lc_callback cb,
 
     setup_ri_pointers(ri);
 
+    if (!ri.arch || !ri.flash || !ri.flash->size || !ri.arch->cookie ||
+        ri.arch->end_vector + 2 >= 1024)
+        return LC_ERROR_INVALID_DATA_FROM_REMOTE;
+
     uint8_t rd[1024];
     if ((err=ReadFlash(ri.arch->config_base, 1024, rd, ri.protocol, false))) {
         debug("Error reading first k of config data");
@@ -167,11 +174,17 @@ int CRemote::GetIdentity(TRemoteInfo &ri, THIDINFO &hid, lc_callback cb,
     ri.valid_config = (cookie == ri.arch->cookie);
 
     if (ri.valid_config) {
+        if (ri.arch->config_base < ri.arch->flash_base ||
+            ri.arch->config_base - ri.arch->flash_base >= (ri.flash->size << 10))
+            return LC_ERROR_INVALID_DATA_FROM_REMOTE;
         ri.max_config_size = (ri.flash->size << 10)
             - (ri.arch->config_base - ri.arch->flash_base);
         const uint32_t end = rd[ri.arch->end_vector]
                 | (rd[ri.arch->end_vector + 1] << 8)
                 | (rd[ri.arch->end_vector + 2] << 16);
+        const uint32_t base = ri.arch->config_base - ri.arch->flash_base;
+        if (end < base || ri.max_config_size < 4 || end - base > ri.max_config_size - 4)
+            return LC_ERROR_INVALID_DATA_FROM_REMOTE;
         ri.config_bytes_used =
             (end - (ri.arch->config_base - ri.arch->flash_base))
             + 4;
@@ -220,18 +233,14 @@ int CRemote::ReadFlash(uint32_t addr, const uint32_t len, uint8_t *rd,
      *
      * See specs/protocol.txt for more * info.
      */
-    // Protocol 0 (745, safe mode)
-    static const unsigned int dl0[16] =
-        { 0, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14 };
-    // All other protocols
-    static const unsigned int dlx[16] =
-        { 0, 0, 1, 2, 3, 4, 5, 6, 14, 30, 62, 0, 0, 0, 0, 0 };
-    const unsigned int *rxlenmap = protocol ? dlx : dl0;
 
     uint8_t *pr = rd;
     const uint32_t end = addr+len;
     unsigned int bytes_read = 0;
     int err = 0;
+
+    if (len == 0 || addr > 0xffffff || len > 0x1000000 - addr)
+        return LC_ERROR_INVALID_DATA_FROM_REMOTE;
 
     do {
         static uint8_t cmd[64] = {0};
@@ -249,11 +258,19 @@ int CRemote::ReadFlash(uint32_t addr, const uint32_t len, uint8_t *rd,
             break;
 
         uint8_t seq = 1;
+        unsigned int chunk_read = 0;
 
         do {
             uint8_t rsp[68];
-            if ((err = HID_ReadReport(rsp)))
+            unsigned int received = 0;
+            if ((err = HID_ReadReport(rsp, 1000, &received)))
                 break;
+
+            const int packet_len = harmony_flash_packet(rsp, received, protocol, seq, chunk_len - chunk_read);
+            if (packet_len < 0) {
+                err = LC_ERROR_INVALID_DATA_FROM_REMOTE;
+                break;
+            }
 
             const uint8_t r = rsp[0] & COMMAND_MASK;
 
@@ -265,8 +282,7 @@ int CRemote::ReadFlash(uint32_t addr, const uint32_t len, uint8_t *rd,
                     break;
                 }
                 seq += 0x11;
-                const unsigned int rxlen =
-                    rxlenmap[rsp[0] & LENGTH_MASK];
+                const unsigned int rxlen = static_cast<unsigned int>(packet_len);
                 if (rxlen) {
                     if (verify) {
                         if (memcmp(pr, rsp+2, rxlen)) {
@@ -280,6 +296,7 @@ int CRemote::ReadFlash(uint32_t addr, const uint32_t len, uint8_t *rd,
                     pr += rxlen;
                     addr += rxlen;
                     bytes_read += rxlen;
+                    chunk_read += rxlen;
                 }
             } else if (r == RESPONSE_DONE) {
                 break;

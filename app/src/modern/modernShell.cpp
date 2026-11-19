@@ -7,6 +7,8 @@
 #include <QApplication>
 #include <QDrag>
 #include <QDropEvent>
+#include <QEvent>
+#include <QTimer>
 #include <QFrame>
 #include <QHBoxLayout>
 #include <QLabel>
@@ -14,12 +16,15 @@
 #include <QMouseEvent>
 #include <QScrollArea>
 #include <QSizePolicy>
+#include <QSettings>
+#include <QSignalBlocker>
 #include <QSplitter>
 #include <QStackedWidget>
 #include <QStyle>
 #include <QToolButton>
 #include <QVBoxLayout>
 #include <algorithm>
+#include <cstdlib>
 #include <functional>
 
 using harmony::app::ModernShell;
@@ -287,6 +292,123 @@ ModernShell::ModernShell(QWidget* parent) : QWidget(parent) {
     splitter->setStretchFactor(1, 1);
     splitter->setSizes({280, 900});
     layout->addWidget(splitter, 1);
+    connect(splitter, &QSplitter::splitterMoved, this, [this] {
+        cancelNotice(); // splitterMoved приходит только от руки пользователя
+        saveSidePanelState();
+    });
+
+    // Язычок на перегородке перед правой панелью: сворачивает и возвращает её.
+    // Лежит поверх разделителя (а не внутри него), поэтому шире самой перегородки.
+    sidePanelToggle = new QToolButton(this);
+    sidePanelToggle->setObjectName("remotePanelToggle");
+    sidePanelToggle->setFixedSize(16, 56);
+    sidePanelToggle->setCursor(Qt::PointingHandCursor);
+    sidePanelToggle->hide();
+    sidePanelToggle->installEventFilter(this); // язычок можно и тянуть, как перегородку
+    connect(sidePanelToggle, &QToolButton::clicked, this, [this] {
+        if (toggleDragged) {
+            return; // отпустили после перетаскивания — это не щелчок
+        }
+        cancelNotice();
+        setSidePanelVisible(!isSidePanelVisible());
+    });
+
+    noticeTimer = new QTimer(this);
+    noticeTimer->setSingleShot(true);
+    connect(noticeTimer, &QTimer::timeout, this, [this] {
+        if (noticeActive) {
+            setSidePanelVisible(false); // состояние остаётся «временным» — в настройки не пишется
+        }
+    });
+    splitter->installEventFilter(this);
+}
+
+bool ModernShell::eventFilter(QObject* watched, QEvent* event) {
+    const auto type = event->type();
+    if (watched == sidePanelToggle && sidePanel != nullptr) {
+        auto* mouse = dynamic_cast<QMouseEvent*>(event);
+        if (type == QEvent::MouseButtonPress && mouse && mouse->button() == Qt::LeftButton) {
+            toggleGrabX = mouse->globalPosition().toPoint().x();
+            toggleDragged = false;
+        } else if (type == QEvent::MouseMove && mouse && (mouse->buttons() & Qt::LeftButton)) {
+            const int x = mouse->globalPosition().toPoint().x();
+            if (!toggleDragged && std::abs(x - toggleGrabX) > 4) {
+                // свёрнутую панель открываем только движением влево
+                if (!isSidePanelVisible() && x < toggleGrabX) {
+                    cancelNotice();
+                    setSidePanelVisible(true);
+                }
+                toggleDragged = isSidePanelVisible();
+            }
+            if (toggleDragged) {
+                // ширина панели = от курсора до правого края перегородки
+                const int at = splitter->mapFromGlobal(QPoint(x, 0)).x() + splitter->handleWidth() / 2;
+                const int wanted = splitter->width() - at;
+                const int low = sidePanel->minimumWidth();
+                cancelNotice();
+                if (isSidePanelVisible()) {
+                    if (wanted < low / 2) {
+                        setSidePanelVisible(false); // дотянули до края: сворачиваем
+                    } else {
+                        const auto sizes = splitter->sizes();
+                        const int total = sizes.value(0) + sizes.value(1) + sizes.value(2);
+                        const int panel = std::clamp(wanted, low, sidePanel->maximumWidth());
+                        splitter->setSizes({sizes.value(0), std::max(0, total - sizes.value(0) - panel), panel});
+                    }
+                }
+                saveSidePanelState();
+                return true;
+            }
+        }
+        return false;
+    }
+    if (type == QEvent::Resize || type == QEvent::Move || type == QEvent::LayoutRequest ||
+        type == QEvent::Show || type == QEvent::Hide) {
+        if (sidePanelToggle != nullptr && sidePanel != nullptr &&
+            (watched == splitter || (splitter->count() > 2 && watched == splitter->handle(2)))) {
+            QTimer::singleShot(0, this, [this] { positionToggle(); });
+        }
+    }
+    return QWidget::eventFilter(watched, event);
+}
+
+void ModernShell::positionToggle() {
+    if (sidePanelToggle == nullptr || sidePanel == nullptr || splitter->count() < 3) {
+        return;
+    }
+    const QRect area = splitter->geometry();
+    int x = 0;
+    if (isSidePanelVisible()) {
+        QWidget* handle = splitter->handle(2);
+        x = handle->mapTo(this, QPoint(handle->width() / 2, 0)).x() - sidePanelToggle->width() / 2;
+    } else {
+        x = area.right() - sidePanelToggle->width() + 1; // панель свёрнута: язычок у края окна
+    }
+    const int y = area.top() + (area.height() - sidePanelToggle->height()) / 2;
+    sidePanelToggle->move(x, y);
+    sidePanelToggle->raise();
+}
+
+void ModernShell::cancelNotice() {
+    noticeTimer->stop();
+    noticeActive = false;
+}
+
+void ModernShell::showSidePanelNotice(bool missing) {
+    if (sidePanel == nullptr) {
+        return;
+    }
+    if (missing) {
+        noticeActive = true;
+        setSidePanelVisible(true);
+        noticeTimer->start(3500);
+    } else if (noticeActive) {
+        // следующая конфигурация с профилем: возвращаем то, что выбрал пользователь
+        cancelNotice();
+        setSidePanelVisible(QSettings().value("window/remotePanelVisible", true).toBool());
+    } else {
+        noticeTimer->stop();
+    }
 }
 
 // ── pages ────────────────────────────────────────────────────────────────────
@@ -338,15 +460,60 @@ void ModernShell::setDocumentName(const QString& name) {
 
 void ModernShell::setSidePanel(QWidget* panel) {
     if (sidePanel != nullptr) {
-        rootLayout->removeWidget(sidePanel);
         sidePanel->hide();
+        sidePanel->setParent(this);
     }
     sidePanel = panel;
+    sidePanelToggle->setVisible(panel != nullptr);
     if (sidePanel != nullptr) {
-        sidePanel->setParent(this);
-        rootLayout->addWidget(sidePanel);
-        sidePanel->show();
+        // минимальную и максимальную ширину задаёт сама панель (по фото пульта)
+        splitter->addWidget(sidePanel);
+        splitter->setStretchFactor(2, 0);
+        splitter->setCollapsible(2, true);
+        splitter->handle(2)->installEventFilter(this);
+        QSettings settings;
+        restoringSidePanel = true;
+        sidePanelWidth = std::clamp(settings.value("window/remotePanelWidth", 460).toInt(), 180, 1600);
+        splitter->setSizes({280, 700, sidePanelWidth});
+        splitter->restoreState(settings.value("window/configSplitter").toByteArray());
+        setSidePanelVisible(settings.value("window/remotePanelVisible", true).toBool());
+        restoringSidePanel = false;
     }
+}
+
+bool ModernShell::isSidePanelVisible() const {
+    return sidePanel && !sidePanel->isHidden() && splitter->sizes().value(2) > 0;
+}
+
+void ModernShell::setSidePanelVisible(bool visible) {
+    if (!sidePanel) return;
+    const auto sizes = splitter->sizes();
+    if (!visible && !restoringSidePanel && !sidePanel->isHidden() && sizes.value(2) > 0)
+        sidePanelWidth = sizes[2];
+    sidePanel->setVisible(visible);
+    if (visible) {
+        // При скрытии Qt отдаёт ширину странице; при возврате восстанавливаем панель.
+        const int middle = std::max(200, splitter->width() - sizes.value(0) - sidePanelWidth - 8);
+        splitter->setSizes({sizes.value(0), middle, sidePanelWidth});
+    }
+    saveSidePanelState();
+}
+
+void ModernShell::saveSidePanelState() {
+    if (!sidePanel) return;
+    const bool visible = isSidePanelVisible();
+    const int width = splitter->sizes().value(2);
+    if (visible && !restoringSidePanel) sidePanelWidth = width;
+    // стрелка показывает, куда уйдёт панель по щелчку
+    sidePanelToggle->setText(visible ? QStringLiteral("›") : QStringLiteral("‹"));
+    sidePanelToggle->setToolTip(visible ? tr("Hide remote panel") : tr("Show remote panel"));
+    positionToggle();
+    QTimer::singleShot(0, this, [this] { positionToggle(); });
+    if (restoringSidePanel || noticeActive) return;
+    QSettings settings;
+    settings.setValue("window/configSplitter", splitter->saveState());
+    settings.setValue("window/remotePanelVisible", visible);
+    settings.setValue("window/remotePanelWidth", sidePanelWidth);
 }
 
 void ModernShell::setHeaderWidget(QWidget* widget) {

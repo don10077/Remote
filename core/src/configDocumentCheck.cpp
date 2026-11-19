@@ -572,7 +572,7 @@ private:
      * На 900 команда без кода не сработает.
      */
     void checkIrData(const model::Device& device) {
-        const bool hubDocument = document_.backend()->format() != ConfigFormat::Harmony900;
+        const bool hubDocument = document_.backend()->format() == ConfigFormat::Hub;
         std::vector<std::string> withoutCode;
         for (const auto& command : device.commands) {
             if (hubDocument && command.code.empty()) {

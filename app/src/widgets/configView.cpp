@@ -392,7 +392,19 @@ ConfigView::ConfigView(QWidget* parent) : QWidget(parent) {
 void ConfigView::setConfig(const model::RemoteConfig* config, const QString& name) {
     config_ = config;
     hasSelection_ = false;
+    selectedId_.clear();
+    buttonsTable_ = nullptr;
+    commandsTable_ = nullptr;
+    // Страницы доступны и без выбранной строки: данные прежнего документа
+    // не должны оставаться в них после открытия пустой конфигурации.
+    replaceTabs(activityTabs_, {});
+    replaceTabs(deviceTabs_, {});
+    shell_->setPageHeader(kActivities, tr("Activities"), {});
+    shell_->setPageHeader(kDevices, tr("Devices"), {});
     remote_->setConfig(config);
+    // Пульта конфигурации нет среди профилей программы: панель на пару секунд
+    // показывает об этом надпись и сворачивается.
+    shell_->showSidePanelNotice(config != nullptr && !remote_->hasProfile());
     shell_->setDocumentName(name.isEmpty() ? tr("no configuration") : name);
     fillSidebar();
     fillOverview();
@@ -475,7 +487,7 @@ ConfigView::Page ConfigView::currentPage() const {
 
 void ConfigView::selectFirst() {
     hasSelection_ = false;
-    if (config_ != nullptr) {
+    if (config_ != nullptr && config_->property("SourceFormat") != "BinaryHid") {
         // Сразу показываем первую «настоящую» активность — так экран не пустой.
         for (int i = 0; i < static_cast<int>(config_->activities.size()); ++i) {
             if (!config_->activities[static_cast<std::size_t>(i)].isPowerOff()) {
@@ -633,7 +645,8 @@ void ConfigView::fillOverview() {
         kOverview, modelName,
         labels::plural(static_cast<qsizetype>(config_->devices.size()), "device", "devices") +
             " · " +
-            labels::plural(static_cast<qsizetype>(config_->userActivityCount()), "activity", "activities"));
+            (config_->property("ActivitiesUndetermined") == "true" ? tr("activity count undetermined") :
+             labels::plural(static_cast<qsizetype>(config_->userActivityCount()), "activity", "activities")));
 
     // Дата обновления в файле: «20240802 154354» → «02.08.2024 15:43».
     QString updated = QString::fromStdString(config_->property("LastUpdated"));
@@ -677,7 +690,12 @@ void ConfigView::fillOverview() {
            "button sends to.</p>")
             .arg(updated.isEmpty() ? tr("unknown") : updated,
                  labels::plural(static_cast<qsizetype>(config_->commandCount()), "IR command", "IR commands")) +
-        powerOff);
+        powerOff + (config_->property("SourceFormat") == "BinaryHid"
+            ? tr("<h3>Imported HID configuration</h3><p>The original image is retained in the saved project. "
+                 "This project can be edited and saved; writing it back in the native HID format is not implemented.</p>") +
+              tr("<p>Some names and keys remain numbered. Conditional macros and activity start/stop logic "
+                 "are retained in the original image and have not been converted.</p>")
+            : QString()));
 }
 
 void ConfigView::replaceTabs(QTabWidget* tabs, const QList<QPair<QWidget*, QString>>& pages) {
@@ -751,6 +769,14 @@ void ConfigView::showActivity(int index) {
     }
     for (const auto& deviceId : activity.powerOff) {
         addDevice(deviceId, tr("turns off"));
+    }
+    if (config_->property("SourceFormat") == "BinaryHid") {
+        for (const auto& device : config_->devices) {
+            if (activity.usesDevice(device.id) &&
+                std::ranges::find(activity.powerOn, device.id) == activity.powerOn.end() &&
+                std::ranges::find(activity.powerOff, device.id) == activity.powerOff.end())
+                addDevice(device.id, tr("not determined by import"));
+        }
     }
     finishTable(devices);
 

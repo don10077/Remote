@@ -12,6 +12,7 @@ namespace harmony {
 namespace detail {
 
 ConfigFormat sourceFormat(const model::RemoteConfig& model) {
+    if (model.property(kSourceFormatProperty) == kBinaryHidSourceFormat) return ConfigFormat::BinaryHid;
     return model.property(kSourceFormatProperty) == kHubSourceFormat ? ConfigFormat::Hub : ConfigFormat::Harmony900;
 }
 

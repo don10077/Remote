@@ -17,6 +17,7 @@
 #include "harmony/core/ir/irEncode.h"
 #include "harmony/core/ir/irProtocol.h"
 #include "harmony/core/ir/nativeProtocol.h"
+#include <nlohmann/json.hpp>
 #include "harmony/core/macro.h"
 
 #include <algorithm>
@@ -467,6 +468,22 @@ Result<ConfigDocument::CommandDetails> ConfigDocument::commandDetails(const std:
         return makeError(ErrorCode::NotFound, "no command “%1”", {name});
     }
     CommandDetails details;
+    if (backend()->format() == ConfigFormat::BinaryHid && command->code.empty() && !command->native.empty()) {
+        const auto raw = nlohmann::json::parse(command->native, nullptr, false);
+        if (!raw.is_object() || !raw.contains("format") || raw["format"] != "HarmonyBinaryIR" ||
+            !raw.contains("durations") || !raw["durations"].is_array())
+            return makeError(ErrorCode::Format, "the imported HID command has no readable waveform");
+        try {
+            details.signal.frequency = static_cast<std::uint32_t>(raw.value("frequency", 0.0));
+            details.signal.durations = raw.at("durations").get<std::vector<int>>();
+        } catch (const nlohmann::json::exception&) {
+            return makeError(ErrorCode::Format, "the imported HID command waveform is invalid");
+        }
+        if (details.signal.durations.empty())
+            return makeError(ErrorCode::Unsupported, "the waveform of this native HID command has not been decoded");
+        details.decoded = ir::decode(details.signal);
+        return details;
+    }
     if (command->protocol == -1) {
         // Выученная: <Code>0xFFFF{номер}00</Code>, сигнал — в SsIr.bin.
         const auto& rawFile = impl_->ir->ssIr;

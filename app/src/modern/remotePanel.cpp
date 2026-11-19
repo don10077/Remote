@@ -164,9 +164,18 @@ void RemotePanel::createView() {
     layout->addItem(new QSpacerItem(scroll->sizeHint().width() + 8, 0,
                                     QSizePolicy::Preferred, QSizePolicy::Minimum), 0, 1);
     scroll->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Expanding);
-    layout->addWidget(scroll, 0, 0, 1, 2);
+    // Фото занимает только правую колонку: слева остаётся место под подписи.
+    layout->addWidget(scroll, 0, 1);
     scroll->lower();
     interactiveRemote_ = scroll;
+
+    missingProfile_ = new QLabel(tr("Remote profile has not been created"), this);
+    missingProfile_->setObjectName("missingRemoteProfile");
+    missingProfile_->setWordWrap(true);
+    missingProfile_->setAlignment(Qt::AlignCenter);
+    missingProfile_->setMargin(24);
+    missingProfile_->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Expanding);
+    layout->addWidget(missingProfile_, 0, 0, 1, 2);
 
     connect(screenModes_, &QComboBox::currentIndexChanged, this, [this](int index) {
         remote_->selectScreenMode(screenModes_->itemData(index).toString());
@@ -198,6 +207,39 @@ void RemotePanel::createView() {
     connect(remote_, &RemoteView::softDropped, this, &RemotePanel::softButtonDropped);
     connect(remote_, &RemoteView::commandDropped, this, &RemotePanel::commandDropped);
     connect(remote_, &RemoteView::commandDroppedOnSoft, this, &RemotePanel::commandDroppedOnSoft);
+}
+
+bool RemotePanel::hasProfile() const {
+    return remote_->hasProfile();
+}
+
+void RemotePanel::updateWidthLimits() {
+    constexpr int kColumn = 142;    // колонка подписей (132) + зазор
+    constexpr int kMinPhoto = 110;  // уже этого фото не читается
+    if (!remote_->hasProfile()) {
+        setMinimumWidth(220);
+        setMaximumWidth(420);
+        return;
+    }
+    auto* grid = qobject_cast<QGridLayout*>(layout());
+    if (remote_->isLandscape()) {
+        // Широкий пульт, как и раньше, занимает панель на всю ширину (подписи лежат
+        // поверх него). Чтобы подписи не закрывали фото сильнее, ширину ограничиваем
+        // с обеих сторон: не уже kColumn + 320 и не шире натурального фото (до 760).
+        constexpr int kMaxLandscape = 760;
+        grid->addWidget(interactiveRemote_, 0, 0, 1, 2);
+        interactiveRemote_->lower();
+        setMinimumWidth(kColumn + 320);
+        setMaximumWidth(std::max(kColumn + 320, std::min(remote_->sizeHint().width(), kMaxLandscape)));
+        return;
+    }
+    // Высокий пульт: фото правее колонки; шире натурального размера панель не растёт.
+    grid->addWidget(interactiveRemote_, 0, 1);
+    interactiveRemote_->lower();
+    const int photo = std::max(kMinPhoto, remote_->minimumSizeHint().width());
+    const int natural = std::max(photo, remote_->sizeHint().width());
+    setMinimumWidth(kColumn + photo);
+    setMaximumWidth(kColumn + natural + 8);
 }
 
 void RemotePanel::setConfig(const model::RemoteConfig* config) {
@@ -304,9 +346,12 @@ void RemotePanel::refresh() {
     const auto id = config_ ? config_->property("HarmonyTargetRemote") : std::string();
     const bool editable = !RemoteView::hardKeyIds(QString::fromStdString(id)).isEmpty();
     remote_->setRemoteProfile(QString::fromStdString(id));
+    const bool hasProfile = remote_->hasProfile();
     remoteHint_->setVisible(editable);
-    interactiveRemote_->setVisible(true);
-    remoteControls_->setVisible(editable);
+    interactiveRemote_->setVisible(hasProfile);
+    remoteControls_->setVisible(hasProfile);
+    missingProfile_->setVisible(!hasProfile);
+    updateWidthLimits();
     QStringList names;
     deviceOrder_.clear();
     if (config_) {

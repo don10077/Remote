@@ -355,6 +355,10 @@ Result<formats::Bytes> ConcordTransfer::read(const ProgressHandler& progress) {
     if (!blob || !size || size > maxFileSize) return makeError(ErrorCode::Format, "Invalid remote configuration size");
     formats::Bytes bytes(blob, blob + size);
     if (progress && !progress(Stage::Read, size, size)) return makeError(ErrorCode::Cancelled, "Reading cancelled");
+    if (!impl_->info.mh) {
+        if (auto frame = checkGspmFrame(bytes, impl_->info.remote.identity.architecture); !frame)
+            return std::unexpected(frame.error());
+    }
     if (impl_->info.mh) return mhBackup(std::move(bytes), impl_->info.remote.identity.skin);
     auto identity = impl_->info.remote.identity;
     identity.architecture = impl_->info.protocol; // EZHex PROTOCOL is not always architecture on old models.

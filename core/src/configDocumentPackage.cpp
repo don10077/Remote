@@ -14,6 +14,8 @@
 #include "configDocumentImpl.h"
 #include "harmony/core/remotePreferences.h"
 #include "harmony/core/remoteProfile.h"
+#include "harmony/core/formats/binaryHid.h"
+#include "harmony/core/remoteCatalog.h"
 
 #include <array>
 #include <ctime>
@@ -140,6 +142,27 @@ Result<ConfigDocument> ConfigDocument::fromEzHex(std::span<const std::uint8_t> e
     if (!container) {
         return std::unexpected(std::move(container.error()));
     }
+    // Classic HID stores a binary image inside EZHex, not the XML ZIP used by 900.
+    const std::string_view signature(reinterpret_cast<const char*>(container->payload.data()),
+                                     std::min<std::size_t>(container->payload.size(), 4));
+    if (signature == "GSPM" || signature == "AHCM" || signature == "TPTP") {
+        auto model = formats::importBinaryHid(container->payload);
+        if (!model) return std::unexpected(model.error());
+        for (const auto& remote : remoteCatalog()) {
+            if (std::ranges::find(remote.skins, container->identity.skin) != remote.skins.end()) {
+                model->properties.emplace_back("HarmonyTargetRemote", remote.id);
+                break;
+            }
+        }
+        auto document = fromXml(detail::importedModelXml(*model, detail::kBinaryHidSourceFormat), std::move(name));
+        if (!document) return document;
+        auto archive = skeleton(0);
+        archive.entries.push_back(formats::makeEntry("source/Original.EZHex", 0100644, ezhex, 0));
+        document->impl_->package = std::make_shared<const detail::Package>(detail::Package{
+            .header = container->header, .identity = container->identity, .archive = std::move(archive)});
+        document->impl_->importedFromBinary = true;
+        return document;
+    }
     auto archive = formats::readZip(container->payload);
     if (!archive) {
         return std::unexpected(std::move(archive.error()));
@@ -260,6 +283,7 @@ Result<void> ConfigDocument::saveAsEzHex(const std::filesystem::path& file) {
         impl_->actionLists = std::move(saved->impl_->actionLists);
     }
     impl_->ezhexFile = file;
+    impl_->importedFromBinary = false;
     impl_->folder.clear();
     const std::u8string stem = file.stem().u8string();
     impl_->name.assign(stem.begin(), stem.end());

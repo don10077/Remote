@@ -67,6 +67,8 @@ public:
     explicit RemoteView(QWidget* parent = nullptr);
     /** Загрузить фото и геометрию модели из remote.json; пустой id — пульт по умолчанию (первый в каталоге). */
     void setRemoteProfile(const QString& id);
+    /// Есть фотография и корректно загруженные зоны профиля выбранной модели.
+    [[nodiscard]] bool hasProfile() const { return !photo.isNull() && !modelZones.isEmpty(); }
     /// Снимок текущего экрана без корпуса для редактора зон; пустой при отсутствии экрана.
     QPixmap screenPreview(const QSize& size);
     /**

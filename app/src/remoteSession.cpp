@@ -150,6 +150,10 @@ void RemoteSession::readCapture() {
         transport::ConcordTransfer session;
         auto info = session.connect("auto");
         if (!info) { fail(info.error()); return; }
+        journal::info(tr("Reading %1: model %2, architecture %3, protocol %4, skin %5, transport %6")
+            .arg(QString::fromStdString(info->remote.model), QString::fromStdString(info->modelId))
+            .arg(info->remote.identity.architecture).arg(info->protocol).arg(info->remote.identity.skin)
+            .arg(info->network ? QStringLiteral("USB network") : QStringLiteral("USB HID")));
         auto data = session.read(progressHandler());
         if (!data) { fail(data.error()); return; }
         const auto capture = transport::makeCapture(*info, std::move(*data));

@@ -20,3 +20,7 @@ Additional Harmony patches:
 - Use HIDAPI's target-provided include path.
 - Disable upstream HTTPS posting (LC_ERROR_UNSUPP); retain shared XML helpers.
   Configuration transfer is local and does not require libcurl.
+- Reject short HID writes/replies and invalid classic identity lengths; validate
+  flash packet lengths, sequences and exact chunk completion before copying data.
+- Bound classic configuration end vectors by the detected flash capacity before
+  allocating the readback buffer.
