@@ -10,8 +10,8 @@
 cmake_minimum_required(VERSION 3.28)
 
 project(harmony
-    VERSION 0.6.0
-    DESCRIPTION "Редактор конфигурации пульта Logitech Harmony 900"
+    VERSION 0.7.0
+    DESCRIPTION "Редактор конфигурации пультов Logitech Harmony"
     LANGUAGES C CXX
 )
 
