@@ -37,9 +37,14 @@ env:
   # Qt для Linux и macOS: последний LTS. Windows берёт Qt из MSYS2 — там всегда свежий.
   QT_VERSION: "6.12.0"
 
+# Коммиты выпуска называются «Release Harmony <версия>» и отправляются вместе с тегом v*.
+# Для них пропускаем задания push по ветке: все проверки и пакеты выполняет запуск по тегу.
+# Обычные коммиты, pull request и ручные запуски проходят полный CI.
+
 jobs:
   # --- Ядро без Qt, предупреждения = ошибки: самая быстрая проверка ---------------
   core-only:
+    if: github.event_name != 'push' || startsWith(github.ref, 'refs/tags/') || !startsWith(github.event.head_commit.message, 'Release Harmony ')
     name: Core (GCC, -Werror)
     runs-on: ubuntu-24.04
     steps:
@@ -67,6 +72,7 @@ jobs:
   # --- Ядро на Clang с libc++ — той же стандартной библиотекой, что на macOS ----
   # libc++ строже libstdc++ к include: ловит забытый <algorithm> за минуту, а не в сборке macOS.
   core-libcxx:
+    if: github.event_name != 'push' || startsWith(github.ref, 'refs/tags/') || !startsWith(github.event.head_commit.message, 'Release Harmony ')
     name: Core (Clang, libc++)
     runs-on: ubuntu-24.04
     steps:
@@ -98,6 +104,7 @@ jobs:
 
   # --- Ядро и тесты с AddressSanitizer и UndefinedBehaviorSanitizer (GCC) -------
   asan-ubsan:
+    if: github.event_name != 'push' || startsWith(github.ref, 'refs/tags/') || !startsWith(github.event.head_commit.message, 'Release Harmony ')
     name: Core (ASan + UBSan)
     runs-on: ubuntu-24.04
     steps:
@@ -124,6 +131,7 @@ jobs:
 
   # --- libFuzzer: короткий прогон разборщиков (по 60 с на цель) ---------------
   fuzz:
+    if: github.event_name != 'push' || startsWith(github.ref, 'refs/tags/') || !startsWith(github.event.head_commit.message, 'Release Harmony ')
     name: Fuzz (libFuzzer, 60 s)
     runs-on: ubuntu-24.04
     steps:
@@ -159,6 +167,7 @@ jobs:
 
   # --- Linux: приложение, тесты, AppImage ------------------------------------
   linux:
+    if: github.event_name != 'push' || startsWith(github.ref, 'refs/tags/') || !startsWith(github.event.head_commit.message, 'Release Harmony ')
     name: Linux (AppImage)
     runs-on: ubuntu-24.04
     steps:
@@ -207,6 +216,7 @@ jobs:
 
   # --- Windows (MSYS2 UCRT64, как build.cmd): тесты, установщик, zip -----------
   windows:
+    if: github.event_name != 'push' || startsWith(github.ref, 'refs/tags/') || !startsWith(github.event.head_commit.message, 'Release Harmony ')
     name: Windows (installer)
     runs-on: windows-2025
     defaults:
@@ -285,6 +295,7 @@ jobs:
 
   # --- macOS: универсальный бандл и DMG --------------------------------------
   macos:
+    if: github.event_name != 'push' || startsWith(github.ref, 'refs/tags/') || !startsWith(github.event.head_commit.message, 'Release Harmony ')
     name: macOS (DMG)
     runs-on: macos-15
     steps:
