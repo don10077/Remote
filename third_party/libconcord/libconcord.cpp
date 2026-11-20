@@ -1091,13 +1091,14 @@ int _mh_write_config_to_file(uint8_t *in, uint32_t size, char *file_name)
         if (zip_err == ZIP_ER_EXISTS) {
             printf("Error: file %s already exists\n", file_name);
         } else {
-            char error_str[100];
-            zip_error_to_str(error_str, 100, zip_err, errno);
-            debug("Failed to create zip file %s (%s)", file_name, error_str);
+            zip_error err;
+            zip_error_init_with_code(&err, zip_err);
+            debug("Failed to create zip file %s (%s)", file_name, zip_error_strerror(&err));
+            zip_error_fini(&err);
         }
         return LC_ERROR_OS_FILE;
     }
-    int index;
+    zip_int64_t index;
 
     // Write XML
     extern const char *mh_config_header;
@@ -1116,7 +1117,7 @@ int _mh_write_config_to_file(uint8_t *in, uint32_t size, char *file_name)
         debug("Failed to create zip_source_buffer for XML file");
         return LC_ERROR_OS_FILE;
     }
-    index = zip_add(zip, "Description.xml", xml);
+    index = zip_file_add(zip, "Description.xml", xml, 0);
     if (index == -1) {
         debug("Error writing XML to zip file");
         zip_source_free(xml);
@@ -1129,7 +1130,7 @@ int _mh_write_config_to_file(uint8_t *in, uint32_t size, char *file_name)
         debug("Failed to create zip_source_buffer for EzHex file");
         return LC_ERROR_OS_FILE;
     }
-    index = zip_add(zip, "Result.EzHex", ezhex);
+    index = zip_file_add(zip, "Result.EzHex", ezhex, 0);
     if (index == -1) {
         debug("Error writing EzHex to zip file");
         zip_source_free(ezhex);

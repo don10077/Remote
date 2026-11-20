@@ -352,7 +352,7 @@ static constexpr GlyphName kGlyphNames[] = {
     {0x7b04d3b6b4b7c373ULL, "x"},
     {0x7b066fb60acb1686ULL, "8"},
     {0x7b19dbd41616b2dfULL, "B"},
-    {0x7b83f67baeef9902ULL, "I"},
+    {0x7b83f67baeef9902ULL, "l"},
     {0x7d246b7ffdec1940ULL, "3"},
     {0x7d5948b7b4afe178ULL, "u"},
     {0x7fa34c53469f2a78ULL, "G"},

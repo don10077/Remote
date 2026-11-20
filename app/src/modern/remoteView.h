@@ -141,10 +141,12 @@ public:
     /** картинка под курсором при перетаскивании: подпись в «таблетке» экранной кнопки */
     static QPixmap dragPixmap(const QString& text, QFont font);
 
-    /** translated, human readable name of a key id (for tooltips / lists) */
+    /** имя ключа для подписей и списков: всегда английское, как `id` из общего списка */
     static QString keyName(const QString& id);
     /** Командные кнопки из зон модели; пустой id — пульт по умолчанию, без зон — пустой список. */
     static QStringList hardKeyIds(const QString& remoteId = {});
+    /** Имена физических клавиш из общего списка скан-кодов; не зависит от профиля модели. */
+    static QStringList sharedKeyIds();
     /** Переведённое название режима экрана ("transport" → «Мультимедиа»); неизвестный — как есть. */
     static QString screenModeName(const QString& mode);
 

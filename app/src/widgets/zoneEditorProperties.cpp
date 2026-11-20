@@ -126,7 +126,8 @@ void ZoneEditorDialog::refreshProperties() {
         radiusBox_->setValue(z.value("radius").toDouble());
         commandBox_->clear();
         auto keys = RemoteView::hardKeyIds(model_);
-        for (const auto& key : keys) commandBox_->addItem(RemoteView::keyName(key) + " (" + key + ")", key);
+        if (keys.isEmpty()) keys = RemoteView::sharedKeyIds();
+        for (const auto& key : keys) commandBox_->addItem(key, key);
         const QString key = z.value("key").toString();
         commandBox_->setCurrentIndex(commandBox_->findData(key));
         if (commandBox_->currentIndex() < 0) commandBox_->setEditText(key);
@@ -141,7 +142,7 @@ void ZoneEditorDialog::refreshProperties() {
         buttonBox_->addItem(tr("None (touch screen)"), "");
         for (const auto& value : layers_.first().current.zones) {
             const QString id = value.toObject().value("id").toString();
-            buttonBox_->addItem(RemoteView::keyName(id) + " (" + id + ")", id);
+            buttonBox_->addItem(id, id);
         }
         const QString button = z.value("button").toString();
         if (buttonBox_->findData(button) < 0) buttonBox_->addItem(button, button);

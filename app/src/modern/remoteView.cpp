@@ -7,6 +7,7 @@
 #include "remoteViewShared.h"
 #include "../remoteResources.h"
 
+#include "harmony/core/keyNames.h"
 #include "harmony/core/remoteProfile.h"
 
 #include <QJsonArray>
@@ -348,58 +349,17 @@ QStringList RemoteView::hardKeyIds(const QString& remoteId) {
     return keys;
 }
 
+QStringList RemoteView::sharedKeyIds() {
+    QStringList keys;
+    for (const auto& entry : harmony::keyNames())
+        keys.append(QString::fromUtf8(entry.name.data(), static_cast<int>(entry.name.size())));
+    return keys;
+}
+
 QString RemoteView::keyName(const QString& id) {
-    static const QHash<QString, const char*> names = {
-        {"Off", QT_TR_NOOP("Off")},
-        {"Help", QT_TR_NOOP("Help")},
-        {"Activities", QT_TR_NOOP("Activities")},
-        {"Options", QT_TR_NOOP("Options")},
-        {"Devices", QT_TR_NOOP("Devices")},
-        {"PageLeft", QT_TR_NOOP("Previous screen page")},
-        {"PageRight", QT_TR_NOOP("Next screen page")},
-        {"Menu", QT_TR_NOOP("Menu")},
-        {"Exit", QT_TR_NOOP("Exit")},
-        {"Info", QT_TR_NOOP("Info")},
-        {"Guide", QT_TR_NOOP("Guide")},
-        {"UpArrow", QT_TR_NOOP("Page up")},
-        {"DownArrow", QT_TR_NOOP("Page down")},
-        {"Red", QT_TR_NOOP("Red")},
-        {"Green", QT_TR_NOOP("Green")},
-        {"Yellow", QT_TR_NOOP("Yellow")},
-        {"Blue", QT_TR_NOOP("Blue")},
-        {"VolumeUp", QT_TR_NOOP("Volume +")},
-        {"VolumeDown", QT_TR_NOOP("Volume −")},
-        {"VolumeMute", QT_TR_NOOP("Mute")},
-        {"ChannelUp", QT_TR_NOOP("Channel +")},
-        {"ChannelDown", QT_TR_NOOP("Channel −")},
-        {"PrevChannel", QT_TR_NOOP("Previous channel")},
-        {"DirectionUp", QT_TR_NOOP("Up")},
-        {"DirectionDown", QT_TR_NOOP("Down")},
-        {"DirectionLeft", QT_TR_NOOP("Left")},
-        {"DirectionRight", QT_TR_NOOP("Right")},
-        {"Select", QT_TR_NOOP("OK")},
-        {"Rewind", QT_TR_NOOP("Rewind")},
-        {"FastForward", QT_TR_NOOP("Fast forward")},
-        {"SkipBack", QT_TR_NOOP("Back")},
-        {"SkipForward", QT_TR_NOOP("Forward")},
-        {"Play", QT_TR_NOOP("Play")},
-        {"Pause", QT_TR_NOOP("Pause")},
-        {"Stop", QT_TR_NOOP("Stop")},
-        {"Record", QT_TR_NOOP("Record")},
-        {"Slow", QT_TR_NOOP("Slow")},
-        {"NumberStar", QT_TR_NOOP("* (star)")},
-        {"NumberHash", QT_TR_NOOP("# (hash)")},
-        {"Settings", QT_TR_NOOP("Settings")},
-        {"NumberPlus", QT_TR_NOOP("+ (clear)")},
-        {"NumberEnter", QT_TR_NOOP("E (enter)")},
-    };
-    if (id.startsWith("Number") && id.size() == 7) {
-        return tr("Digit %1").arg(id.back());
-    }
-    auto it = names.find(id);
-    if (it != names.end()) {
-        return tr(it.value());
-    }
+    // Имя кнопки показывается как есть: id зоны — всегда английское имя из общего списка
+    // (harmony/core/keyNames.h), и переводить его нельзя, иначе оно перестанет совпадать
+    // с именами в конфигурациях других пультов.
     return id;
 }
 

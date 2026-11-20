@@ -2,7 +2,9 @@
 #include "harmony/core/formats/binaryHid.h"
 #include "harmony/core/formats/container.h"
 #include "harmony/core/formats/gspmFonts.h"
+#include "harmony/core/keyNames.h"
 #include <algorithm>
+#include <cctype>
 #include <cstring>
 #include <map>
 #include <nlohmann/json.hpp>
@@ -72,6 +74,24 @@ private:
     std::optional<unsigned> activityVariable_;
     unsigned idle_ = 0;
     std::map<unsigned, std::string> alphabet_;
+    std::set<unsigned> ambiguousIl_;                  ///< Коды, неотличимые между «I» и «l»
+    std::map<unsigned, std::string> softLabels_;      ///< (устройство << 8 | команда) → подпись экранной кнопки
+
+    /// Подписи экранных кнопок страницы: текст, сгруппированный по четвертям экрана (ЛВ, ПВ, ЛН, ПН).
+    static std::vector<std::string> softLabels(const std::vector<Text>& texts) {
+        std::string quadrant[4];
+        for (const auto& item : texts) {
+            if (item.y <= 16 || item.y >= 110 || item.value.empty())
+                continue; // заголовок со счётчиком страниц и нижняя строка подсказки
+            auto& cell = quadrant[(item.y >= 60 ? 2 : 0) + (item.x >= 64 ? 1 : 0)];
+            cell += (cell.empty() ? "" : " ") + item.value;
+        }
+        std::vector<std::string> out;
+        for (auto& cell : quadrant)
+            if (!cell.empty())
+                out.push_back(std::move(cell));
+        return out;
+    }
 
     /// Decodes the monochrome glyph representation used by the 5xx family.
     GspmGlyph monoGlyph(std::size_t at) const {
@@ -151,9 +171,12 @@ private:
                 }
             }
         }
-        for (const auto& [code, letters] : candidates)
+        for (const auto& [code, letters] : candidates) {
             if (letters.size() == 1)
                 alphabet_[code] = *letters.begin();
+            else if (letters == std::set<std::string>{"I", "l"})
+                ambiguousIl_.insert(code); // заглавная «I» и строчная «l» рисуются одинаково
+        }
     }
     std::string text(std::size_t& at) const {
         std::string result;
@@ -164,7 +187,14 @@ private:
             if ((code & 128) && frame_.family->architecture != 8)
                 code = ((code & 127) << 8) | number(at++, 1);
             const auto letter = alphabet_.find(code);
-            result += letter == alphabet_.end() ? "?" : letter->second;
+            if (letter != alphabet_.end())
+                result += letter->second;
+            else if (ambiguousIl_.contains(code)) {
+                // «I» и «l» неразличимы по форме: после буквы — строчная «l» («Blu»), иначе заглавная «I» («Input»).
+                const bool afterLetter = !result.empty() && std::isalpha(static_cast<unsigned char>(result.back()));
+                result += afterLetter ? "l" : "I";
+            } else
+                result += "?";
         }
         throw std::runtime_error("Unterminated HID text");
     }
@@ -433,6 +463,14 @@ private:
                 {"blocks", all},
                 {"offset", start}};
     }
+    /// Имя физической клавиши по скан-коду — из общего списка (harmony/core/keyNames.h),
+    /// одного для всех архитектур: коды клавиш между семействами общие. Имя не зависит от
+    /// профиля модели: в самом файле имён клавиш нет. Таблица плотная 0x01…0x3F, поэтому
+    /// коды без подтверждения получают UnknownKey<код>; «Scan<N>» остаётся только для
+    /// кода 0x00 и для кодов выше таблицы.
+    std::string hardKeyName(unsigned scan) const {
+        return harmony::keyLabel(scan);
+    }
     void addButtons(std::vector<model::ControlGroup>& groups, const std::vector<Key>& bindings,
                     const model::RemoteConfig& config, bool screen) const {
         model::ControlGroup group;
@@ -450,14 +488,105 @@ private:
             const auto& name = owner.commands[command].name;
             model::Button button;
             if (!screen)
-                button.name = "Scan" + std::to_string(key.tag & 63);
-            button.label = name;
+                button.name = hardKeyName(key.tag & 63);
+            const auto shown = softLabels_.find(codes[0]);
+            button.label = shown == softLabels_.end() ? name : shown->second;
             button.position = static_cast<int>(group.buttons.size());
             button.actionId = owner.id + "_" + name + "_Press";
             group.buttons.push_back(std::move(button));
         }
         if (!group.buttons.empty())
             groups.push_back(std::move(group));
+    }
+    /// Имена команд в файле не хранятся; настоящие подписи есть только у экранных кнопок.
+    /// Команде с подписью даём имя из неё (без пробелов, как у Logitech: «PowerToggle»).
+    void nameCommands(model::RemoteConfig& result, const std::vector<Mode>& modes) {
+        for (const auto& mode : modes) {
+            for (const auto& page : mode.pages) {
+                std::vector<const Key*> soft;
+                for (const auto& key : page.keys)
+                    if ((key.tag >> 6) == 2)
+                        soft.push_back(&key);
+                const auto labels = softLabels(page.texts);
+                if (soft.size() != labels.size())
+                    continue; // пустые ячейки: соответствие неоднозначно
+                for (std::size_t i = 0; i < soft.size(); ++i) {
+                    const auto codes = commands(soft[i]->action);
+                    if (codes.size() == 1)
+                        softLabels_.emplace(codes[0], labels[i]);
+                }
+            }
+        }
+        // Команда, которую вешают на физическую клавишу, обычно носит её имя (VolumeUp, Play).
+        std::map<unsigned, std::string> hardNames;
+        for (const auto& mode : modes)
+            for (const auto& key : mode.keys) {
+                if ((key.tag >> 6) != 2)
+                    continue;
+                const auto codes = commands(key.action);
+                const auto key_name = hardKeyName(key.tag & 63);
+                if (codes.size() == 1 && harmony::keyNameConfirmed(key.tag & 63))
+                    hardNames.emplace(codes[0], key_name);
+            }
+        for (std::size_t d = 0; d < result.devices.size(); ++d) {
+            std::set<std::string> used;
+            for (std::size_t c = 0; c < result.devices[d].commands.size(); ++c)
+                used.insert(result.devices[d].commands[c].name);
+            for (std::size_t c = 0; c < result.devices[d].commands.size(); ++c) {
+                const auto id = static_cast<unsigned>(d << 8 | c);
+                const auto label = softLabels_.find(id);
+                const auto hard = hardNames.find(id);
+                if (label == softLabels_.end() && hard == hardNames.end())
+                    continue;
+                std::string name;
+                if (label != softLabels_.end()) {
+                    for (const char letter : label->second)
+                        if (letter != ' ')
+                            name += letter;
+                } else {
+                    name = hard->second;
+                }
+                if (name.empty() || name.find('?') != std::string::npos)
+                    continue; // подпись не распознана до конца — оставляем номер
+                std::string unique = name;
+                for (int n = 2; used.contains(unique); ++n)
+                    unique = name + "_" + std::to_string(n);
+                used.erase(result.devices[d].commands[c].name);
+                used.insert(unique);
+                result.devices[d].commands[c].name = std::move(unique);
+            }
+        }
+    }
+    /// Команда с собственной подписью (например, «Return»), висящая на клавише с другим именем
+    /// («Exit»), остаётся под своим именем. Расхождение — предупреждение: имена различаются, и
+    /// сверить их в файле не с чем. Профиль пульта здесь ни при чём: имя клавиши даёт общий
+    /// список, а не наличие модели в ресурсах.
+    void warnKeyMismatch(model::RemoteConfig& result, const std::vector<Mode>& modes) const {
+        std::set<std::string> reported;
+        for (const auto& mode : modes)
+            for (const auto& key : mode.keys) {
+                if ((key.tag >> 6) != 2)
+                    continue;
+                const auto codes = commands(key.action);
+                if (codes.size() != 1 || (codes[0] >> 8) >= result.devices.size())
+                    continue;
+                const auto& device = result.devices[codes[0] >> 8];
+                if ((codes[0] & 255) >= device.commands.size())
+                    continue;
+                const auto& command = device.commands[codes[0] & 255].name;
+                const unsigned scan = key.tag & 63;
+                const auto key_name = hardKeyName(scan);
+                const bool unknown = !harmony::keyNameConfirmed(scan);
+                const bool generic = command.starts_with("Command");
+                if (!unknown && (generic || command == key_name))
+                    continue;
+                const auto text = unknown ? "Клавиша " + key_name + " (скан-код " + std::to_string(scan) +
+                                                ") не имеет подтверждённого имени по данным (команда " + command + ")"
+                                          : "Команда " + command + " назначена на клавишу " + key_name +
+                                                ": имя команды не совпадает с общим именем клавиши";
+                if (reported.insert(text).second)
+                    result.properties.emplace_back("ImportWarning", text);
+            }
     }
     void readStates(model::RemoteConfig& result) {
         const auto table = section(13);
@@ -547,13 +676,22 @@ private:
                             !modes[navigation.value].title.empty())
                             activity.label = modes[navigation.value].title;
                     activity.type = "Generic";
-                    std::set<unsigned> devices;
+                    std::map<unsigned, unsigned> devices; // устройство → число назначенных кнопок
                     for (const auto& binding : bindings)
                         for (const auto command : commands(binding.action))
-                            devices.insert(command >> 8);
-                    for (const auto device : devices)
-                        if (device < result.devices.size())
-                            activity.roles.push_back({"DEFAULT", result.devices[device].id});
+                            ++devices[command >> 8];
+                    // Устройства активности включаются вместе с ней; роль DEFAULT — одна, у устройства
+                    // с наибольшим числом кнопок (остальные роли в файле не подписаны).
+                    const std::pair<const unsigned, unsigned>* main = nullptr;
+                    for (const auto& entry : devices) {
+                        if (entry.first >= result.devices.size())
+                            continue;
+                        activity.powerOn.push_back(result.devices[entry.first].id);
+                        if (!main || entry.second > main->second)
+                            main = &entry;
+                    }
+                    if (main)
+                        activity.roles.push_back({"DEFAULT", result.devices[main->first].id});
                     addButtons(activity.controlGroups, bindings, result, false);
                     result.activities.push_back(std::move(activity));
                 }
@@ -593,6 +731,8 @@ model::RemoteConfig Reader::read() {
     }
     readStates(result);
     const auto modes = readModes();
+    nameCommands(result, modes);
+    warnKeyMismatch(result, modes);
     for (std::size_t device = 0; device < result.devices.size(); ++device) {
         std::size_t best = 0;
         const Mode* owned = nullptr;

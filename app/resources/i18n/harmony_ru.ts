@@ -42,11 +42,6 @@ The configuration from %1 will be copied into this archive.</source>
       <translation> — совпало команд: %1 из %2</translation>
     </message>
     <message>
-      <location filename="../../../app/src/modern/remoteView.cpp" />
-      <source># (hash)</source>
-      <translation># (решётка)</translation>
-    </message>
-    <message>
       <location filename="../../../app/src/mainWindowRemote.cpp" />
       <source>%1
 
@@ -367,6 +362,11 @@ The configuration from %1 will be copied into this archive.</source>
       <translation>%1: нет корневого элемента &lt;Root&gt;</translation>
     </message>
     <message>
+      <location filename="../../../app/src/zoneEditing.cpp" />
+      <source>%1: not in the shared key-name list, use a name from it</source>
+      <translation type="unfinished" />
+    </message>
+    <message>
       <location filename="../../../core/src/formats/irTables.cpp" />
       <source>%1: offset table is truncated</source>
       <translation>%1: таблица смещений обрезана</translation>
@@ -472,11 +472,6 @@ The configuration from %1 will be copied into this archive.</source>
       <translation>(без идентификатора)</translation>
     </message>
     <message>
-      <location filename="../../../app/src/modern/remoteView.cpp" />
-      <source>* (star)</source>
-      <translation>* (звёздочка)</translation>
-    </message>
-    <message>
       <location filename="../../../app/src/widgets/writePreviewDialog.cpp" />
       <source>+ %1 (new)</source>
       <translation>+ %1 (новое)</translation>
@@ -485,11 +480,6 @@ The configuration from %1 will be copied into this archive.</source>
       <location filename="../../../app/src/widgets/compareConfigsDialog.cpp" />
       <source>+ %1 (only in this one)</source>
       <translation>+ %1 (только в этой)</translation>
-    </message>
-    <message>
-      <location filename="../../../app/src/modern/remoteView.cpp" />
-      <source>+ (clear)</source>
-      <translation>+ (сброс)</translation>
     </message>
     <message>
       <location filename="../../../app/src/widgets/aboutDialog.cpp" />
@@ -1356,7 +1346,6 @@ Add a device?</source>
       <translation>AV-коммутатор</translation>
     </message>
     <message>
-      <location filename="../../../app/src/modern/remoteView.cpp" />
       <location filename="../../../app/src/widgets/learnWizardDialog.cpp" />
       <location filename="../../../app/src/widgets/zoneEditorProperties.cpp" />
       <source>Back</source>
@@ -1474,11 +1463,6 @@ Add a device?</source>
       <location filename="../../../app/src/widgets/protocolCommandDialog.cpp" />
       <source>Bits in transmission order</source>
       <translation>Биты в порядке передачи</translation>
-    </message>
-    <message>
-      <location filename="../../../app/src/modern/remoteView.cpp" />
-      <source>Blue</source>
-      <translation>Синяя</translation>
     </message>
     <message>
       <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
@@ -1771,19 +1755,9 @@ Add a device?</source>
       <translation>Изменить сетку плиток</translation>
     </message>
     <message>
-      <location filename="../../../app/src/modern/remoteView.cpp" />
-      <source>Channel +</source>
-      <translation>Канал +</translation>
-    </message>
-    <message>
       <location filename="../../../core/src/propertyCatalog.cpp" />
       <source>Channel buttons</source>
       <translation>Кнопки каналов</translation>
-    </message>
-    <message>
-      <location filename="../../../app/src/modern/remoteView.cpp" />
-      <source>Channel −</source>
-      <translation>Канал −</translation>
     </message>
     <message>
       <location filename="../../../app/src/labels.cpp" />
@@ -3146,11 +3120,6 @@ Copy saved: %2</source>
       <translation>разные</translation>
     </message>
     <message>
-      <location filename="../../../app/src/modern/remoteView.cpp" />
-      <source>Digit %1</source>
-      <translation>Цифра %1</translation>
-    </message>
-    <message>
       <location filename="../../../app/src/widgets/remoteSettingsDialog.cpp" />
       <source>Diode</source>
       <translation>Diode</translation>
@@ -3197,7 +3166,6 @@ Copy saved: %2</source>
       <translation>Двойной щелчок — открыть активность</translation>
     </message>
     <message>
-      <location filename="../../../app/src/modern/remoteView.cpp" />
       <location filename="../../../app/src/widgets/buttonDialog.cpp" />
       <location filename="../../../app/src/widgets/deviceStatesDialog.cpp" />
       <source>Down</source>
@@ -3277,11 +3245,6 @@ Copy saved: %2</source>
       <location filename="../../../app/src/labels.cpp" />
       <source>DVD/VCR receiver</source>
       <translation>DVD/видеомагнитофон/ресивер</translation>
-    </message>
-    <message>
-      <location filename="../../../app/src/modern/remoteView.cpp" />
-      <source>E (enter)</source>
-      <translation>E (ввод)</translation>
     </message>
     <message>
       <location filename="../../../app/src/widgets/deviceStatesDialog.cpp" />
@@ -3444,7 +3407,6 @@ Copy saved: %2</source>
     <message>
       <location filename="../../../app/src/helpContent.cpp" />
       <location filename="../../../app/src/mainWindowMenus.cpp" />
-      <location filename="../../../app/src/modern/remoteView.cpp" />
       <source>Exit</source>
       <translation>Выход</translation>
     </message>
@@ -3477,11 +3439,6 @@ Copy saved: %2</source>
       <location filename="../../../transport/src/concordTransfer.cpp" />
       <source>EZHex must explicitly identify the intended remote</source>
       <translation>EZHex должен явно содержать идентификатор целевого пульта</translation>
-    </message>
-    <message>
-      <location filename="../../../app/src/modern/remoteView.cpp" />
-      <source>Fast forward</source>
-      <translation>Перемотка вперёд</translation>
     </message>
     <message>
       <location filename="../../../app/src/modern/remoteView.cpp" />
@@ -3653,11 +3610,6 @@ Copy saved: %2</source>
       <translation>Версия формата: %1</translation>
     </message>
     <message>
-      <location filename="../../../app/src/modern/remoteView.cpp" />
-      <source>Forward</source>
-      <translation>Вперёд</translation>
-    </message>
-    <message>
       <location filename="../../../app/src/widgets/addDeviceDialog.cpp" />
       <source>Found %1, showing the first %2 — refine the search.</source>
       <translation>Найдено %1, показаны первые %2 — уточните запрос.</translation>
@@ -3708,11 +3660,6 @@ Copy saved: %2</source>
       <translation>Начало работы</translation>
     </message>
     <message>
-      <location filename="../../../app/src/modern/remoteView.cpp" />
-      <source>Green</source>
-      <translation>Зелёная</translation>
-    </message>
-    <message>
       <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
       <source>GSPM (One)</source>
       <translation>GSPM (One)</translation>
@@ -3741,11 +3688,6 @@ Copy saved: %2</source>
       <location filename="../../../app/src/widgets/deviceStatesDialog.cpp" />
       <source>Guess from the command names: PowerOn/PowerOff or PowerToggle</source>
       <translation>Подобрать по именам команд: PowerOn/PowerOff или PowerToggle</translation>
-    </message>
-    <message>
-      <location filename="../../../app/src/modern/remoteView.cpp" />
-      <source>Guide</source>
-      <translation>Гид</translation>
     </message>
     <message>
       <location filename="../../../core/src/propertyCatalog.cpp" />
@@ -3870,7 +3812,6 @@ Copy saved: %2</source>
       <translation>Высота в экранных единицах. Зона остаётся на месте при прокрутке плиток.</translation>
     </message>
     <message>
-      <location filename="../../../app/src/modern/remoteView.cpp" />
       <location filename="../../../app/src/widgets/helpDialog.cpp" />
       <source>Help</source>
       <translation>Помощь</translation>
@@ -4203,11 +4144,6 @@ The file holds the Hub's answer as it is — device names, models and commands, 
       <location filename="../../../app/src/irDatabaseService.cpp" />
       <source>Indexing…</source>
       <translation>Индексация…</translation>
-    </message>
-    <message>
-      <location filename="../../../app/src/modern/remoteView.cpp" />
-      <source>Info</source>
-      <translation>Инфо</translation>
     </message>
     <message>
       <location filename="../../../app/src/widgets/deviceStatesDialog.cpp" />
@@ -4577,7 +4513,6 @@ The file holds the Hub's answer as it is — device names, models and commands, 
       <translation>Обучить…</translation>
     </message>
     <message>
-      <location filename="../../../app/src/modern/remoteView.cpp" />
       <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
       <source>Left</source>
       <translation>Влево</translation>
@@ -4763,11 +4698,6 @@ The file holds the Hub's answer as it is — device names, models and commands, 
       <translation>Медиацентр</translation>
     </message>
     <message>
-      <location filename="../../../app/src/modern/remoteView.cpp" />
-      <source>Menu</source>
-      <translation>Меню</translation>
-    </message>
-    <message>
       <location filename="../../../core/src/propertyCatalog.cpp" />
       <source>Menu on device</source>
       <translation>Меню на устройстве</translation>
@@ -4888,11 +4818,6 @@ The file holds the Hub's answer as it is — device names, models and commands, 
       <translation>Музыкальный сервер</translation>
     </message>
     <message>
-      <location filename="../../../app/src/modern/remoteView.cpp" />
-      <source>Mute</source>
-      <translation>Без звука</translation>
-    </message>
-    <message>
       <location filename="../../../app/src/widgets/newConfigDialog.cpp" />
       <source>My configuration</source>
       <translation>Моя конфигурация</translation>
@@ -4999,11 +4924,6 @@ The file holds the Hub's answer as it is — device names, models and commands, 
       <location filename="../../../app/src/widgets/zoneEditorProperties.cpp" />
       <source>Next page</source>
       <translation>Следующая страница</translation>
-    </message>
-    <message>
-      <location filename="../../../app/src/modern/remoteView.cpp" />
-      <source>Next screen page</source>
-      <translation>Следующая страница экрана</translation>
     </message>
     <message>
       <location filename="../../../app/src/widgets/propertiesDialog.cpp" />
@@ -5336,7 +5256,6 @@ The file holds the Hub's answer as it is — device names, models and commands, 
       <translation>Пока ничего не нажато.</translation>
     </message>
     <message>
-      <location filename="../../../app/src/modern/remoteView.cpp" />
       <location filename="../../../app/src/widgets/remoteSettingsDialog.cpp" />
       <source>Off</source>
       <translation>Выкл</translation>
@@ -5367,7 +5286,6 @@ The file holds the Hub's answer as it is — device names, models and commands, 
       <translation>Предлагать быстрый вызов меню.</translation>
     </message>
     <message>
-      <location filename="../../../app/src/modern/remoteView.cpp" />
       <location filename="../../../app/src/widgets/deviceStatesDialog.cpp" />
       <source>OK</source>
       <translation>OK</translation>
@@ -5618,11 +5536,6 @@ The file holds the Hub's answer as it is — device names, models and commands, 
       <translation>Стр.</translation>
     </message>
     <message>
-      <location filename="../../../app/src/modern/remoteView.cpp" />
-      <source>Page down</source>
-      <translation>Страница вниз</translation>
-    </message>
-    <message>
       <location filename="../../../app/src/widgets/zoneEditorProperties.cpp" />
       <location filename="../../../app/src/widgets/zoneEditorShared.h" />
       <source>Page number</source>
@@ -5637,11 +5550,6 @@ The file holds the Hub's answer as it is — device names, models and commands, 
       <location filename="../../../core/src/propertyCatalog.cpp" />
       <source>Page through shows instead of one at a time.</source>
       <translation>Листать передачи страницами, а не по одной.</translation>
-    </message>
-    <message>
-      <location filename="../../../app/src/modern/remoteView.cpp" />
-      <source>Page up</source>
-      <translation>Страница вверх</translation>
     </message>
     <message>
       <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
@@ -5690,7 +5598,6 @@ The file holds the Hub's answer as it is — device names, models and commands, 
       <translation>Вставлено. Отменить — %1</translation>
     </message>
     <message>
-      <location filename="../../../app/src/modern/remoteView.cpp" />
       <location filename="../../../app/src/widgets/findByRemoteDialog.cpp" />
       <source>Pause</source>
       <translation>Пауза</translation>
@@ -5779,11 +5686,6 @@ The file holds the Hub's answer as it is — device names, models and commands, 
       <location filename="../../../core/src/configDiff.cpp" />
       <source>place in the list: %1 → %2</source>
       <translation>место в списке: %1 → %2</translation>
-    </message>
-    <message>
-      <location filename="../../../app/src/modern/remoteView.cpp" />
-      <source>Play</source>
-      <translation>Воспроизведение</translation>
     </message>
     <message>
       <location filename="../../../core/src/propertyCatalog.cpp" />
@@ -5939,11 +5841,6 @@ The file holds the Hub's answer as it is — device names, models and commands, 
       <translation>Предпросмотр:</translation>
     </message>
     <message>
-      <location filename="../../../app/src/modern/remoteView.cpp" />
-      <source>Previous channel</source>
-      <translation>Предыдущий канал</translation>
-    </message>
-    <message>
       <location filename="../../../app/src/widgets/deviceStatesDialog.cpp" />
       <source>Previous input:</source>
       <translation>Предыдущий вход:</translation>
@@ -5953,11 +5850,6 @@ The file holds the Hub's answer as it is — device names, models and commands, 
       <location filename="../../../app/src/widgets/zoneEditorProperties.cpp" />
       <source>Previous page</source>
       <translation>Предыдущая страница</translation>
-    </message>
-    <message>
-      <location filename="../../../app/src/modern/remoteView.cpp" />
-      <source>Previous screen page</source>
-      <translation>Предыдущая страница экрана</translation>
     </message>
     <message>
       <location filename="../../../app/src/widgets/checkDialog.cpp" />
@@ -6274,7 +6166,6 @@ The file holds the Hub's answer as it is — device names, models and commands, 
       <translation>Распознавание зон на фото… Редактором можно пользоваться; чтобы отменить, нажмите «Остановить авто-зоны».</translation>
     </message>
     <message>
-      <location filename="../../../app/src/modern/remoteView.cpp" />
       <location filename="../../../app/src/widgets/journalDialog.cpp" />
       <source>Record</source>
       <translation>Запись</translation>
@@ -6318,11 +6209,6 @@ The file holds the Hub's answer as it is — device names, models and commands, 
       <location filename="../../../app/src/mainWindowMenus.cpp" />
       <source>Recover IR data from backup…</source>
       <translation>Восстановить ИК-данные из копии…</translation>
-    </message>
-    <message>
-      <location filename="../../../app/src/modern/remoteView.cpp" />
-      <source>Red</source>
-      <translation>Красная</translation>
     </message>
     <message>
       <location filename="../../../app/src/helpContent.cpp" />
@@ -6770,12 +6656,6 @@ Their buttons and start steps in this activity, including input switching, will 
       <translation>Сохранять остановку</translation>
     </message>
     <message>
-      <location filename="../../../app/src/modern/remoteView.cpp" />
-      <source>Rewind</source>
-      <translation>Перемотка назад</translation>
-    </message>
-    <message>
-      <location filename="../../../app/src/modern/remoteView.cpp" />
       <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
       <source>Right</source>
       <translation>Вправо</translation>
@@ -7219,7 +7099,6 @@ The remote was not changed. You can send this file to the developers.</source>
     </message>
     <message>
       <location filename="../../../app/src/helpContent.cpp" />
-      <location filename="../../../app/src/modern/remoteView.cpp" />
       <location filename="../../../app/src/widgets/settingsDialog.cpp" />
       <source>Settings</source>
       <translation>Настройки</translation>
@@ -7400,11 +7279,6 @@ The remote was not changed. You can send this file to the developers.</source>
       <translation>Пропущено: %1.</translation>
     </message>
     <message>
-      <location filename="../../../app/src/modern/remoteView.cpp" />
-      <source>Slow</source>
-      <translation>Медленно</translation>
-    </message>
-    <message>
       <location filename="../../../core/src/propertyCatalog.cpp" />
       <source>Smart menu</source>
       <translation>Умное меню</translation>
@@ -7463,11 +7337,6 @@ The remote was not changed. You can send this file to the developers.</source>
       <location filename="../../../app/src/widgets/buttonDialog.cpp" />
       <source>Steps run one after another. Pick a command above and press “Add command”; add a pause where a device needs time.</source>
       <translation>Шаги выполняются по очереди. Выберите команду выше и нажмите «Добавить команду»; добавьте паузу там, где устройству нужно время.</translation>
-    </message>
-    <message>
-      <location filename="../../../app/src/modern/remoteView.cpp" />
-      <source>Stop</source>
-      <translation>Остановить</translation>
     </message>
     <message>
       <location filename="../../../app/src/widgets/zoneEditorZones.cpp" />
@@ -9314,7 +9183,6 @@ They will not be sent to the remote either. When the device is made active again
       <translation>Помощь по неиспользуемым устройствам</translation>
     </message>
     <message>
-      <location filename="../../../app/src/modern/remoteView.cpp" />
       <location filename="../../../app/src/widgets/buttonDialog.cpp" />
       <location filename="../../../app/src/widgets/deviceStatesDialog.cpp" />
       <source>Up</source>
@@ -9443,19 +9311,9 @@ They will not be sent to the remote either. When the device is made active again
       <translation>Громкость</translation>
     </message>
     <message>
-      <location filename="../../../app/src/modern/remoteView.cpp" />
-      <source>Volume +</source>
-      <translation>Громкость +</translation>
-    </message>
-    <message>
       <location filename="../../../app/src/widgets/activityDialog.cpp" />
       <source>Volume + and −, mute</source>
       <translation>Громкость + и −, «без звука»</translation>
-    </message>
-    <message>
-      <location filename="../../../app/src/modern/remoteView.cpp" />
-      <source>Volume −</source>
-      <translation>Громкость −</translation>
     </message>
     <message>
       <location filename="../../../app/src/widgets/activityDialog.cpp" />
@@ -9711,11 +9569,6 @@ They will not be sent to the remote either. When the device is made active again
       <location filename="../../../app/src/widgets/aboutDialog.cpp" />
       <source>XML files</source>
       <translation>файлы XML</translation>
-    </message>
-    <message>
-      <location filename="../../../app/src/modern/remoteView.cpp" />
-      <source>Yellow</source>
-      <translation>Жёлтая</translation>
     </message>
     <message>
       <location filename="../../../app/src/widgets/propertiesDialog.cpp" />

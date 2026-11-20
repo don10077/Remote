@@ -1358,11 +1358,15 @@ void ConfigView::fillButtons(QTableWidget* table,
         for (const auto& button : group.buttons) {
             ordered.push_back(&button);
         }
-        const QStringList keyOrder = RemoteView::hardKeyIds(
+        QStringList keyOrder = RemoteView::hardKeyIds(
             QString::fromStdString(config_->property("HarmonyTargetRemote")));
+        if (keyOrder.isEmpty()) keyOrder = RemoteView::sharedKeyIds();
         std::ranges::stable_sort(ordered, {}, [&keyOrder](const model::Button* button) {
-            return button->name.empty() ? button->position
-                                        : static_cast<int>(keyOrder.indexOf(QString::fromStdString(button->name)));
+            if (button->name.empty())
+                return button->position;
+            const int index = keyOrder.indexOf(QString::fromStdString(button->name));
+            // Имени нет в списке (модели нет в ресурсах) — в конец списка, а не в начало.
+            return index < 0 ? static_cast<int>(keyOrder.size()) + button->position : index;
         });
         for (const auto* button : ordered) {
             const bool hard = !button->name.empty();

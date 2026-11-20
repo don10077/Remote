@@ -1,5 +1,7 @@
 #include "zoneEditing.h"
 
+#include "harmony/core/keyNames.h"
+
 #include <QCoreApplication>
 #include <QDir>
 #include <QFile>
@@ -372,6 +374,10 @@ QList<Issue> checkBody(const QJsonArray& zones, const QSizeF& photo, const std::
                  r.isValid() && radius > std::min(r.width(), r.height()) / 2 + 0.5)
             warning(i, tr("%1: corner radius is larger than half the side").arg(name));
         if (!bodyKinds().contains(kind)) error(i, tr("%1: unknown kind \"%2\"").arg(name, kind));
+        // Имя зоны Key берётся из общего списка имён клавиш (harmony/core/keyNames.h), а не
+        // придумывается: иначе имя перестаёт совпадать с именами в конфигурации других пультов.
+        if (kind == "Key" && !id.isEmpty() && !harmony::isKnownKeyName(id.toStdString()))
+            warning(i, tr("%1: not in the shared key-name list, use a name from it").arg(name));
         hasKey = hasKey || kind == "Key";
         if (r.isValid() && screen && screen->isValid() && overlapShare(r, *screen) > OVERLAP_LIMIT)
             warning(i, tr("%1 covers the screen area").arg(name));

@@ -37,6 +37,7 @@ add_executable(harmony_tests
     irdb/irDatabaseTest.cpp
     irdb/signalIndexTest.cpp
     ir/irSignalTest.cpp
+    keyNamesTest.cpp
     model/remoteConfigTest.cpp
     macroTest.cpp
     propertiesTest.cpp
