@@ -173,8 +173,9 @@ qt_add_resources(harmony_app "res"
 )
 
 # Встроенный пример — конфигурация реального пульта владельца, доступна как ":/demo/<файл>".
-# Тесты её не читают: тесты берут настоящие байты из `dumps/` (пропускаются без папки) или
-# работают на данных, собранных в коде (правило 19).
+# Лежит в `app/resources/demo/` (не в `tests/`): это данные, а не фикстура. Тесты её не читают —
+# тесты берут настоящие байты из `dumps/` (пропускаются без папки) или работают на данных,
+# собранных в коде (правило 19).
 set(demoDir "${PROJECT_SOURCE_DIR}/app/resources/demo")
 set(demoFiles)
 foreach(demoFile UserConfiguration.xml ActionLists.xml IrProto.bin SsIr.bin)
