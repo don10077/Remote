@@ -31,6 +31,8 @@ qt_add_executable(harmony_app
     src/linuxUsbSetup.cpp
     src/linuxUsbSetup.h
     src/mainWindowClipboard.cpp
+    src/assignmentGate.cpp
+    src/assignmentGate.h
     src/mainWindowVersions.cpp
     src/mainWindowButtons.cpp
     src/mainWindowCheck.cpp
@@ -170,9 +172,10 @@ qt_add_resources(harmony_app "res"
         ${activityIcons}
 )
 
-# Встроенный пример — обезличенная конфигурация из тестов со всеми файлами пульта,
-# доступна как ":/demo/<файл>". Файлы одни на тесты и приложение.
-set(demoDir "${PROJECT_SOURCE_DIR}/tests/data/userconfig")
+# Встроенный пример — конфигурация реального пульта владельца, доступна как ":/demo/<файл>".
+# Тесты её не читают: тесты берут настоящие байты из `dumps/` (пропускаются без папки) или
+# работают на данных, собранных в коде (правило 19).
+set(demoDir "${PROJECT_SOURCE_DIR}/app/resources/demo")
 set(demoFiles)
 foreach(demoFile UserConfiguration.xml ActionLists.xml IrProto.bin SsIr.bin)
     set_source_files_properties("${demoDir}/${demoFile}" PROPERTIES QT_RESOURCE_ALIAS "${demoFile}")

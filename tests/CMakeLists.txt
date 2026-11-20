@@ -14,6 +14,7 @@ add_executable(harmony_tests
     buttonIconsTest.cpp
     deviceComparisonTest.cpp
     notSentTest.cpp
+    noProfileMatrixTest.cpp
     deviceReplacementTest.cpp
     deviceStatesTest.cpp
     irEncodeTest.cpp
@@ -52,9 +53,11 @@ add_executable(harmony_tests
     undoEditsTest.cpp
 )
 
-# Путь к тестовым данным (реальная обезличенная конфигурация пульта).
+# Путь к тестовым данным (данные, которые лежат в git) и к настоящим дампам (не в git —
+# тесты на них пропускаются без папки, правило 19).
 target_compile_definitions(harmony_tests PRIVATE
     HARMONY_TEST_DATA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/data"
+    HARMONY_DUMPS_DIR="${CMAKE_SOURCE_DIR}/dumps"
     HARMONY_SOURCE_DIR="${CMAKE_SOURCE_DIR}"
 )
 
@@ -85,6 +88,9 @@ if(HARMONY_BUILD_APP)
         commandDialogTest.cpp
         remoteViewTest.cpp
         remoteResourcesTest.cpp
+        assignmentGateTest.cpp
+        ../app/src/assignmentGate.cpp
+        ../app/src/assignmentGate.h
         zoneEditingTest.cpp
         zoneEditorDialogTest.cpp
         ../app/src/widgets/zoneEditorDialog.cpp

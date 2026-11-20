@@ -3,6 +3,7 @@
  * @brief Копирование и вставка кнопок и ИК-команд.
  */
 #include "mainWindow.h"
+#include "assignmentGate.h"
 #include "labels.h"
 #include "modern/remoteView.h"
 #include "widgets/configView.h"
@@ -19,7 +20,7 @@ bool MainWindow::canCopy(bool cut) const {
     const auto target = configView_->clipboardTarget();
     if (target.kind == ConfigView::ClipboardTarget::Kind::Buttons) {
         return target.button.has_value() &&
-               (!cut || !RemoteView::hardKeyIds(QString::fromStdString(document_->targetRemote())).isEmpty());
+               (!cut || assignmentAllowed(RemoteView::hardKeyIds(QString::fromStdString(document_->targetRemote()))));
     }
     // Команду вырезать нельзя: на неё ссылаются кнопки и питание — только копировать.
     return target.kind == ConfigView::ClipboardTarget::Kind::Commands && !target.commands.empty() && !cut;
@@ -33,7 +34,7 @@ bool MainWindow::canPaste() const {
     if (target.kind == ConfigView::ClipboardTarget::Kind::Buttons) {
         const auto keys = RemoteView::hardKeyIds(QString::fromStdString(document_->targetRemote()));
         const auto* button = std::get_if<ClipButton>(&clip_);
-        if (keys.isEmpty() || button == nullptr) return false;
+        if (!assignmentAllowed(keys) || button == nullptr) return false;
         const QString key = target.button && !target.button->soft
             ? target.button->key : QString::fromStdString(button->key);
         return button->soft || keys.contains(key);

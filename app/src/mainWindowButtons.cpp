@@ -4,6 +4,7 @@
  */
 
 #include "mainWindow.h"
+#include "assignmentGate.h"
 #include "labels.h"
 #include "modern/remoteView.h"
 #include "widgets/activityDialog.h"
@@ -90,11 +91,14 @@ const model::Button* findButton(const model::RemoteConfig& config, const ButtonO
 } // namespace
 
 void MainWindow::editButton(const ButtonOwner& owner, const ButtonRef& button) {
-    if (!document_ || RemoteView::hardKeyIds(QString::fromStdString(document_->targetRemote())).isEmpty()) {
+    if (!document_) {
         return;
     }
-    if (!button.soft && !button.key.isEmpty() &&
-        !RemoteView::hardKeyIds(QString::fromStdString(document_->targetRemote())).contains(button.key)) return;
+    const QStringList keys = RemoteView::hardKeyIds(QString::fromStdString(document_->targetRemote()));
+    if (!assignmentAllowed(keys)) {
+        return;
+    }
+    if (!button.soft && !button.key.isEmpty() && !keys.contains(button.key)) return;
     // Макрос кнопки (если она его выполняет) — для правки шагов.
     Macro initialMacro;
     {
@@ -162,7 +166,7 @@ void MainWindow::editButton(const ButtonOwner& owner, const ButtonRef& button) {
 }
 
 void MainWindow::removeButton(const ButtonOwner& owner, const ButtonRef& button) {
-    if (!document_ || RemoteView::hardKeyIds(QString::fromStdString(document_->targetRemote())).isEmpty()) {
+    if (!document_ || !assignmentAllowed(RemoteView::hardKeyIds(QString::fromStdString(document_->targetRemote())))) {
         return;
     }
     const QString title = buttonTitle(button);
@@ -181,11 +185,14 @@ void MainWindow::removeButton(const ButtonOwner& owner, const ButtonRef& button)
 }
 
 void MainWindow::moveButton(const ButtonOwner& owner, const ButtonRef& from, const ButtonRef& to, bool copy) {
-    if (!document_ || from.soft != to.soft ||
-        RemoteView::hardKeyIds(QString::fromStdString(document_->targetRemote())).isEmpty()) {
+    if (!document_ || from.soft != to.soft) {
         return;
     }
-    if (!to.soft && !RemoteView::hardKeyIds(QString::fromStdString(document_->targetRemote())).contains(to.key)) return;
+    const QStringList keys = RemoteView::hardKeyIds(QString::fromStdString(document_->targetRemote()));
+    if (!assignmentAllowed(keys)) {
+        return;
+    }
+    if (!to.soft && !keys.contains(to.key)) return;
     // Перетащили свободную кнопку — переносить нечего, ошибка в окне тут ни к чему.
     if (findButton(document_->model(), owner, from) == nullptr) {
         statusBar()->showMessage(tr("“%1” has no assignment: nothing to move.").arg(buttonTitle(from)), 6000);
@@ -211,7 +218,7 @@ void MainWindow::assignCommand(const ButtonOwner& owner, const ButtonRef& button
                                const QString& command) {
     const QStringList keys = document_ ? RemoteView::hardKeyIds(QString::fromStdString(document_->targetRemote()))
                                        : QStringList();
-    if (keys.isEmpty() || (!button.soft && !keys.contains(button.key)) || (button.soft && button.position < 0)) {
+    if (!assignmentAllowed(keys) || (!button.soft && !keys.contains(button.key)) || (button.soft && button.position < 0)) {
         return;
     }
     // Подпись экранной кнопки: своя (или значок) остаётся, а сделанная из имени
@@ -399,7 +406,7 @@ void MainWindow::setNotSent(ConfigView::Item item, const QString& id, bool notSe
 }
 
 void MainWindow::copyButtons(const QString& activityId, bool hasButton, const ButtonRef& button) {
-    if (!document_ || RemoteView::hardKeyIds(QString::fromStdString(document_->targetRemote())).isEmpty() ||
+    if (!document_ || !assignmentAllowed(RemoteView::hardKeyIds(QString::fromStdString(document_->targetRemote()))) ||
         document_->model().findActivity(activityId.toStdString()) == nullptr) {
         return;
     }
