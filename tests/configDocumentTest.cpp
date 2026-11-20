@@ -1,15 +1,21 @@
 /**
  * @file configDocumentTest.cpp
  * @brief Тесты документа конфигурации: создание, открытие, сохранение без потерь.
+ *
+ * Основа — конфигурация и таблицы, собранные в коде (`configFixtures.h`, `formatFixtures.h`):
+ * ожидания следуют из конструкции фикстуры (правило 19). Проверка «читается ли файл реального
+ * пульта» — отдельный тест через `dumpFiles.h`; без `dumps/` он пропускается.
  */
+
+#include "configFixtures.h"
+#include "dumpFiles.h"
 
 #include "harmony/core/configDocument.h"
 
 #include <gtest/gtest.h>
 
 #include <filesystem>
-#include <fstream>
-#include <iterator>
+#include <map>
 #include <string>
 
 using harmony::ConfigDocument;
@@ -17,29 +23,15 @@ using harmony::ErrorCode;
 
 namespace {
 
-const std::filesystem::path kSampleDir = std::filesystem::path(HARMONY_TEST_DATA_DIR) / "userconfig";
+using harmony::test::kConfigXml;
+using harmony::test::readText;
+using harmony::test::writeFile;
 
-/// Читает файл целиком.
-std::string readFile(const std::filesystem::path& file) {
-    std::ifstream stream(file, std::ios::binary);
-    return {std::istreambuf_iterator<char>(stream), std::istreambuf_iterator<char>()};
+ConfigDocument openFolder(const std::filesystem::path& folder) {
+    auto document = ConfigDocument::open(folder);
+    EXPECT_TRUE(document) << (document ? "" : document.error().message);
+    return std::move(*document);
 }
-
-/// Временная папка теста, удаляется в конце.
-class TempDir {
-public:
-    TempDir() : path_(std::filesystem::temp_directory_path() /
-                      ("harmony-test-" + std::to_string(reinterpret_cast<std::uintptr_t>(this)))) {
-        std::filesystem::remove_all(path_);
-    }
-    ~TempDir() { std::filesystem::remove_all(path_); }
-    TempDir(const TempDir&) = delete;
-    TempDir& operator=(const TempDir&) = delete;
-    [[nodiscard]] const std::filesystem::path& path() const { return path_; }
-
-private:
-    std::filesystem::path path_;
-};
 
 } // namespace
 
@@ -66,103 +58,94 @@ TEST(ConfigDocument, NewConfigNeedsSaveAs) {
 }
 
 TEST(ConfigDocument, FailedFolderSaveRestoresAlreadyReplacedFiles) {
-    TempDir temp;
-    auto original = ConfigDocument::open(kSampleDir);
-    ASSERT_TRUE(original);
-    ASSERT_TRUE(original->saveAs(temp.path()));
-    const auto xmlBefore = readFile(temp.path() / "UserConfiguration.xml");
-    const auto actionsBefore = readFile(temp.path() / "ActionLists.xml");
+    harmony::test::ConfigFixtureFolder fixture;
+    ConfigDocument original = openFolder(fixture.path());
+    harmony::test::TempFolder temp("save-failed");
+    ASSERT_TRUE(original.saveAs(temp.path()));
+    const std::string xmlBefore = readText(temp.path() / "UserConfiguration.xml");
+    const std::string actionsBefore = readText(temp.path() / "ActionLists.xml");
+
+    // IrProto.bin нельзя записать, если на его месте каталог: сохранение должно сорваться
+    // и вернуть то, что уже было записано.
     std::filesystem::remove(temp.path() / "IrProto.bin");
     std::filesystem::create_directory(temp.path() / "IrProto.bin");
     auto replacement = ConfigDocument::createNew("replacement");
     EXPECT_FALSE(replacement.saveAs(temp.path()));
-    EXPECT_EQ(readFile(temp.path() / "UserConfiguration.xml"), xmlBefore);
-    EXPECT_EQ(readFile(temp.path() / "ActionLists.xml"), actionsBefore);
+
+    EXPECT_EQ(readText(temp.path() / "UserConfiguration.xml"), xmlBefore);
+    EXPECT_EQ(readText(temp.path() / "ActionLists.xml"), actionsBefore);
     EXPECT_TRUE(std::filesystem::is_directory(temp.path() / "IrProto.bin"));
     EXPECT_FALSE(std::filesystem::exists(temp.path() / ".harmony-save"));
 }
 
 TEST(ConfigDocument, SaveAsCreatesFolderAndReopens) {
-    TempDir temp;
+    harmony::test::TempFolder temp("save-as");
     ConfigDocument document = ConfigDocument::createNew("Тест");
 
-    const auto saved = document.saveAs(temp.path() / "Спальня");
+    ASSERT_TRUE(document.saveAs(temp.path() / "Спальня"));
 
-    ASSERT_TRUE(saved) << saved.error().message;
     EXPECT_EQ(document.name(), "Спальня");
     const auto reopened = ConfigDocument::open(temp.path() / "Спальня");
     ASSERT_TRUE(reopened) << reopened.error().message;
-    EXPECT_EQ(reopened->model().activities.size(), 1U);
     EXPECT_EQ(reopened->name(), "Спальня");
+    EXPECT_TRUE(reopened->model().devices.empty());
+    ASSERT_EQ(reopened->model().activities.size(), 1U);
+    EXPECT_TRUE(reopened->model().activities.front().isPowerOff());
 }
 
-TEST(ConfigDocument, SavingSampleIsLossless) {
-    TempDir temp;
-    auto document = ConfigDocument::open(kSampleDir);
-    ASSERT_TRUE(document) << document.error().message;
+TEST(ConfigDocument, SavingKeepsTheReadTextByteForByte) {
+    harmony::test::ConfigFixtureFolder fixture;
+    ConfigDocument document = openFolder(fixture.path());
+    harmony::test::TempFolder temp("lossless");
 
-    const auto saved = document->saveAs(temp.path() / "копия");
+    ASSERT_TRUE(document.saveAs(temp.path())) << "фикстура читается без ошибок";
 
-    ASSERT_TRUE(saved) << saved.error().message;
-    // Файл совпадает байт в байт — ничего не потеряно и не переформатировано.
-    EXPECT_EQ(readFile(temp.path() / "копия" / "UserConfiguration.xml"),
-              readFile(kSampleDir / "UserConfiguration.xml"));
+    // Ничего не переформатировано: сохранённый текст совпадает с прочитанным.
+    EXPECT_EQ(readText(temp.path() / "UserConfiguration.xml"), kConfigXml);
+    EXPECT_EQ(readText(temp.path() / "IrProto.bin"), readText(fixture.path() / "IrProto.bin"));
+    EXPECT_EQ(readText(temp.path() / "SsIr.bin"), readText(fixture.path() / "SsIr.bin"));
 }
 
 TEST(ConfigDocument, SaveAsCopiesCompanionFiles) {
-    TempDir temp;
-    auto document = ConfigDocument::open(kSampleDir);
-    ASSERT_TRUE(document) << document.error().message;
+    harmony::test::TempFolder temp("companions");
+    const auto files = harmony::test::codeTables();
 
+    ConfigDocument::Files input = files;
+    input.userConfiguration = kConfigXml;
+    input.actionLists = "<Root><DeviceList/></Root>";
+    auto document = ConfigDocument::fromFiles(input, "пример");
+    ASSERT_TRUE(document) << document.error().message;
     ASSERT_TRUE(document->saveAs(temp.path()));
 
-    for (const auto companion : ConfigDocument::kCompanionFiles) {
-        EXPECT_EQ(readFile(temp.path() / companion), readFile(kSampleDir / companion)) << companion;
-    }
+    // Файлы таблиц копируются байт в байт; ActionLists.xml пишется, даже когда макросов нет.
+    EXPECT_FALSE(readText(temp.path() / "ActionLists.xml").empty());
+    EXPECT_EQ(readText(temp.path() / "IrProto.bin"),
+              std::string(files.irProto.begin(), files.irProto.end()));
+    EXPECT_EQ(readText(temp.path() / "SsIr.bin"), std::string(files.ssIr.begin(), files.ssIr.end()));
 }
 
 TEST(ConfigDocument, SaveWritesIntoOwnFolder) {
-    TempDir temp;
-    ConfigDocument document = ConfigDocument::createNew("Тест");
-    ASSERT_TRUE(document.saveAs(temp.path()));
-    std::filesystem::remove(temp.path() / "UserConfiguration.xml");
+    harmony::test::ConfigFixtureFolder fixture;
+    ConfigDocument document = openFolder(fixture.path());
+    ASSERT_TRUE(document.save());
+    std::filesystem::remove(fixture.path() / "UserConfiguration.xml");
 
-    const auto saved = document.save();
+    ASSERT_TRUE(document.save());
 
-    ASSERT_TRUE(saved) << saved.error().message;
-    EXPECT_TRUE(std::filesystem::exists(temp.path() / "UserConfiguration.xml"));
-    EXPECT_FALSE(std::filesystem::exists(temp.path() / "UserConfiguration.xml.tmp"));
+    EXPECT_EQ(readText(fixture.path() / "UserConfiguration.xml"), kConfigXml);
+    EXPECT_FALSE(std::filesystem::exists(fixture.path() / "UserConfiguration.xml.tmp"));
 }
 
 TEST(ConfigDocument, OpenMissingFolderIsNotFound) {
-    const auto document = ConfigDocument::open(kSampleDir / "нет-такой");
+    harmony::test::TempFolder temp("missing");
+    const auto document = ConfigDocument::open(temp.path() / "нет-такой");
 
     ASSERT_FALSE(document);
     EXPECT_EQ(document.error().code, ErrorCode::NotFound);
 }
 
-TEST(ConfigDocument, FromFilesKeepsAllFiles) {
-    TempDir temp;
-    ConfigDocument::Files files;
-    files.userConfiguration = readFile(kSampleDir / "UserConfiguration.xml");
-    files.actionLists = readFile(kSampleDir / "ActionLists.xml");
-    const std::string irProto = readFile(kSampleDir / "IrProto.bin");
-    const std::string ssIr = readFile(kSampleDir / "SsIr.bin");
-    files.irProto.assign(irProto.begin(), irProto.end());
-    files.ssIr.assign(ssIr.begin(), ssIr.end());
-
-    auto document = ConfigDocument::fromFiles(files, "пример");
-    ASSERT_TRUE(document) << document.error().message;
-    EXPECT_FALSE(document->hasFolder());
-    ASSERT_TRUE(document->saveAs(temp.path()));
-
-    for (const char* name : {"UserConfiguration.xml", "ActionLists.xml", "IrProto.bin", "SsIr.bin"}) {
-        EXPECT_EQ(readFile(temp.path() / name), readFile(kSampleDir / name)) << name;
-    }
-}
-
-TEST(ConfigDocument, NewConfigSavesCompleteSet) {
-    TempDir temp;
+TEST(ConfigDocument, NewConfigWritesCompleteSet) {
+    harmony::test::TempFolder temp("complete");
     ConfigDocument document = ConfigDocument::createNew("Новая");
 
     ASSERT_TRUE(document.saveAs(temp.path()));
@@ -171,15 +154,14 @@ TEST(ConfigDocument, NewConfigSavesCompleteSet) {
     for (const char* name : {"UserConfiguration.xml", "ActionLists.xml", "IrProto.bin", "SsIr.bin"}) {
         EXPECT_TRUE(std::filesystem::exists(temp.path() / name)) << name;
     }
-    auto reopened = ConfigDocument::open(temp.path());
-    ASSERT_TRUE(reopened) << reopened.error().message;
+    EXPECT_TRUE(openFolder(temp.path()).checkIrData());
 }
 
 TEST(ConfigDocument, LeftoverStagingFolderBlocksOpeningButFinishedOneDoesNot) {
-    TempDir temp;
-    auto document = ConfigDocument::open(kSampleDir);
-    ASSERT_TRUE(document);
-    ASSERT_TRUE(document->saveAs(temp.path()));
+    harmony::test::ConfigFixtureFolder fixture;
+    ConfigDocument document = openFolder(fixture.path());
+    harmony::test::TempFolder temp("staging");
+    ASSERT_TRUE(document.saveAs(temp.path()));
     EXPECT_FALSE(std::filesystem::exists(temp.path() / ".harmony-save"));
 
     // Прерванное сохранение: его файлы нужны для восстановления — открыть нельзя.
@@ -194,31 +176,56 @@ TEST(ConfigDocument, LeftoverStagingFolderBlocksOpeningButFinishedOneDoesNot) {
     // а следующее сохранение её убирает.
     const auto done = temp.path() / ".harmony-save.done-20260101-000000";
     std::filesystem::create_directories(done / "sub");
-    auto reopened = ConfigDocument::open(temp.path());
-    ASSERT_TRUE(reopened) << reopened.error().message;
-    ASSERT_TRUE(reopened->save());
+    ConfigDocument reopened = openFolder(temp.path());
+    ASSERT_TRUE(reopened.save());
     EXPECT_FALSE(std::filesystem::exists(done));
     EXPECT_FALSE(std::filesystem::exists(temp.path() / ".harmony-save"));
 }
 
 TEST(ConfigDocument, SavingWithoutTablesRemovesStaleTableFiles) {
-    TempDir temp;
-    auto document = ConfigDocument::open(kSampleDir);
-    ASSERT_TRUE(document);
-    ASSERT_TRUE(document->saveAs(temp.path()));
-    ASSERT_TRUE(std::filesystem::exists(temp.path() / "IrProto.bin"));
+    harmony::test::ConfigFixtureFolder fixture;
+    ConfigDocument document = openFolder(fixture.path());
+    harmony::test::TempFolder temp("stale");
+    ASSERT_TRUE(document.saveAs(temp.path()));
 
     // Содержимое без таблиц: прежние IrProto.bin и SsIr.bin не подходят к новому XML.
-    auto bare = ConfigDocument::fromXml(readFile(kSampleDir / "UserConfiguration.xml"), "bare");
+    const auto bare = ConfigDocument::fromXml(kConfigXml, "bare");
     ASSERT_TRUE(bare);
-    ASSERT_TRUE(document->replaceContent(*bare));
-    ASSERT_TRUE(document->save());
+    ASSERT_TRUE(document.replaceContent(*bare));
+    ASSERT_TRUE(document.save());
 
     EXPECT_FALSE(std::filesystem::exists(temp.path() / "IrProto.bin"));
     EXPECT_FALSE(std::filesystem::exists(temp.path() / "SsIr.bin"));
-    EXPECT_TRUE(std::filesystem::exists(temp.path() / "UserConfiguration.xml"));
+    EXPECT_EQ(readText(temp.path() / "UserConfiguration.xml"), kConfigXml);
     EXPECT_FALSE(std::filesystem::exists(temp.path() / ".harmony-save"));
-    auto reopened = ConfigDocument::open(temp.path());
-    ASSERT_TRUE(reopened) << reopened.error().message;
-    EXPECT_FALSE(reopened->checkIrData());
+    EXPECT_FALSE(openFolder(temp.path()).checkIrData());
+}
+
+TEST(ConfigDocument, RealDumpFolderIsSavedBackByteForByte) {
+    const auto dump = harmony::test::dumpFile("EZHex/harmony900", "*.EZHex");
+    if (dump.empty()) GTEST_SKIP() << "dumps/EZHex/harmony900 нет — только на машине владельца";
+
+    const auto archive = harmony::test::archiveOf(dump);
+    const std::string xml = harmony::test::entryText(archive, "userconfig/UserConfiguration.xml");
+    if (xml.empty()) GTEST_SKIP() << "в дампе нет userconfig/UserConfiguration.xml";
+
+    std::map<std::string, std::string> tables;
+    for (const char* table : {"IrProto.bin", "SsIr.bin"}) {
+        const auto bytes = harmony::test::entryData(archive, std::string("userconfig/") + table);
+        if (bytes.empty()) GTEST_SKIP() << "в дампе нет userconfig/" + std::string(table);
+        tables[table] = std::string(bytes.begin(), bytes.end());
+    }
+
+    harmony::test::TempFolder temp("dump");
+    harmony::test::writeFile(temp.path() / "UserConfiguration.xml", xml);
+    for (const auto& [name, content] : tables) {
+        writeFile(temp.path() / name, content);
+    }
+
+    ConfigDocument document = openFolder(temp.path());
+    ASSERT_TRUE(document.save()) << "использован файл: " << dump.string();
+    EXPECT_EQ(readText(temp.path() / "UserConfiguration.xml"), xml);
+    for (const auto& [name, content] : tables) {
+        EXPECT_EQ(readText(temp.path() / name), content) << name;
+    }
 }
