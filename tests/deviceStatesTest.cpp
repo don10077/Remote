@@ -22,7 +22,6 @@ namespace {
 /// Телевизор с дискретным питанием и дискретными входами (вход описан через InputType).
 constexpr const char* kDiscreteId = "100";
 constexpr const char* kToggleId = "200";
-constexpr const char* kPowerOffId = "-1";
 
 constexpr const char* kStatesXml =
     "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"

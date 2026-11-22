@@ -21,7 +21,8 @@
       "description": "Отладочная сборка: приложение, CLI и тесты",
       "inherits": "base",
       "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Debug"
+        "CMAKE_BUILD_TYPE": "Debug",
+        "HARMONY_WARNINGS_AS_ERRORS": "ON"
       }
     },
     {
@@ -30,7 +31,8 @@
       "description": "Релизная сборка: приложение, CLI и тесты",
       "inherits": "base",
       "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Release"
+        "CMAKE_BUILD_TYPE": "Release",
+        "HARMONY_WARNINGS_AS_ERRORS": "ON"
       }
     },
     {

@@ -42,16 +42,10 @@ QJsonObject tileStyle(const QJsonObject& screen, const QJsonObject& tiles) {
     return style;
 }
 
-// LCD size in photo pixels. The LCD content is laid out in these units and
-// scaled together with the photo.
-constexpr qreal LCD_W = 232.0;
-constexpr qreal LCD_H = 290.0;
+// Чёрные полосы экрана в пикселях фото: шапка и подвал. Размеры и строки содержимого
+// задаются данными профиля, поэтому фиксированных единиц разметки здесь нет.
 constexpr qreal LCD_HEAD = 52.0; // black title band
 constexpr qreal LCD_FOOT = 24.0; // black Options / Devices band
-constexpr qreal LCD_TOP = 58.0;  // first content row
-constexpr qreal LCD_ROW_H = 62.0;
-constexpr qreal LCD_ROW_GAP = 8.0;
-constexpr qreal LCD_PAD = 8.0;
 
 /**
  * Общий фон экрана пульта (радиальный градиент). Единственное место, где он рисуется:
@@ -65,7 +59,7 @@ void paintLcdBackdrop(QPainter& p, qreal w, qreal h) {
     p.fillRect(QRectF(0, 0, w, h), bg);
 }
 
-/** Чёрная шапка: заголовок, батарейка, номер страницы и часы (в единицах LCD_W). */
+/** Чёрная шапка: заголовок, батарейка, номер страницы и часы (в пикселях фото). */
 void paintLcdHeader(QPainter& p, const QFont& base, qreal w, const QString& titleText,
                     const QString& pageText) {
     p.fillRect(QRectF(0, 0, w, LCD_HEAD), Qt::black);
