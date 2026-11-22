@@ -15,7 +15,6 @@ fi
 root="$(cd "$(dirname "$0")/.." && pwd)"
 build="$(realpath "$1")"
 seconds="${2:-60}"
-data="$root/tests/data"
 dumps="$root/dumps"
 seeds="$build/fuzz-seeds"
 crashes="$build/fuzz-crashes"
@@ -33,7 +32,7 @@ if [ -d "$dumps" ]; then
     done
 fi
 # Таблицы ИК: те, что лежат в git, плюс файлы встроенного примера (данные, не фикстура).
-cp "$data"/irtables/*.bin "$root"/app/resources/demo/*.bin "$seeds/irtables/"
+cp "$root"/app/resources/demo/*.bin "$seeds/irtables/"
 # usbnet: ответ GET_SYSTEM_INFO (статус 1) с одним двухбайтовым параметром (заголовок, длина, данные).
 printf '\x10\x61\x01\x01\x02\x00\x0f' > "$seeds/usbnet/systemInfo.bin"
 

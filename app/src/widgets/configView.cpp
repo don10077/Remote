@@ -389,8 +389,9 @@ ConfigView::ConfigView(QWidget* parent) : QWidget(parent) {
     layout->addWidget(shell_);
 }
 
-void ConfigView::setConfig(const model::RemoteConfig* config, const QString& name) {
-    config_ = config;
+void ConfigView::setConfig(const ConfigDocument* document, const QString& name) {
+    document_ = document;
+    config_ = document != nullptr ? &document->model() : nullptr;
     hasSelection_ = false;
     selectedId_.clear();
     buttonsTable_ = nullptr;
@@ -401,14 +402,18 @@ void ConfigView::setConfig(const model::RemoteConfig* config, const QString& nam
     replaceTabs(deviceTabs_, {});
     shell_->setPageHeader(kActivities, tr("Activities"), {});
     shell_->setPageHeader(kDevices, tr("Devices"), {});
-    remote_->setConfig(config);
+    remote_->setConfig(config_, targetRemoteId());
     // Пульта конфигурации нет среди профилей программы: панель на пару секунд
     // показывает об этом надпись и сворачивается.
-    shell_->showSidePanelNotice(config != nullptr && !remote_->hasProfile());
+    shell_->showSidePanelNotice(config_ != nullptr && !remote_->hasProfile());
     shell_->setDocumentName(name.isEmpty() ? tr("no configuration") : name);
     fillSidebar();
     fillOverview();
     selectFirst();
+}
+
+std::string ConfigView::targetRemoteId() const {
+    return document_ != nullptr ? document_->targetRemote() : std::string();
 }
 
 void ConfigView::select(Item item, const std::string& id) {
@@ -434,7 +439,7 @@ void ConfigView::refresh() {
     // Пересборка панели переключает пульт на активности; возвращаем прежний экран,
     // чтобы сохранение правки не меняло вид (например, не уводило на состав кнопок).
     const ScreenModeRestorer screenMode(*remote_);
-    remote_->setConfig(config_); // модель перепарсена: старые указатели в панели недействительны
+    remote_->setConfig(config_, targetRemoteId()); // модель перепарсена: старые указатели в панели недействительны
     fillSidebar();
     fillOverview();
     if (config_ == nullptr || !hasSelection_) {
@@ -632,8 +637,8 @@ void ConfigView::fillSidebar() {
 }
 
 void ConfigView::fillOverview() {
-    const auto id = config_ ? config_->property("HarmonyTargetRemote") : std::string();
-    const auto* profile = harmony::remoteProfile(id.empty() ? harmony::defaultRemoteId() : id);
+    const auto id = targetRemoteId();
+    const auto* profile = harmony::remoteProfile(id);
     const QString modelName = profile ? QString::fromUtf8(profile->name.data()) : tr("Remote");
     shell_->setRemoteName(modelName);
     if (config_ == nullptr) {
@@ -810,7 +815,7 @@ ButtonOwner ConfigView::currentOwner() const {
 
 bool ConfigView::remoteHasKeys() const {
     return config_ != nullptr &&
-           !RemoteView::hardKeyIds(QString::fromStdString(config_->property("HarmonyTargetRemote"))).isEmpty();
+           !RemoteView::hardKeyIds(QString::fromStdString(targetRemoteId())).isEmpty();
 }
 
 void ConfigView::commandDropped(const ButtonRef& button, const QString& deviceId, const QString& command) {
@@ -1014,7 +1019,7 @@ ConfigView::ClipboardTarget ConfigView::clipboardTarget() const {
 void ConfigView::updateButtonActions() {
     const auto selected = selectedButton();
     const auto keys = config_ ? RemoteView::hardKeyIds(
-        QString::fromStdString(config_->property("HarmonyTargetRemote"))) : QStringList();
+        QString::fromStdString(targetRemoteId())) : QStringList();
     editButtonAction_->setEnabled(selected && !keys.isEmpty() &&
                                   (selected->soft || keys.contains(selected->key)));
     removeButtonAction_->setEnabled(selected.has_value() && !keys.isEmpty());
@@ -1358,8 +1363,7 @@ void ConfigView::fillButtons(QTableWidget* table,
         for (const auto& button : group.buttons) {
             ordered.push_back(&button);
         }
-        QStringList keyOrder = RemoteView::hardKeyIds(
-            QString::fromStdString(config_->property("HarmonyTargetRemote")));
+        QStringList keyOrder = RemoteView::hardKeyIds(QString::fromStdString(targetRemoteId()));
         if (keyOrder.isEmpty()) keyOrder = RemoteView::sharedKeyIds();
         std::ranges::stable_sort(ordered, {}, [&keyOrder](const model::Button* button) {
             if (button->name.empty())

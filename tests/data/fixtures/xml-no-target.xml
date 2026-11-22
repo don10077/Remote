@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Фикстура T2: документ без целевой модели. Свойства HarmonyTargetRemote нет, identity в XML нет
+  (identity есть только у .EZHex), поэтому модель документа сегодня — "unknown".
+  Читают: M2 (имя модели из каталога, пустая строка вместо "unknown"), U2 (нет модели по умолчанию).
+-->
+<Root>
+  <Properties>
+    <Property name="version">1.0</Property>
+  </Properties>
+  <User><Id>0</Id></User>
+  <Device>
+    <Id>100</Id>
+    <Type>Television</Type>
+    <Manufacturer>LG</Manufacturer>
+    <Model>55UK</Model>
+    <Presentation>
+      <Label>Телевизор</Label>
+      <ControlGroup name="HardButtons">
+        <Button name="Play">
+          <Label>Play</Label>
+          <Position>0</Position>
+          <ActionId>100_PowerToggle_Press</ActionId>
+        </Button>
+      </ControlGroup>
+      <ControlGroup name="Misc">
+        <Button>
+          <Label>Питание</Label>
+          <Position>0</Position>
+          <ActionId>100_PowerToggle_Press</ActionId>
+        </Button>
+      </ControlGroup>
+    </Presentation>
+    <Commands>
+      <Command><Name>PowerToggle</Name><Data><Protocol>2</Protocol><Code>0x0A</Code></Data></Command>
+    </Commands>
+  </Device>
+</Root>

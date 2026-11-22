@@ -1,5 +1,6 @@
 #include "harmony/transport/concordTransfer.h"
 #include "harmony/core/remoteCatalog.h"
+#include "harmony/core/remoteProfile.h"
 #include "harmony/core/formats/zipArchive.h"
 #include <gtest/gtest.h>
 #include <algorithm>
@@ -105,7 +106,7 @@ TEST(RemoteCatalog, ModelsWithoutArtworkStillHaveTransferCapabilities) {
         const auto* model = catalogModel(id);
         ASSERT_NE(model, nullptr) << id;
         EXPECT_TRUE(model->writable) << id;
-        EXPECT_TRUE(model->visualProfile.empty()) << id;
+        EXPECT_EQ(remoteProfile(id), nullptr) << id;
         EXPECT_FALSE(model->writeTested) << id;
         EXPECT_FALSE(model->skins.empty()) << id;
     }

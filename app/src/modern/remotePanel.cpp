@@ -242,10 +242,10 @@ void RemotePanel::updateWidthLimits() {
     setMaximumWidth(kColumn + natural + 8);
 }
 
-void RemotePanel::setConfig(const model::RemoteConfig* config) {
+void RemotePanel::setConfig(const model::RemoteConfig* config, const std::string& targetRemote) {
     config_ = config;
+    targetRemote_ = targetRemote;
     showOverview();
-
 }
 
 void RemotePanel::showDevice(int index) {
@@ -343,7 +343,7 @@ void RemotePanel::updateScreenButtons() {
 }
 
 void RemotePanel::refresh() {
-    const auto id = config_ ? config_->property("HarmonyTargetRemote") : std::string();
+    const auto id = targetRemote_;
     const bool editable = !RemoteView::hardKeyIds(QString::fromStdString(id)).isEmpty();
     remote_->setRemoteProfile(QString::fromStdString(id));
     const bool hasProfile = remote_->hasProfile();

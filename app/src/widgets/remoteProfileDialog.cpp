@@ -1,6 +1,7 @@
 #include "remoteProfileDialog.h"
 #include "aboutDialog.h"
 #include "../remoteResources.h"
+#include "harmony/core/remoteCatalog.h"
 #include "harmony/core/remoteProfile.h"
 #include "../modern/remoteView.h"
 
@@ -23,11 +24,22 @@ RemoteProfileDialog::RemoteProfileDialog(const QString& current, QWidget* parent
     auto* image = new QLabel(this);
     image->setFixedSize(300, 420);
     image->setAlignment(Qt::AlignCenter);
+    image->setWordWrap(true);
     layout->addWidget(image);
     auto* fields = new QVBoxLayout;
     models_ = new QComboBox(this);
+    // Модели каталога: у модели без профиля нет ни фото, ни зон, но выбрать её можно.
+    models_->addItem(tr("No model"), QString());
+    for (const auto& model : remoteCatalog()) {
+        QString text = QString::fromUtf8(model.name.data(), static_cast<qsizetype>(model.name.size()));
+        if (remoteProfile(model.id) == nullptr) text += " — " + tr("no image");
+        models_->addItem(text, QString::fromUtf8(model.id.data(), static_cast<qsizetype>(model.id.size())));
+    }
+    // Свои пульты: профиль есть, записи в каталоге нет.
     for (const auto& profile : remoteProfiles) {
-        models_->addItem(QString::fromUtf8(profile.name.data()), QString::fromUtf8(profile.id.data()));
+        if (catalogModel(profile.id) != nullptr) continue;
+        models_->addItem(QString::fromUtf8(profile.name.data(), static_cast<qsizetype>(profile.name.size())),
+                         QString::fromUtf8(profile.id.data(), static_cast<qsizetype>(profile.id.size())));
     }
     // Пульты с ошибкой в конфигурации: выбрать нельзя, но ошибка видна сразу.
     for (const QString& id : remoteResources::skippedIds())

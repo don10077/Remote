@@ -8,6 +8,7 @@
 
 #include "configDocumentImpl.h"
 #include "harmony/core/activityDraft.h"
+#include "harmony/core/remoteCatalog.h"
 #include "harmony/core/remoteProfile.h"
 
 #include <algorithm>
@@ -21,12 +22,24 @@ using detail::mutate;
 std::string ConfigDocument::targetRemote() const {
     const auto target = model().property("HarmonyTargetRemote");
     if (!target.empty()) return target;
-    if (identity().architecture == 11 && identity().skin >= 62 && identity().skin <= 64) return "1100";
-    return identity().architecture == 15 && identity().skin == 61 ? "900" : "unknown";
+    const auto* model = catalogModelBySkin(identity().skin);
+    return model ? std::string(model->id) : std::string();
 }
 
 Result<void> ConfigDocument::setTargetRemote(const std::string& id) {
-    if (!remoteProfile(id)) return makeError(ErrorCode::Unsupported, "unknown target remote: %1", {id});
+    if (id.empty()) {
+        // «Без модели» — свойства нет; поведение такое же, как у модели без профиля.
+        return mutate(*impl_, [](pugi::xml_node root) -> Result<void> {
+            auto properties = root.child("Properties");
+            if (auto property = properties.find_child_by_attribute("Property", "name", "HarmonyTargetRemote"))
+                properties.remove_child(property);
+            return {};
+        });
+    }
+    // Каталог — основной список моделей; запись в реестре профилей — пользовательская модель
+    // (папка remotes/<id>, реестр заполняет reload()).
+    if (catalogModel(id) == nullptr && remoteProfile(id) == nullptr)
+        return makeError(ErrorCode::Unsupported, "unknown target remote: %1", {id});
     return mutate(*impl_, [&](pugi::xml_node root) -> Result<void> {
         auto properties = root.child("Properties");
         if (!properties) properties = root.prepend_child("Properties");

@@ -498,7 +498,7 @@ TEST(RemotePanel, PreviewOmitsNotSentEntriesAndKeepsConfigurationIndices) {
     sent.id = "sent"; sent.label = "Sent"; sent.powerOn = {visible.id};
     config.activities = {disabled, dependent, sent};
     harmony::app::RemotePanel panel;
-    panel.setConfig(&config);
+    panel.setConfig(&config, "900");
     auto* view = panel.findChild<harmony::app::RemoteView*>();
     ASSERT_NE(view, nullptr);
     view->resize(view->sizeHint());
@@ -527,10 +527,9 @@ TEST(RemotePanel, PreviewOmitsNotSentEntriesAndKeepsConfigurationIndices) {
 
 TEST(RemotePanel, MissingProfileMessageReplacesPreviewAndDisappearsForAKnownProfile) {
     harmony::model::RemoteConfig config;
-    config.properties.emplace_back("HarmonyTargetRemote","missing-profile");
     harmony::app::RemotePanel panel;
     panel.resize(500,650);
-    panel.setConfig(&config);
+    panel.setConfig(&config, "missing-profile");
     panel.show();
     QApplication::processEvents();
     auto* missing=panel.findChild<QLabel*>("missingRemoteProfile");
@@ -539,8 +538,7 @@ TEST(RemotePanel, MissingProfileMessageReplacesPreviewAndDisappearsForAKnownProf
     ASSERT_NE(preview,nullptr);
     EXPECT_TRUE(missing->isVisible());
     EXPECT_FALSE(preview->isVisible());
-    config.properties[0].second="900";
-    panel.setConfig(&config);
+    panel.setConfig(&config, "900");
     QApplication::processEvents();
     EXPECT_FALSE(missing->isVisible());
     EXPECT_TRUE(preview->isVisible());

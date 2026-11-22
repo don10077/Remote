@@ -8,6 +8,7 @@
 
 #include "harmony/core/irdb/irDatabase.h"
 #include "harmony/core/irdb/modelFinder.h"
+#include "irdbFixture.h"
 
 #include <filesystem>
 #include <gtest/gtest.h>
@@ -17,8 +18,6 @@ using irdb::Frame;
 using irdb::SignalIndex;
 
 namespace {
-
-const std::filesystem::path kData = std::filesystem::path(HARMONY_TEST_DATA_DIR) / "irdb";
 
 /// Сигнал с «дрожанием», как у живого пульта: каждая длительность сдвинута на ±@p jitter мкс.
 ir::IrSignal jittered(ir::IrSignal signal, int jitter) {
@@ -30,7 +29,7 @@ ir::IrSignal jittered(ir::IrSignal signal, int jitter) {
     return signal;
 }
 
-/// База из фикстуры (три устройства) во временной папке.
+/// База из синтетической фикстуры (три устройства) во временной папке.
 class ModelFinderTest : public ::testing::Test {
 protected:
     void SetUp() override {
@@ -39,11 +38,10 @@ protected:
                 std::to_string(::testing::UnitTest::GetInstance()->random_seed()) + "-" +
                 ::testing::UnitTest::GetInstance()->current_test_info()->name());
         std::filesystem::create_directories(dir_);
-        auto stats =
-            irdb::buildDatabase(kData / "device_features_raw.jsonl.gz",
-                                kData / "AllProtocols.json.gz", dir_ / "test.irdb", "test");
+        const auto files = test::writeIrDatabaseSource(dir_);
+        auto stats = irdb::buildDatabase(files.devices, files.protocols, dir_ / "test.irdb", "test");
         ASSERT_TRUE(stats) << stats.error().message;
-        EXPECT_GT(stats->signalFrames, 100U);
+        EXPECT_GT(stats->signalFrames, 0U);
         auto database = irdb::IrDatabase::open(dir_ / "test.irdb");
         ASSERT_TRUE(database) << database.error().message;
         database_ = std::move(*database);

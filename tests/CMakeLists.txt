@@ -32,6 +32,8 @@ add_executable(harmony_tests
     formats/ssirSequencesTest.cpp
     formats/userConfigurationTest.cpp
     errorTest.cpp
+    fixturesTest.cpp
+    remoteCatalogTest.cpp
     ir/broadlinkRecordingTest.cpp
     ir/irProtocolTest.cpp
     ir/nativeProtocolTest.cpp
@@ -69,6 +71,7 @@ target_link_libraries(harmony_tests PRIVATE
     harmony::transport
     GTest::gtest_main
     nlohmann_json::nlohmann_json
+    ZLIB::ZLIB # irdbFixture.h пишет .gz: усечённый источник должен распознаваться как ошибка
 )
 harmony_set_warnings(harmony_tests)
 
@@ -124,6 +127,12 @@ if(HARMONY_BUILD_APP)
         ../app/src/labels.cpp
     )
     set_target_properties(harmony_gui_tests PROPERTIES AUTOMOC ON)
+    # Те же пути, что у harmony_tests: фикстуры в git и настоящие дампы (тесты на них пропускаются).
+    target_compile_definitions(harmony_gui_tests PRIVATE
+        HARMONY_TEST_DATA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/data"
+        HARMONY_DUMPS_DIR="${CMAKE_SOURCE_DIR}/dumps"
+        HARMONY_SOURCE_DIR="${CMAKE_SOURCE_DIR}"
+    )
     file(GLOB guiActivityIcons CONFIGURE_DEPENDS
          "${PROJECT_SOURCE_DIR}/app/resources/activity_icons/*.png"
          "${PROJECT_SOURCE_DIR}/app/resources/theme/*")

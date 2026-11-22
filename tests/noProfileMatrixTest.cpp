@@ -62,40 +62,113 @@ TEST_F(CatalogTest, PropertyIsTargetRemote) {
     EXPECT_EQ(document->targetRemote(), "525");
 }
 
-// Свойства нет — решение даёт identity. Сегодня identity без дампа по умолчанию архитектура 15
-// и skin 61 (`ezhex.h:34–35`), поэтому программа называет такой документ 900. Это и есть
-// ветвление по модели, запрещённое правилами: после M2 имя должно браться из каталога.
-TEST_F(CatalogTest, IdentityWithoutPropertyNamesTheDefaultModel) {
+// Свойства нет — модель берётся из каталога по skin из identity. Без дампа identity по
+// умолчанию — архитектура 15, skin 61 (`ezhex.h:34–35`), поэтому такой документ называется 900.
+// Ветвления по модели в коде нет: skin → запись каталога.
+TEST_F(CatalogTest, IdentityWithoutPropertyNamesModelFromCatalog) {
     const auto document = ConfigDocument::createNew("новая");
-    EXPECT_EQ(document.targetRemote(), "900") << "изменится в M2: имя берётся из каталога";
+    EXPECT_EQ(document.targetRemote(), "900");
 }
 
-// Skin, модели которого нет в каталоге: программа не знает модель — ветвлений по skin нет.
-// Фикстура собрана в коде, поэтому тест зелёный на любой машине.
+// Тот же путь для других семейств: имя даёт каталог, а не ветка «arch 11 → 1100».
+TEST_F(CatalogTest, CatalogNamesModelsOfOtherFamilies) {
+    const auto eleven = ConfigDocument::fromEzHex(harmony::test::minimalEzHex(11, 63), "1100");
+    ASSERT_TRUE(eleven) << eleven.error().message;
+    EXPECT_EQ(eleven->targetRemote(), "1100");
+
+    const auto fourteen = ConfigDocument::fromEzHex(harmony::test::minimalEzHex(14, 72), "650");
+    ASSERT_TRUE(fourteen) << fourteen.error().message;
+    EXPECT_EQ(fourteen->targetRemote(), "650");
+}
+
+// Skin, модели которого нет в каталоге: программа не знает модель и не подставляет
+// «по умолчанию» (это будет выбор нового проекта, U2). Пустая строка — «модель неизвестна».
 TEST_F(CatalogTest, UnknownModelWhenSkinIsNotInTheCatalog) {
     const auto document = ConfigDocument::fromEzHex(harmony::test::minimalEzHex(14, 999), "без профиля");
     ASSERT_TRUE(document) << document.error().message;
-    EXPECT_EQ(document->targetRemote(), "unknown");
+    EXPECT_EQ(document->targetRemote(), "");
 }
 
-// 525 нельзя выбрать целевой моделью: её нет в каталоге.
-TEST_F(CatalogTest, SetTargetRemoteRejectsModelWithoutProfile) {
+// Q2: модель документа не зависит от того, что было выбрано до открытия, — её даёт сам
+// документ. Проверяются пути «новый проект», «из XML» и «из EZHex»; выбор модели в окне
+// на документ не пишется (свойство появляется только при явной смене, M5).
+TEST_F(CatalogTest, DocumentModelComesFromDocumentNotFromPreviousSelection) {
+    const auto created = ConfigDocument::createNew("новый");
+    EXPECT_EQ(created.targetRemote(), "900");
+
+    const auto xml = ConfigDocument::fromXml("<Root><Properties/></Root>", "xml");
+    ASSERT_TRUE(xml) << xml.error().message;
+    EXPECT_EQ(xml->targetRemote(), "900");
+
+    const auto first = ConfigDocument::fromEzHex(harmony::test::minimalEzHex(14, 72), "первый");
+    ASSERT_TRUE(first) << first.error().message;
+    EXPECT_EQ(first->targetRemote(), "650");
+
+    const auto second = ConfigDocument::fromEzHex(harmony::test::minimalEzHex(11, 63), "второй");
+    ASSERT_TRUE(second) << second.error().message;
+    EXPECT_EQ(second->targetRemote(), "1100") << "открытие второго документа не зависит от первого";
+}
+
+// Модель каталога без профиля — допустимая цель: каталог и есть список моделей.
+TEST_F(CatalogTest, SetTargetRemoteAcceptsCatalogModelWithoutProfile) {
+    for (const std::string id : {"525", "885", "touch"}) {
+        auto created = documentWithTarget("900");
+        ASSERT_TRUE(created) << created.error().message;
+        ConfigDocument document = std::move(*created);
+        const auto result = document.setTargetRemote(id);
+        ASSERT_TRUE(result) << id;
+        EXPECT_EQ(document.targetRemote(), id);
+        EXPECT_EQ(document.model().property("HarmonyTargetRemote"), id);
+    }
+}
+
+// Пользовательская модель — папка remotes/<id>; её видно после reload() (реестр профилей).
+// Без записи в реестре такая модель неизвестна — это ожидаемо.
+TEST_F(CatalogTest, SetTargetRemoteAcceptsRegisteredUserProfile) {
+    auto created = documentWithTarget("900");
+    ASSERT_TRUE(created) << created.error().message;
+    ConfigDocument document = std::move(*created);
+
+    clearCatalog();
+    EXPECT_FALSE(document.setTargetRemote("my-remote")) << "без reload() своя модель неизвестна";
+
+    addToCatalog("my-remote", "none", "none"); // то, что делает reload() для папки remotes/my-remote
+    const auto result = document.setTargetRemote("my-remote");
+    ASSERT_TRUE(result) << result.error().message;
+    EXPECT_EQ(document.targetRemote(), "my-remote");
+}
+
+// Пустой id — «без модели»: свойство удаляется, остаётся поведение модели без профиля.
+TEST_F(CatalogTest, EmptyTargetRemoteRemovesProperty) {
     auto created = documentWithTarget("525");
     ASSERT_TRUE(created) << created.error().message;
     ConfigDocument document = std::move(*created);
-    const auto result = document.setTargetRemote("525");
+    const auto result = document.setTargetRemote("");
+    ASSERT_TRUE(result) << result.error().message;
+    EXPECT_EQ(document.model().property("HarmonyTargetRemote"), "");
+    EXPECT_EQ(document.targetRemote(), "900") << "identity без свойства даёт модель каталога";
+}
+
+// Неизвестный id — ошибка, документ не меняется.
+TEST_F(CatalogTest, SetTargetRemoteRejectsUnknownId) {
+    auto created = documentWithTarget("525");
+    ASSERT_TRUE(created) << created.error().message;
+    ConfigDocument document = std::move(*created);
+    const auto result = document.setTargetRemote("no-such");
     ASSERT_FALSE(result);
-    EXPECT_EQ(result.error().code, ErrorCode::Unsupported) << result.error().message; // изменится в M3
+    EXPECT_EQ(result.error().code, ErrorCode::Unsupported) << result.error().message;
     EXPECT_EQ(document.targetRemote(), "525") << "неудачная попытка ничего не изменила";
 }
 
-// Модель, которой нет в каталоге, не подключается по USB-сети. 1000i — модель каталога без
-// профиля (visualProfile пустой), поэтому сегодня она не считается сетевой.
+// Связь — свойство модели каталога, профиль на неё не влияет. 1000 — USB-сеть без профиля.
 TEST_F(CatalogTest, UsesUsbNetFollowsCatalog) {
     clearCatalog();
-    EXPECT_FALSE(harmony::usesUsbNet("1000i")) << "изменится в M4: каталог знает 1000i без профиля";
-    addToCatalog("1000i", "usb-net", "device-sequence");
-    EXPECT_TRUE(harmony::usesUsbNet("1000i"));
+    EXPECT_TRUE(harmony::usesUsbNet("1000")) << "каталог знает 1000 без профиля";
+    EXPECT_FALSE(harmony::usesUsbNet("650"));
+    EXPECT_FALSE(harmony::usesUsbNet("no-such"));
+
+    addToCatalog("my-remote", "usb-net", "harmony-xml");
+    EXPECT_FALSE(harmony::usesUsbNet("my-remote")) << "профиль не влияет на связь";
 }
 
 // Запись на пульт запрещена, когда каталог говорит «модель не пишется» (driver none),

@@ -3,10 +3,13 @@
  * @brief Имена физических клавиш: один общий список для всех архитектур, независимо от профиля.
  */
 
+#include "dumpFiles.h"
+
 #include "harmony/core/keyNames.h"
 #include "harmony/core/configDocument.h"
 #include "harmony/core/model/remoteConfig.h"
 #include "harmony/core/remoteCatalog.h"
+#include "harmony/core/remoteProfile.h"
 
 #include <gtest/gtest.h>
 
@@ -15,8 +18,6 @@
 #include <string>
 
 namespace {
-
-const std::filesystem::path kData(HARMONY_TEST_DATA_DIR);
 
 /// Имена аппаратных кнопок импорта (у экранных кнопки имени нет).
 std::set<std::string> hardNames(const harmony::model::RemoteConfig& config) {
@@ -74,19 +75,23 @@ TEST(KeyNames, OneSharedListForEveryArchitecture) {
 }
 
 TEST(KeyNames, ImportNamesKeysFromTheSharedListForEveryArchitecture) {
-    struct Sample { const char* file; const char* catalogId; };
-    for (const Sample sample : {Sample{"525.EZHex", "525"}, Sample{"880.EZHex", "880"}}) {
-        if (!std::filesystem::exists(kData / "binaryhid" / sample.file))
-            GTEST_SKIP() << "Local binary HID reference corpus is not installed";
-        SCOPED_TRACE(sample.file);
-        auto document = harmony::ConfigDocument::open(kData / "binaryhid" / sample.file);
+    // Настоящие дампы (dumps/, не в git): без них тест пропускается (правило 19).
+    struct Sample { const char* folder; const char* mask; const char* catalogId; };
+    std::size_t checked = 0;
+    for (const Sample sample : {Sample{"EZHex/harmony525", "*.EZHex", "525"},
+                                Sample{"EZHex/arch8", "H880-*.EZHex", "880"}}) {
+        const auto path = harmony::test::dumpFile(sample.folder, sample.mask);
+        if (path.empty()) continue;
+        ++checked;
+        SCOPED_TRACE(path.filename().string());
+        auto document = harmony::ConfigDocument::open(path);
         ASSERT_TRUE(document) << document.error().message;
 
         // Имена клавиш даёт общая таблица, а не профиль: в этих дампах имён клавиш нет.
-        // Каталог знает модель по skin (22 → 525, 15 → 880), но визуального профиля у неё нет.
-        const auto* profile = harmony::catalogModel(sample.catalogId);
-        ASSERT_TRUE(profile) << sample.catalogId;
-        EXPECT_TRUE(profile->visualProfile.empty());
+        // Каталог знает модель по skin, но папки профиля у неё нет.
+        const auto* model = harmony::catalogModel(sample.catalogId);
+        ASSERT_TRUE(model) << sample.catalogId;
+        EXPECT_TRUE(harmony::remoteProfile(sample.catalogId) == nullptr);
         EXPECT_EQ(document->targetRemote(), sample.catalogId);
         const auto names = hardNames(document->model());
         ASSERT_FALSE(names.empty());
@@ -107,4 +112,5 @@ TEST(KeyNames, ImportNamesKeysFromTheSharedListForEveryArchitecture) {
             }
         }
     }
+    if (checked == 0) GTEST_SKIP() << "dumps/ нет — дампы бинарных семейств только на машине владельца";
 }

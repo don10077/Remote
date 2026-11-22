@@ -46,8 +46,9 @@ public:
     /**
      * @brief Задаёт конфигурацию и показывает обзор (список активностей).
      * @param config Модель; nullptr — пустой пульт. Должна жить, пока показана.
+     * @param targetRemote Id целевой модели документа; пусто — модель неизвестна.
      */
-    void setConfig(const model::RemoteConfig* config);
+    void setConfig(const model::RemoteConfig* config, const std::string& targetRemote);
 
     /// Показывает устройство с индексом @p index в списке устройств.
     void showDevice(int index);
@@ -107,6 +108,7 @@ private:
     [[nodiscard]] int deviceIndexOf(const std::string& actionId) const;
 
     const model::RemoteConfig* config_ = nullptr;
+    std::string targetRemote_; ///< Id целевой модели; пусто — модель неизвестна.
     Focus focus_ = Focus::Overview;
     int index_ = -1; ///< Индекс показанного устройства или активности
 

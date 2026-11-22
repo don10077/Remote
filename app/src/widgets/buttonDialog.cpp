@@ -82,9 +82,13 @@ int deviceIndex(const model::RemoteConfig& config, const std::string& id) {
 
 } // namespace
 
-ButtonDialog::ButtonDialog(const model::RemoteConfig& config, const ButtonOwner& owner, ButtonRef button,
-                           QWidget* parent, Macro initialMacro)
-    : QDialog(parent), config_(config), initial_(std::move(button)), macro_(std::move(initialMacro)) {
+ButtonDialog::ButtonDialog(const model::RemoteConfig& config, std::string targetRemote, const ButtonOwner& owner,
+                           ButtonRef button, QWidget* parent, Macro initialMacro)
+    : QDialog(parent),
+      config_(config),
+      targetRemote_(std::move(targetRemote)),
+      initial_(std::move(button)),
+      macro_(std::move(initialMacro)) {
     // Кнопки владельца и кому они могут слать команды.
     static const std::vector<model::ControlGroup> kNoGroups;
     groups_ = &kNoGroups;
@@ -172,8 +176,7 @@ ButtonDialog::ButtonDialog(const model::RemoteConfig& config, const ButtonOwner&
         label_->setEnabled(icon().empty());
     } else {
         key_ = new QComboBox(this);
-        for (const QString& id : RemoteView::hardKeyIds(
-                 QString::fromStdString(config_.property("HarmonyTargetRemote")))) {
+        for (const QString& id : RemoteView::hardKeyIds(QString::fromStdString(targetRemote_))) {
             const std::string action = currentAction(ButtonRef::hard(id));
             QString text = RemoteView::keyName(id);
             if (!action.empty()) {

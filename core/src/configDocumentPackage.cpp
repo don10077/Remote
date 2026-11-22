@@ -148,11 +148,8 @@ Result<ConfigDocument> ConfigDocument::fromEzHex(std::span<const std::uint8_t> e
     if (signature == "GSPM" || signature == "AHCM" || signature == "TPTP") {
         auto model = formats::importBinaryHid(container->payload);
         if (!model) return std::unexpected(model.error());
-        for (const auto& remote : remoteCatalog()) {
-            if (std::ranges::find(remote.skins, container->identity.skin) != remote.skins.end()) {
-                model->properties.emplace_back("HarmonyTargetRemote", remote.id);
-                break;
-            }
+        if (const auto* remote = catalogModelBySkin(container->identity.skin)) {
+            model->properties.emplace_back("HarmonyTargetRemote", remote->id);
         }
         auto document = fromXml(detail::importedModelXml(*model, detail::kBinaryHidSourceFormat), std::move(name));
         if (!document) return document;

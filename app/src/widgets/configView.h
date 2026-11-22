@@ -103,10 +103,10 @@ public:
 
     /**
      * @brief Показывает конфигурацию и выбирает первую активность.
-     * @param config Модель; nullptr — очистить экран.
+     * @param document Документ; nullptr — очистить экран. Должен жить, пока показан.
      * @param name Имя конфигурации для карточки пульта.
      */
-    void setConfig(const model::RemoteConfig* config, const QString& name = {});
+    void setConfig(const ConfigDocument* document, const QString& name = {});
 
     /// Обновляет имя конфигурации в карточке пульта (например, после «Сохранить как»).
     void setDocumentName(const QString& name);
@@ -302,10 +302,14 @@ private:
     /// Выбирает первую «настоящую» активность (или обзор, если активностей нет).
     void selectFirst();
 
+    /// Id целевой модели документа; пусто — модель неизвестна.
+    [[nodiscard]] std::string targetRemoteId() const;
+
     /// Обновляет кнопки действий под выбранный объект.
     void updateActions();
 
     const model::RemoteConfig* config_ = nullptr;
+    const ConfigDocument* document_ = nullptr; ///< Источник модели документа (id цели, имя).
     CommandLookup commandLookup_; ///< Подробности команд
     std::function<QString(const std::string&, const std::string&)> commandErrorLookup_;
 

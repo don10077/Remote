@@ -287,7 +287,7 @@ Result<TransferInfo> ConcordTransfer::connect(std::string_view modelId, const En
     const bool automatic = modelId == "auto";
     if (!model || (!automatic && model->skins.empty())) return makeError(ErrorCode::Unsupported, "Unknown remote identity");
     auto& info = impl_->info;
-    info.network = model->network;
+    info.network = modelLink(modelId) == LinkKind::UsbNet;
     int hidCount = 0;
     if (!info.network) {
         if (hid_init() != 0) return makeError(ErrorCode::Io, "Cannot initialize HID");

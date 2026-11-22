@@ -4,6 +4,7 @@
  */
 
 #include "mainWindow.h"
+#include "harmony/core/remoteCatalog.h"
 #include "harmony/core/remoteProfile.h"
 #include "harmony/core/undo/documentEdit.h"
 #include "appSettings.h"
@@ -399,7 +400,7 @@ void MainWindow::showDocument(ConfigDocument document) {
     document_ = std::make_unique<ConfigDocument>(std::move(document));
     ++documentSerial_;
     undoStack_.clear();
-    configView_->setConfig(&document_->model(), QString::fromStdString(document_->name()));
+    configView_->setConfig(document_.get(), QString::fromStdString(document_->name()));
     screens_->setCurrentWidget(configView_);
     updateTitle();
     autosavedGeneration_ = editGeneration_;
@@ -430,9 +431,10 @@ void MainWindow::updateTitle() {
     readRemoteAction_->setEnabled(true);
     header_->setWriteEnabled(canWrite && target && target->writable);
     header_->setReadSavesFile(true);
-    if (!target || target->driver == driver::kNone)
+    const auto link = modelLink(selectedRemote_.toStdString());
+    if (link == LinkKind::None)
         header_->setConnectionState(false, tr("No connection driver"));
-    else if (target->driver == driver::kUsbHid)
+    else if (link == LinkKind::UsbHid)
         header_->setConnectionState(false, tr("USB HID · connect and read"));
     checkConfigAction_->setEnabled(open);
     versionsAction_->setEnabled(open);

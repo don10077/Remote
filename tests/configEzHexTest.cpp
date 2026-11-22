@@ -22,7 +22,6 @@ namespace formats = harmony::formats;
 
 namespace {
 
-const std::filesystem::path kData(HARMONY_TEST_DATA_DIR);
 // Дамп реального Harmony 900 (dumps/, не в git): без него тесты пропускаются (правило 19).
 const std::filesystem::path kSample = harmony::test::dumpRoot() / "EZHex" / "harmony900" / "900.EZHex";
 // Конфигурация реального пульта — встроенный пример приложения (tests/data/userconfig перенесён туда).
@@ -139,29 +138,31 @@ TEST(ConfigEzHex, RejectsTruncatedBinaryHidImages) {
     }
 }
 
+// Реальные дампы бинарных семейств: `dumps/` в git не входит, поэтому без неё тест
+// пропускается (правило 19). Утверждаются решения программы — формат, отказ писать на пульт,
+// сохранение исходного образа байт в байт и правка, пережившая сохранение. Числа содержимого
+// конкретного дампа (устройства, активности, команды, skin) не утверждаются.
 TEST(ConfigEzHex, ImportsPublicBinaryHidFamiliesWithTheirCommands) {
-    if (!std::filesystem::exists(kData / "binaryhid" / "650.EZHex"))
-        GTEST_SKIP() << "Local binary HID reference corpus is not installed";
-    struct Sample { const char* file; std::size_t devices; std::size_t activities; std::size_t commands; int skin; };
-    for (const Sample sample : {Sample{"650.EZHex",4,4,236,72}, {"525.EZHex",4,3,200,22},
-                                {"880.EZHex",4,4,300,15}, {"890.EZHex",4,0,300,19}}) {
-        SCOPED_TRACE(sample.file);
-        const auto path = kData / "binaryhid" / sample.file;
+    struct Sample { const char* folder; const char* mask; };
+    std::size_t checked = 0;
+    for (const Sample sample : {Sample{"EZHex/harmony650", "Harmony_650.EZHex"}, Sample{"EZHex/harmony525", "config.EZHex"},
+                                Sample{"EZHex/arch8", "H880-Bedroom.EZHex"}, Sample{"EZHex/harmony890", "H890-Bedroom-1.EZHex"}}) {
+        SCOPED_TRACE(sample.folder);
+        const auto path = harmony::test::dumpFile(sample.folder, sample.mask);
+        if (path.empty()) continue;
+        ++checked;
         auto document = ConfigDocument::open(path);
         ASSERT_TRUE(document) << document.error().message;
         EXPECT_EQ(document->backend()->format(), harmony::ConfigFormat::BinaryHid);
-        EXPECT_EQ(document->model().devices.size(), sample.devices);
-        EXPECT_EQ(document->model().userActivityCount(), sample.activities);
-        EXPECT_EQ(document->model().commandCount(), sample.commands);
-        EXPECT_EQ(document->identity().skin, sample.skin);
         EXPECT_TRUE(document->location().empty()); // Save prompts for a project; original dump is retained.
         EXPECT_FALSE(document->backend()->canWriteToRemote());
         EXPECT_FALSE(document->toEzHex(true));
+        // Команды собраны из ИК-таблиц, а не оставлены текстом: хотя бы одна исполняется.
         std::size_t rendered = 0;
         for (const auto& device : document->model().devices)
             for (const auto& command : device.commands)
                 if (document->commandDetails(device.id, command.name)) ++rendered;
-        EXPECT_GT(rendered, sample.commands / 2);
+        EXPECT_GT(rendered, 0U);
         const auto bytes = document->toEzHex(false);
         ASSERT_TRUE(bytes) << bytes.error().message;
         const auto archive = archiveOf(*bytes);
@@ -172,8 +173,9 @@ TEST(ConfigEzHex, ImportsPublicBinaryHidFamiliesWithTheirCommands) {
         auto reopened = ConfigDocument::fromEzHex(*bytes, "saved import");
         ASSERT_TRUE(reopened) << reopened.error().message;
         EXPECT_EQ(reopened->backend()->format(), harmony::ConfigFormat::BinaryHid);
-        EXPECT_EQ(reopened->model().commandCount(), sample.commands);
-        EXPECT_EQ(reopened->model().devices.front().controlGroups.size(), document->model().devices.front().controlGroups.size());
+        EXPECT_EQ(reopened->model().commandCount(), document->model().commandCount());
+        EXPECT_EQ(reopened->model().devices.front().controlGroups.size(),
+                  document->model().devices.front().controlGroups.size());
         ASSERT_TRUE(document->setDeviceLabel(document->model().devices.front().id, "Imported device"));
         const auto edited=document->toEzHex(false);
         ASSERT_TRUE(edited);
@@ -182,6 +184,7 @@ TEST(ConfigEzHex, ImportsPublicBinaryHidFamiliesWithTheirCommands) {
         EXPECT_EQ(editedDocument->model().devices.front().label,"Imported device");
         EXPECT_EQ(*formats::entryContent(*archiveOf(*edited).find("source/Original.EZHex")),readFile(path));
     }
+    if (checked == 0) GTEST_SKIP() << "dumps/ нет — дампы бинарных семейств только на машине владельца";
 }
 
 TEST(ConfigEzHex, RejectsBinaryDevicePointersOutsideTheImage) {

@@ -3,7 +3,7 @@
  * @brief T1, часть с Qt: решения, которые программа принимает по списку клавиш модели.
  *
  * `ConfigView::remoteHasKeys()` (`app/src/widgets/configView.cpp:811–813`) — это «у документа есть
- * целевая модель, и у неё есть клавиши»: он берёт `property("HarmonyTargetRemote")` и спрашивает
+ * целевая модель, и у неё есть клавиши»: он спрашивает `ConfigDocument::targetRemote()` и
  * `RemoteView::hardKeyIds()`. Сам `ConfigView` в тестовые цели не входит (как и `MainWindow`
  * в T4), поэтому проверяется та же цепочка от документа из файла до гейта назначения.
  *
@@ -36,7 +36,7 @@ harmony::Result<ConfigDocument> documentWithTarget(const std::string& target) {
 
 /// Список клавиш так, как его строит `ConfigView::remoteHasKeys()`.
 QStringList keysOfDocument(const ConfigDocument& document) {
-    return RemoteView::hardKeyIds(QString::fromStdString(document.model().property("HarmonyTargetRemote")));
+    return RemoteView::hardKeyIds(QString::fromStdString(document.targetRemote()));
 }
 
 } // namespace

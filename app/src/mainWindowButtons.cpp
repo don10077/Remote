@@ -120,7 +120,7 @@ void MainWindow::editButton(const ButtonOwner& owner, const ButtonRef& button) {
             }
         }
     }
-    ButtonDialog dialog(document_->model(), owner, button, this, initialMacro);
+    ButtonDialog dialog(document_->model(), document_->targetRemote(), owner, button, this, initialMacro);
     if (dialog.exec() != QDialog::Accepted) {
         return;
     }

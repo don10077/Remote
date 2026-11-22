@@ -3,6 +3,8 @@
  * @brief Тесты добавления: перенос устройства с ИК-данными, новая активность, ActionLists.xml.
  */
 
+#include "formatFixtures.h"
+
 #include "harmony/core/configDocument.h"
 #include "harmony/core/formats/irTables.h"
 #include "harmony/core/undo/documentEdit.h"
@@ -10,6 +12,7 @@
 #include <gtest/gtest.h>
 
 #include <algorithm>
+#include <cstdint>
 #include <filesystem>
 #include <fstream>
 #include <iterator>
@@ -23,7 +26,6 @@ namespace formats = harmony::formats;
 
 namespace {
 
-const std::filesystem::path kData(HARMONY_TEST_DATA_DIR);
 // Конфигурация реального пульта — встроенный пример приложения (данные, перенесённые
 // из tests/data/userconfig). Тесты читают её напрямую: содержимое совпадает с ожиданиями.
 const std::filesystem::path kSampleDir = std::filesystem::path(HARMONY_SOURCE_DIR) / "app" / "resources" / "demo";
@@ -156,22 +158,41 @@ TEST(ImportDevice, DuplicateGetsNewIdAndNameAndSharesProtocols) {
     EXPECT_EQ(target.model().property("ProtocolCacheHash"), "0x8595F4FF");
 }
 
+namespace {
+
+/// Источник переноса, собранный в коде: пять протоколов (XML ссылается на №4) и два сырых
+/// кода (XML ссылается на №1). Ожидания теста следуют из этой конструкции, а не из чужого файла.
+ConfigDocument::Files sourceTables(const std::string& xml) {
+    ConfigDocument::Files files;
+    files.userConfiguration = xml;
+    formats::IrTable protocols;
+    for (const std::uint8_t marker : {0x11, 0x22, 0x33, 0x44, 0x55})
+        protocols.entries.push_back(harmony::test::protocolEntry(marker));
+    files.irProto = formats::writeIrProto(protocols);
+    formats::IrTable raw;
+    raw.entries.push_back({0x01, 0x4B, 0x00});
+    raw.entries.push_back({0x01, 0x4B, 0x01});
+    files.ssIr = formats::writeSsIr(raw);
+    return files;
+}
+
+/// XML источника: сырой код №1 и команда протокола №4.
+constexpr const char* kSourceXml =
+    "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<Root><Device><Id>11111111</Id><Type>Amplifier</Type>"
+    "<Presentation><Label>Усилитель</Label></Presentation><Commands>"
+    "<Command><Name>PowerOn</Name><Data><Protocol>-1</Protocol><Code>0xFFFF0100</Code></Data></Command>"
+    "<Command><Name>Mute</Name><Data><Protocol>4</Protocol><Code>0x0400F40101</Code></Data></Command>"
+    "</Commands></Device></Root>";
+
+} // namespace
+
 TEST(ImportDevice, CarriesRawCodes) {
-    // Источник: устройство с сырым кодом №1 из SsIr.bin и командой с протоколом 0.
-    TempDir temp;
-    const std::filesystem::path sourceDir = temp.path() / "источник";
-    std::filesystem::create_directories(sourceDir);
-    std::filesystem::copy_file(kData / "irtables" / "SsIr2.bin", sourceDir / "SsIr.bin");
-    std::filesystem::copy_file(kSampleDir / "IrProto.bin", sourceDir / "IrProto.bin");
-    std::ofstream(sourceDir / "UserConfiguration.xml", std::ios::binary)
-        << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<Root><Device><Id>11111111</Id><Type>Amplifier</Type>"
-           "<Presentation><Label>Усилитель</Label></Presentation><Commands>"
-           "<Command><Name>PowerOn</Name><Data><Protocol>-1</Protocol><Code>0xFFFF0100</Code></Data></Command>"
-           "<Command><Name>Mute</Name><Data><Protocol>4</Protocol><Code>0x0400F40101</Code></Data></Command>"
-           "</Commands></Device></Root>";
-    auto source = ConfigDocument::open(sourceDir);
+    // Источник: устройство с сырым кодом №1 и командой с протоколом 4 (таблицы — из кода).
+    const ConfigDocument::Files sourceFiles = sourceTables(kSourceXml);
+    auto source = ConfigDocument::fromFiles(sourceFiles, "источник");
     ASSERT_TRUE(source) << source.error().message;
     ConfigDocument target = ConfigDocument::createNew("Новая");
+    TempDir temp;
 
     auto imported = target.importDevice(*source, "11111111");
     ASSERT_TRUE(imported) << imported.error().message;
@@ -183,7 +204,7 @@ TEST(ImportDevice, CarriesRawCodes) {
     EXPECT_EQ(device->commands[1].protocol, 0);
     EXPECT_EQ(device->commands[1].code, "0x0000F40101"); // протокол №4 стал №0
     auto raw = formats::parseSsIr(readBytes(temp.path() / "цель" / "SsIr.bin"));
-    auto rawSource = formats::parseSsIr(readBytes(sourceDir / "SsIr.bin"));
+    auto rawSource = formats::parseSsIr(sourceFiles.ssIr);
     ASSERT_TRUE(raw && rawSource);
     ASSERT_EQ(raw->entries.size(), 1U);
     EXPECT_EQ(raw->entries[0], rawSource->entries[1]);
@@ -563,15 +584,14 @@ TEST(LearnedCommands, RefusesCodeNumberAbove255) {
 }
 
 TEST(ImportDevice, RefusesRawCodeNumberAbove255) {
-    TempDir temp;
-    std::filesystem::copy_file(kData / "irtables" / "SsIr2.bin", temp.path() / "SsIr.bin");
-    std::filesystem::copy_file(kSampleDir / "IrProto.bin", temp.path() / "IrProto.bin");
-    std::ofstream(temp.path() / "UserConfiguration.xml", std::ios::binary)
-        << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<Root><Device><Id>11111111</Id><Type>Amplifier</Type>"
-           "<Presentation><Label>Усилитель</Label></Presentation><Commands>"
-           "<Command><Name>PowerOn</Name><Data><Protocol>-1</Protocol><Code>0xFFFF0100</Code></Data></Command>"
-           "</Commands></Device></Root>";
-    auto source = ConfigDocument::open(temp.path());
+    // Источник — из кода: сырой код №1. Цель уже содержит коды 0…255, поэтому перенос
+    // потребовал бы код №256 — номер сырого кода один байт.
+    auto source = ConfigDocument::fromFiles(
+        sourceTables("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<Root><Device><Id>11111111</Id>"
+                     "<Type>Amplifier</Type><Presentation><Label>Усилитель</Label></Presentation><Commands>"
+                     "<Command><Name>PowerOn</Name><Data><Protocol>-1</Protocol><Code>0xFFFF0100</Code></Data></Command>"
+                     "</Commands></Device></Root>"),
+        "источник");
     ASSERT_TRUE(source) << source.error().message;
     FullRawTable full = fullRawTable();
     const std::string before = full.document.toXml();

@@ -33,12 +33,13 @@ public:
     /**
      * @brief Создаёт окно.
      * @param config Конфигурация (устройства и их команды).
+     * @param targetRemote Id целевой модели документа; пусто — модель неизвестна.
      * @param owner Чьи кнопки: активности (команды её устройствам) или устройства (только ему).
      * @param button Кнопка: аппаратная (пустое имя — выбрать), экранная (-1 — новая).
      * @param parent Родительское окно.
      */
-    ButtonDialog(const model::RemoteConfig& config, const ButtonOwner& owner, ButtonRef button,
-                 QWidget* parent = nullptr, Macro initialMacro = {});
+    ButtonDialog(const model::RemoteConfig& config, std::string targetRemote, const ButtonOwner& owner,
+                 ButtonRef button, QWidget* parent = nullptr, Macro initialMacro = {});
 
     /// @return true — кнопка выполняет несколько шагов (макрос), см. macro().
     [[nodiscard]] bool macroChosen() const;
@@ -75,6 +76,7 @@ private:
     [[nodiscard]] std::string currentAction(const ButtonRef& button) const;
 
     const model::RemoteConfig& config_;
+    std::string targetRemote_; ///< Id целевой модели документа; пусто — неизвестна.
     const std::vector<model::ControlGroup>* groups_ = nullptr; ///< Кнопки владельца
     std::vector<std::string> devices_;                         ///< Кому можно слать команды
     ButtonRef initial_;

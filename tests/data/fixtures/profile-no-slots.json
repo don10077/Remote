@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "id": "noslots",
+  "name": "Harmony NoSlots",
+  "capabilities": { "touch": false },
+  "hardware": { "image": "photo.png", "size": [200, 600], "zones": [] },
+  "tiles": { "color": "#202020", "border": "#000000" },
+  "screens": [
+    {
+      "id": "command",
+      "role": "command",
+      "ref": [172, 182],
+      "cells": [
+        { "id": "Title", "kind": "ScreenLabel", "radius": 0, "rect": [0, 0, 120, 22] },
+        { "id": "Page", "kind": "ScreenLabel", "radius": 0, "rect": [122, 0, 50, 22] }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Фикстура T2: пустая страница экранных кнопок. Целевая модель — 900: у встроенного профиля
+  экран command вмещает 6 ячеек (2×3). Места 0…5 заняты, 6…11 пропущены ровно на вместимость
+  (пустая страница), 12…17 заняты снова.
+  Читают: C2 (предупреждение о местах экранных кнопок), V6 (деление на страницы).
+-->
+<Root>
+  <Properties>
+    <Property name="version">1.0</Property>
+    <Property name="HarmonyTargetRemote">900</Property>
+  </Properties>
+  <User><Id>0</Id></User>
+  <Device>
+    <Id>100</Id>
+    <Type>Television</Type>
+    <Manufacturer>LG</Manufacturer>
+    <Model>55UK</Model>
+    <Presentation>
+      <Label>Телевизор</Label>
+      <ControlGroup name="HardButtons">
+        <Button name="Play">
+          <Label>Play</Label>
+          <Position>0</Position>
+          <ActionId>100_PowerToggle_Press</ActionId>
+        </Button>
+      </ControlGroup>
+      <ControlGroup name="Misc">
+        <Button><Label>Строка 1</Label><Position>0</Position><ActionId>100_PowerToggle_Press</ActionId></Button>
+        <Button><Label>Строка 2</Label><Position>1</Position><ActionId>100_PowerToggle_Press</ActionId></Button>
+        <Button><Label>Строка 3</Label><Position>2</Position><ActionId>100_PowerToggle_Press</ActionId></Button>
+        <Button><Label>Строка 4</Label><Position>3</Position><ActionId>100_PowerToggle_Press</ActionId></Button>
+        <Button><Label>Строка 5</Label><Position>4</Position><ActionId>100_PowerToggle_Press</ActionId></Button>
+        <Button><Label>Строка 6</Label><Position>5</Position><ActionId>100_PowerToggle_Press</ActionId></Button>
+        <Button><Label>Строка 7</Label><Position>12</Position><ActionId>100_PowerToggle_Press</ActionId></Button>
+        <Button><Label>Строка 8</Label><Position>13</Position><ActionId>100_PowerToggle_Press</ActionId></Button>
+        <Button><Label>Строка 9</Label><Position>14</Position><ActionId>100_PowerToggle_Press</ActionId></Button>
+        <Button><Label>Строка 10</Label><Position>15</Position><ActionId>100_PowerToggle_Press</ActionId></Button>
+        <Button><Label>Строка 11</Label><Position>16</Position><ActionId>100_PowerToggle_Press</ActionId></Button>
+        <Button><Label>Строка 12</Label><Position>17</Position><ActionId>100_PowerToggle_Press</ActionId></Button>
+      </ControlGroup>
+    </Presentation>
+    <Commands>
+      <Command><Name>PowerToggle</Name><Data><Protocol>2</Protocol><Code>0x0A</Code></Data></Command>
+    </Commands>
+  </Device>
+</Root>

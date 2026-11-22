@@ -13,6 +13,7 @@
 #include "appSettings.h"
 #include "harmony/core/configDiff.h"
 #include "harmony/core/formats/remoteCapture.h"
+#include "harmony/core/remoteCatalog.h"
 #include "harmony/core/remoteProfile.h"
 #include "harmony/transport/remoteServices.h"
 

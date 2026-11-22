@@ -5,6 +5,7 @@
 
 #include "mainWindow.h"
 #include "widgets/configTransferDialog.h"
+#include "harmony/core/remoteCatalog.h"
 #include "harmony/core/remoteProfile.h"
 #include "appSettings.h"
 #include "remoteResources.h"

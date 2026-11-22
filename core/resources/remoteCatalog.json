@@ -5,11 +5,11 @@
     "skins": [
       61
     ],
-    "network": true,
+    "architecture": 15,
+    "link": "usb-net",
     "read": true,
     "write": true,
-    "writeTested": true,
-    "visualProfile": "900"
+    "writeTested": true
   },
   {
     "id": "harman-kardon-tc-30",
@@ -20,11 +20,11 @@
       42,
       43
     ],
-    "network": false,
+    "architecture": 8,
+    "link": "usb-hid",
     "read": true,
     "write": true,
-    "writeTested": false,
-    "visualProfile": ""
+    "writeTested": false
   },
   {
     "id": "1000",
@@ -32,11 +32,11 @@
     "skins": [
       49
     ],
-    "network": true,
+    "architecture": 15,
+    "link": "usb-net",
     "read": false,
     "write": true,
-    "writeTested": false,
-    "visualProfile": "1000"
+    "writeTested": false
   },
   {
     "id": "1000i",
@@ -44,11 +44,11 @@
     "skins": [
       52
     ],
-    "network": true,
+    "architecture": 15,
+    "link": "usb-net",
     "read": false,
     "write": true,
-    "writeTested": false,
-    "visualProfile": ""
+    "writeTested": false
   },
   {
     "id": "1100",
@@ -58,21 +58,21 @@
       63,
       64
     ],
-    "network": true,
+    "architecture": 11,
+    "link": "usb-net",
     "read": true,
     "write": true,
-    "writeTested": false,
-    "visualProfile": "1100"
+    "writeTested": false
   },
   {
     "id": "1100i",
     "name": "Harmony 1100i",
     "skins": [],
-    "network": true,
+    "architecture": 11,
+    "link": "usb-net",
     "read": false,
     "write": false,
-    "writeTested": false,
-    "visualProfile": "1100i"
+    "writeTested": false
   },
   {
     "id": "200",
@@ -80,11 +80,11 @@
     "skins": [
       80
     ],
-    "network": false,
+    "architecture": 16,
+    "link": "mh",
     "read": true,
     "write": true,
-    "writeTested": false,
-    "visualProfile": ""
+    "writeTested": false
   },
   {
     "id": "200i",
@@ -92,11 +92,11 @@
     "skins": [
       81
     ],
-    "network": false,
+    "architecture": 16,
+    "link": "mh",
     "read": true,
     "write": true,
-    "writeTested": false,
-    "visualProfile": ""
+    "writeTested": false
   },
   {
     "id": "300",
@@ -104,11 +104,11 @@
     "skins": [
       78
     ],
-    "network": false,
+    "architecture": 16,
+    "link": "mh",
     "read": true,
     "write": true,
-    "writeTested": false,
-    "visualProfile": ""
+    "writeTested": false
   },
   {
     "id": "300i",
@@ -116,11 +116,11 @@
     "skins": [
       79
     ],
-    "network": false,
+    "architecture": 16,
+    "link": "mh",
     "read": true,
     "write": true,
-    "writeTested": false,
-    "visualProfile": ""
+    "writeTested": false
   },
   {
     "id": "350",
@@ -128,11 +128,11 @@
     "skins": [
       104
     ],
-    "network": false,
+    "architecture": 16,
+    "link": "mh",
     "read": true,
     "write": true,
-    "writeTested": false,
-    "visualProfile": ""
+    "writeTested": false
   },
   {
     "id": "515",
@@ -140,11 +140,11 @@
     "skins": [
       67
     ],
-    "network": false,
+    "architecture": 9,
+    "link": "usb-hid",
     "read": true,
     "write": true,
-    "writeTested": false,
-    "visualProfile": ""
+    "writeTested": false
   },
   {
     "id": "520",
@@ -152,11 +152,11 @@
     "skins": [
       18
     ],
-    "network": false,
+    "architecture": 9,
+    "link": "usb-hid",
     "read": true,
     "write": true,
-    "writeTested": false,
-    "visualProfile": ""
+    "writeTested": false
   },
   {
     "id": "522",
@@ -164,11 +164,11 @@
     "skins": [
       46
     ],
-    "network": false,
+    "architecture": 9,
+    "link": "usb-hid",
     "read": true,
     "write": true,
-    "writeTested": false,
-    "visualProfile": ""
+    "writeTested": false
   },
   {
     "id": "525",
@@ -176,11 +176,11 @@
     "skins": [
       22
     ],
-    "network": false,
+    "architecture": 9,
+    "link": "usb-hid",
     "read": true,
     "write": true,
-    "writeTested": false,
-    "visualProfile": ""
+    "writeTested": false
   },
   {
     "id": "550",
@@ -188,11 +188,11 @@
     "skins": [
       41
     ],
-    "network": false,
+    "architecture": 9,
+    "link": "usb-hid",
     "read": true,
     "write": true,
-    "writeTested": false,
-    "visualProfile": ""
+    "writeTested": false
   },
   {
     "id": "552",
@@ -200,11 +200,11 @@
     "skins": [
       51
     ],
-    "network": false,
+    "architecture": 9,
+    "link": "usb-hid",
     "read": true,
     "write": true,
-    "writeTested": false,
-    "visualProfile": ""
+    "writeTested": false
   },
   {
     "id": "555",
@@ -212,11 +212,11 @@
     "skins": [
       48
     ],
-    "network": false,
+    "architecture": 9,
+    "link": "usb-hid",
     "read": true,
     "write": true,
-    "writeTested": false,
-    "visualProfile": ""
+    "writeTested": false
   },
   {
     "id": "600",
@@ -224,11 +224,11 @@
     "skins": [
       71
     ],
-    "network": false,
+    "architecture": 14,
+    "link": "usb-hid",
     "read": true,
     "write": true,
-    "writeTested": false,
-    "visualProfile": "600"
+    "writeTested": false
   },
   {
     "id": "600i",
@@ -236,11 +236,11 @@
     "skins": [
       73
     ],
-    "network": false,
+    "architecture": 14,
+    "link": "usb-hid",
     "read": true,
     "write": true,
-    "writeTested": false,
-    "visualProfile": ""
+    "writeTested": false
   },
   {
     "id": "628",
@@ -248,11 +248,11 @@
     "skins": [
       13
     ],
-    "network": false,
+    "architecture": 7,
+    "link": "usb-hid",
     "read": true,
     "write": true,
-    "writeTested": false,
-    "visualProfile": ""
+    "writeTested": false
   },
   {
     "id": "650",
@@ -260,11 +260,11 @@
     "skins": [
       72
     ],
-    "network": false,
+    "architecture": 14,
+    "link": "usb-hid",
     "read": true,
     "write": true,
-    "writeTested": false,
-    "visualProfile": "650"
+    "writeTested": false
   },
   {
     "id": "650i",
@@ -272,11 +272,11 @@
     "skins": [
       74
     ],
-    "network": false,
+    "architecture": 14,
+    "link": "usb-hid",
     "read": true,
     "write": true,
-    "writeTested": false,
-    "visualProfile": ""
+    "writeTested": false
   },
   {
     "id": "655",
@@ -284,11 +284,11 @@
     "skins": [
       11
     ],
-    "network": false,
+    "architecture": 7,
+    "link": "usb-hid",
     "read": true,
     "write": true,
-    "writeTested": false,
-    "visualProfile": ""
+    "writeTested": false
   },
   {
     "id": "659",
@@ -296,11 +296,11 @@
     "skins": [
       9
     ],
-    "network": false,
+    "architecture": 7,
+    "link": "usb-hid",
     "read": true,
     "write": true,
-    "writeTested": false,
-    "visualProfile": ""
+    "writeTested": false
   },
   {
     "id": "665",
@@ -308,11 +308,11 @@
     "skins": [
       75
     ],
-    "network": false,
+    "architecture": 14,
+    "link": "usb-hid",
     "read": true,
     "write": true,
-    "writeTested": false,
-    "visualProfile": "665"
+    "writeTested": false
   },
   {
     "id": "670",
@@ -320,11 +320,11 @@
     "skins": [
       50
     ],
-    "network": false,
+    "architecture": 7,
+    "link": "usb-hid",
     "read": true,
     "write": true,
-    "writeTested": false,
-    "visualProfile": ""
+    "writeTested": false
   },
   {
     "id": "675",
@@ -332,11 +332,11 @@
     "skins": [
       16
     ],
-    "network": false,
+    "architecture": 7,
+    "link": "usb-hid",
     "read": true,
     "write": true,
-    "writeTested": false,
-    "visualProfile": ""
+    "writeTested": false
   },
   {
     "id": "676",
@@ -344,11 +344,11 @@
     "skins": [
       12
     ],
-    "network": false,
+    "architecture": 7,
+    "link": "usb-hid",
     "read": true,
     "write": true,
-    "writeTested": false,
-    "visualProfile": ""
+    "writeTested": false
   },
   {
     "id": "680",
@@ -356,11 +356,11 @@
     "skins": [
       14
     ],
-    "network": false,
+    "architecture": 7,
+    "link": "usb-hid",
     "read": true,
     "write": true,
-    "writeTested": false,
-    "visualProfile": ""
+    "writeTested": false
   },
   {
     "id": "688",
@@ -368,11 +368,11 @@
     "skins": [
       10
     ],
-    "network": false,
+    "architecture": 7,
+    "link": "usb-hid",
     "read": true,
     "write": true,
-    "writeTested": false,
-    "visualProfile": ""
+    "writeTested": false
   },
   {
     "id": "700",
@@ -380,11 +380,11 @@
     "skins": [
       66
     ],
-    "network": false,
+    "architecture": 14,
+    "link": "usb-hid",
     "read": true,
     "write": true,
-    "writeTested": false,
-    "visualProfile": "700"
+    "writeTested": false
   },
   {
     "id": "700i",
@@ -392,11 +392,11 @@
     "skins": [
       69
     ],
-    "network": false,
+    "architecture": 14,
+    "link": "usb-hid",
     "read": true,
     "write": true,
-    "writeTested": false,
-    "visualProfile": ""
+    "writeTested": false
   },
   {
     "id": "720",
@@ -404,11 +404,11 @@
     "skins": [
       44
     ],
-    "network": false,
+    "architecture": 8,
+    "link": "usb-hid",
     "read": true,
     "write": true,
-    "writeTested": false,
-    "visualProfile": ""
+    "writeTested": false
   },
   {
     "id": "745",
@@ -416,11 +416,11 @@
     "skins": [
       2
     ],
-    "network": false,
+    "architecture": 2,
+    "link": "usb-hid",
     "read": true,
     "write": true,
-    "writeTested": false,
-    "visualProfile": ""
+    "writeTested": false
   },
   {
     "id": "748",
@@ -428,11 +428,11 @@
     "skins": [
       7
     ],
-    "network": false,
+    "architecture": 3,
+    "link": "usb-hid",
     "read": true,
     "write": true,
-    "writeTested": false,
-    "visualProfile": ""
+    "writeTested": false
   },
   {
     "id": "768",
@@ -440,11 +440,11 @@
     "skins": [
       3
     ],
-    "network": false,
+    "architecture": 3,
+    "link": "usb-hid",
     "read": true,
     "write": true,
-    "writeTested": false,
-    "visualProfile": ""
+    "writeTested": false
   },
   {
     "id": "785",
@@ -452,11 +452,11 @@
     "skins": [
       45
     ],
-    "network": false,
+    "architecture": 8,
+    "link": "usb-hid",
     "read": true,
     "write": true,
-    "writeTested": false,
-    "visualProfile": ""
+    "writeTested": false
   },
   {
     "id": "800",
@@ -464,11 +464,11 @@
     "skins": [
       86
     ],
-    "network": false,
+    "architecture": 18,
+    "link": "mh",
     "read": true,
     "write": true,
-    "writeTested": false,
-    "visualProfile": ""
+    "writeTested": false
   },
   {
     "id": "880",
@@ -476,11 +476,11 @@
     "skins": [
       15
     ],
-    "network": false,
+    "architecture": 8,
+    "link": "usb-hid",
     "read": true,
     "write": true,
-    "writeTested": false,
-    "visualProfile": ""
+    "writeTested": false
   },
   {
     "id": "880-pro",
@@ -488,11 +488,11 @@
     "skins": [
       39
     ],
-    "network": false,
+    "architecture": 8,
+    "link": "usb-hid",
     "read": true,
     "write": true,
-    "writeTested": false,
-    "visualProfile": ""
+    "writeTested": false
   },
   {
     "id": "882",
@@ -500,11 +500,11 @@
     "skins": [
       47
     ],
-    "network": false,
+    "architecture": 8,
+    "link": "usb-hid",
     "read": true,
     "write": true,
-    "writeTested": false,
-    "visualProfile": ""
+    "writeTested": false
   },
   {
     "id": "885",
@@ -512,11 +512,11 @@
     "skins": [
       17
     ],
-    "network": false,
+    "architecture": 8,
+    "link": "usb-hid",
     "read": true,
     "write": true,
-    "writeTested": false,
-    "visualProfile": ""
+    "writeTested": false
   },
   {
     "id": "890",
@@ -524,11 +524,11 @@
     "skins": [
       19
     ],
-    "network": false,
+    "architecture": 10,
+    "link": "usb-hid",
     "read": true,
     "write": true,
-    "writeTested": false,
-    "visualProfile": ""
+    "writeTested": false
   },
   {
     "id": "890-pro",
@@ -536,11 +536,11 @@
     "skins": [
       40
     ],
-    "network": false,
+    "architecture": 10,
+    "link": "usb-hid",
     "read": true,
     "write": true,
-    "writeTested": false,
-    "visualProfile": ""
+    "writeTested": false
   },
   {
     "id": "891",
@@ -548,11 +548,11 @@
     "skins": [
       20
     ],
-    "network": false,
+    "architecture": 10,
+    "link": "usb-hid",
     "read": true,
     "write": true,
-    "writeTested": false,
-    "visualProfile": ""
+    "writeTested": false
   },
   {
     "id": "892",
@@ -560,11 +560,11 @@
     "skins": [
       21
     ],
-    "network": false,
+    "architecture": 10,
+    "link": "usb-hid",
     "read": true,
     "write": true,
-    "writeTested": false,
-    "visualProfile": ""
+    "writeTested": false
   },
   {
     "id": "895",
@@ -572,11 +572,11 @@
     "skins": [
       23
     ],
-    "network": false,
+    "architecture": 10,
+    "link": "usb-hid",
     "read": true,
     "write": true,
-    "writeTested": false,
-    "visualProfile": ""
+    "writeTested": false
   },
   {
     "id": "896",
@@ -584,11 +584,11 @@
     "skins": [
       24
     ],
-    "network": false,
+    "architecture": 10,
+    "link": "usb-hid",
     "read": true,
     "write": true,
-    "writeTested": false,
-    "visualProfile": ""
+    "writeTested": false
   },
   {
     "id": "897",
@@ -596,11 +596,11 @@
     "skins": [
       25
     ],
-    "network": false,
+    "architecture": 10,
+    "link": "usb-hid",
     "read": true,
     "write": true,
-    "writeTested": false,
-    "visualProfile": ""
+    "writeTested": false
   },
   {
     "id": "950",
@@ -608,11 +608,11 @@
     "skins": [
       112
     ],
-    "network": false,
+    "architecture": 17,
+    "link": "mh",
     "read": false,
     "write": true,
-    "writeTested": false,
-    "visualProfile": ""
+    "writeTested": false
   },
   {
     "id": "home-hub",
@@ -620,11 +620,11 @@
     "skins": [
       106
     ],
-    "network": false,
+    "architecture": 17,
+    "link": "hub",
     "read": false,
     "write": true,
-    "writeTested": false,
-    "visualProfile": ""
+    "writeTested": false
   },
   {
     "id": "link",
@@ -632,11 +632,11 @@
     "skins": [
       82
     ],
-    "network": false,
+    "architecture": 17,
+    "link": "hub",
     "read": false,
     "write": true,
-    "writeTested": false,
-    "visualProfile": ""
+    "writeTested": false
   },
   {
     "id": "link-emea",
@@ -644,11 +644,11 @@
     "skins": [
       83
     ],
-    "network": false,
+    "architecture": 17,
+    "link": "hub",
     "read": false,
     "write": true,
-    "writeTested": false,
-    "visualProfile": ""
+    "writeTested": false
   },
   {
     "id": "one",
@@ -656,11 +656,11 @@
     "skins": [
       54
     ],
-    "network": false,
+    "architecture": 12,
+    "link": "usb-hid",
     "read": true,
     "write": true,
-    "writeTested": false,
-    "visualProfile": "one"
+    "writeTested": false
   },
   {
     "id": "touch",
@@ -668,11 +668,11 @@
     "skins": [
       99
     ],
-    "network": false,
+    "architecture": 17,
+    "link": "mh",
     "read": false,
     "write": true,
-    "writeTested": false,
-    "visualProfile": ""
+    "writeTested": false
   },
   {
     "id": "ultimate",
@@ -680,11 +680,11 @@
     "skins": [
       100
     ],
-    "network": false,
+    "architecture": 17,
+    "link": "mh",
     "read": false,
     "write": true,
-    "writeTested": false,
-    "visualProfile": ""
+    "writeTested": false
   },
   {
     "id": "ultimate-hub",
@@ -692,11 +692,11 @@
     "skins": [
       97
     ],
-    "network": false,
+    "architecture": 17,
+    "link": "hub",
     "read": false,
     "write": true,
-    "writeTested": false,
-    "visualProfile": ""
+    "writeTested": false
   },
   {
     "id": "ultimate-one",
@@ -704,11 +704,11 @@
     "skins": [
       102
     ],
-    "network": false,
+    "architecture": 17,
+    "link": "mh",
     "read": false,
     "write": true,
-    "writeTested": false,
-    "visualProfile": ""
+    "writeTested": false
   },
   {
     "id": "xbox360",
@@ -716,11 +716,11 @@
     "skins": [
       36
     ],
-    "network": false,
+    "architecture": 15,
+    "link": "usb-net",
     "read": true,
     "write": true,
-    "writeTested": false,
-    "visualProfile": ""
+    "writeTested": false
   },
   {
     "id": "monster-av-100",
@@ -729,11 +729,11 @@
       37,
       38
     ],
-    "network": false,
+    "architecture": 8,
+    "link": "usb-hid",
     "read": true,
     "write": true,
-    "writeTested": false,
-    "visualProfile": ""
+    "writeTested": false
   },
   {
     "id": "monster-avl-200",
@@ -742,11 +742,11 @@
       32,
       33
     ],
-    "network": false,
+    "architecture": 10,
+    "link": "usb-hid",
     "read": true,
     "write": true,
-    "writeTested": false,
-    "visualProfile": ""
+    "writeTested": false
   },
   {
     "id": "monster-avl-300",
@@ -759,10 +759,10 @@
       30,
       31
     ],
-    "network": false,
+    "architecture": 10,
+    "link": "usb-hid",
     "read": true,
     "write": true,
-    "writeTested": false,
-    "visualProfile": ""
+    "writeTested": false
   }
 ]

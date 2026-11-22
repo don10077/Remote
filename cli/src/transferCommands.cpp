@@ -1,5 +1,6 @@
 #include "transferCommands.h"
 #include "harmony/core/remoteCatalog.h"
+#include "harmony/core/remoteProfile.h"
 #include "harmony/transport/concordTransfer.h"
 #include <chrono>
 #include <filesystem>
@@ -26,7 +27,7 @@ int runTransferCommand(std::span<char*> args, const std::string& host) {
         for (const auto& model : harmony::remoteCatalog())
             std::cout << model.id << '\t' << model.name << '\t' << (model.readable ? "yes" : "no") << '\t'
                       << (model.writable ? "yes" : "no") << '\t' << (model.writeTested ? "yes" : "no") << '\t'
-                      << (model.visualProfile.empty() ? "no" : "yes") << '\n';
+                      << (harmony::remoteProfile(model.id) != nullptr ? "yes" : "no") << '\n';
         return 0;
     }
     const bool writing = command == "transfer-write";

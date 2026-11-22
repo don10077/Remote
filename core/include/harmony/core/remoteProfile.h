@@ -76,10 +76,4 @@ inline RemoteProfile defaultRemoteProfile() {
 /// @return id пульта по умолчанию (см. defaultRemoteProfile()).
 inline std::string defaultRemoteId() { return defaultRemoteProfile().id; }
 
-/// @return true, если пульт подключается по USB-сети (сетевой протокол 900/1100).
-inline bool usesUsbNet(std::string_view id) {
-    const RemoteProfile* profile = remoteProfile(id);
-    return profile != nullptr && profile->driver == driver::kUsbNet;
-}
-
 } // namespace harmony

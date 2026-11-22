@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Фикстура T2: документ без профиля. Целевая модель — 885 (в каталоге есть, папки профиля нет).
+  Назначения: три физические клавиши (Play, SoftRight4, Number5) и две экранные кнопки.
+  Читают: A1–A5 (гейт назначения, экранные кнопки без профиля), C1 (клавиши, которых нет у модели).
+-->
+<Root>
+  <Properties>
+    <Property name="version">1.0</Property>
+    <Property name="HarmonyTargetRemote">885</Property>
+  </Properties>
+  <User><Id>0</Id></User>
+  <Device>
+    <Id>100</Id>
+    <Type>Television</Type>
+    <Manufacturer>LG</Manufacturer>
+    <Model>55UK</Model>
+    <Presentation>
+      <Label>Телевизор</Label>
+      <ControlGroup name="HardButtons">
+        <Button name="Play">
+          <Label>Play</Label>
+          <Position>0</Position>
+          <ActionId>100_PowerToggle_Press</ActionId>
+        </Button>
+        <Button name="SoftRight4">
+          <Label>SoftRight4</Label>
+          <Position>1</Position>
+          <ActionId>100_Text_Press</ActionId>
+        </Button>
+        <Button name="Number5">
+          <Label>Number5</Label>
+          <Position>2</Position>
+          <ActionId>100_Five_Press</ActionId>
+        </Button>
+      </ControlGroup>
+      <ControlGroup name="Misc">
+        <Button>
+          <Label>Питание</Label>
+          <Position>0</Position>
+          <ActionId>100_PowerToggle_Press</ActionId>
+        </Button>
+        <Button>
+          <Label>Текст</Label>
+          <Icon>teletext_off</Icon>
+          <Position>1</Position>
+          <ActionId>100_Text_Press</ActionId>
+        </Button>
+      </ControlGroup>
+    </Presentation>
+    <Commands>
+      <Command><Name>PowerToggle</Name><Data><Protocol>2</Protocol><Code>0x0A</Code></Data></Command>
+      <Command><Name>Text</Name><Data><Protocol>2</Protocol><Code>0x0B</Code></Data></Command>
+      <Command><Name>Five</Name><Data><Protocol>2</Protocol><Code>0x05</Code></Data></Command>
+    </Commands>
+  </Device>
+  <Activity>
+    <Id>200</Id>
+    <Type>VirtualTelevisionN</Type>
+    <Presentation><Label>Смотреть ТВ</Label></Presentation>
+    <Role><Name>DEFAULT</Name><DeviceId>100</DeviceId></Role>
+    <Power><On>100</On></Power>
+  </Activity>
+</Root>

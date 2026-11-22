@@ -3,8 +3,8 @@
  * @brief Тесты базы ИК-кодов: сборка из файлов архива, поиск, записи, перенос устройства в
  * конфигурацию.
  *
- * Фикстура — три устройства из настоящего архива logitech-harmony-ir-archive
- * (Samsung HLN501W, Sony STR-DE1015G, Yamaha HTR-7650) и их протоколы.
+ * Фикстура — синтетические протоколы и три устройства, собранные в коде (`irdbFixture.h`).
+ * Ожидания следуют из конструкции фикстуры, а не из содержимого публичного архива.
  */
 
 #include "harmony/core/irdb/irDatabase.h"
@@ -12,6 +12,8 @@
 #include "harmony/core/configDocument.h"
 #include "harmony/core/formats/irTables.h"
 #include "harmony/core/ir/carrierVm.h"
+#include "formatFixtures.h"
+#include "irdbFixture.h"
 
 #include <algorithm>
 #include <cctype>
@@ -24,35 +26,15 @@ using namespace harmony;
 
 namespace {
 
-const std::filesystem::path kData = std::filesystem::path(HARMONY_TEST_DATA_DIR) / "irdb";
+// Встроенный пример приложения: настоящий IrProto.bin, с которым сверяется сборка.
+const std::filesystem::path kDemo =
+    std::filesystem::path(HARMONY_SOURCE_DIR) / "app" / "resources" / "demo";
 
-/// Временная папка теста; удаляется вместе с содержимым.
-class TempDir {
-public:
-    TempDir()
-        : path_(std::filesystem::temp_directory_path() /
-                ("harmony-irdb-" +
-                 std::to_string(::testing::UnitTest::GetInstance()->random_seed()) + "-" +
-                 ::testing::UnitTest::GetInstance()->current_test_info()->name())) {
-        std::filesystem::create_directories(path_);
-    }
-    ~TempDir() {
-        std::error_code ignored;
-        std::filesystem::remove_all(path_, ignored);
-    }
-    TempDir(const TempDir&) = delete;
-    TempDir& operator=(const TempDir&) = delete;
-    [[nodiscard]] const std::filesystem::path& path() const { return path_; }
-
-private:
-    std::filesystem::path path_;
-};
-
-/// Собирает базу из фикстуры и открывает её.
-irdb::IrDatabase buildFixture(const TempDir& dir) {
-    const auto file = dir.path() / "test.irdb";
-    auto stats = irdb::buildDatabase(kData / "device_features_raw.jsonl.gz",
-                                     kData / "AllProtocols.json.gz", file, "test");
+/// Собирает базу из синтетических файлов и открывает её.
+irdb::IrDatabase buildFixture(const std::filesystem::path& dir) {
+    const auto files = test::writeIrDatabaseSource(dir);
+    const auto file = dir / "test.irdb";
+    auto stats = irdb::buildDatabase(files.devices, files.protocols, file, "test");
     EXPECT_TRUE(stats) << (stats ? "" : stats.error().message);
     auto database = irdb::IrDatabase::open(file);
     EXPECT_TRUE(database) << (database ? "" : database.error().message);
@@ -68,8 +50,8 @@ std::size_t entryOf(const irdb::IrDatabase& database, std::string_view query) {
 } // namespace
 
 TEST(IrDatabase, BuildsCatalogueSortedByManufacturer) {
-    TempDir dir;
-    const auto database = buildFixture(dir);
+    test::TempFolder dir("irdb");
+    const auto database = buildFixture(dir.path());
 
     ASSERT_EQ(database.entries().size(), 3U);
     EXPECT_EQ(database.entries()[0].manufacturer, "Samsung");
@@ -82,13 +64,13 @@ TEST(IrDatabase, BuildsCatalogueSortedByManufacturer) {
 }
 
 TEST(IrDatabase, TruncatedSourceDoesNotReplaceExistingDatabase) {
-    TempDir dir;
-    const auto original = buildFixture(dir);
-    const auto source = kData / "device_features_raw.jsonl.gz";
+    test::TempFolder dir("irdb");
+    const auto original = buildFixture(dir.path());
+    const auto files = test::writeIrDatabaseSource(dir.path());
     const auto damaged = dir.path() / "broken.gz";
-    std::filesystem::copy_file(source, damaged);
+    std::filesystem::copy_file(files.devices, damaged);
     std::filesystem::resize_file(damaged, std::filesystem::file_size(damaged) / 2);
-    EXPECT_FALSE(irdb::buildDatabase(damaged, kData / "AllProtocols.json.gz", dir.path() / "test.irdb", "broken"));
+    EXPECT_FALSE(irdb::buildDatabase(damaged, files.protocols, dir.path() / "test.irdb", "broken"));
     const auto reopened = irdb::IrDatabase::open(dir.path() / "test.irdb");
     ASSERT_TRUE(reopened);
     EXPECT_EQ(reopened->source(), "test");
@@ -96,8 +78,8 @@ TEST(IrDatabase, TruncatedSourceDoesNotReplaceExistingDatabase) {
 }
 
 TEST(IrDatabase, ReadsVersionTwoWithoutBuildMetadata) {
-    TempDir dir;
-    const auto database = buildFixture(dir);
+    test::TempFolder dir("irdb");
+    const auto database = buildFixture(dir.path());
     const auto path = dir.path() / "test.irdb";
     const auto metadataSize = database.buildInfo().size();
     {
@@ -117,8 +99,8 @@ TEST(IrDatabase, ReadsVersionTwoWithoutBuildMetadata) {
 }
 
 TEST(IrDatabase, SearchMatchesAllWordsIgnoringCase) {
-    TempDir dir;
-    const auto database = buildFixture(dir);
+    test::TempFolder dir("irdb");
+    const auto database = buildFixture(dir.path());
 
     std::size_t found = 0;
     EXPECT_EQ(database.search("SONY str", 10, &found).size(), 1U);
@@ -130,13 +112,14 @@ TEST(IrDatabase, SearchMatchesAllWordsIgnoringCase) {
 }
 
 TEST(IrDatabase, ReadsRecordWithPowerAndInputs) {
-    TempDir dir;
-    const auto database = buildFixture(dir);
+    test::TempFolder dir("irdb");
+    const auto database = buildFixture(dir.path());
 
     const auto samsung = database.device(entryOf(database, "samsung hln501w"));
     ASSERT_TRUE(samsung) << samsung.error().message;
     EXPECT_EQ(samsung->model, "HLN501W");
-    EXPECT_EQ(samsung->commands.size(), 96U);
+    // 24 команды цифр, 31 аппаратная кнопка, питание и пять входов — конструкция фикстуры.
+    EXPECT_EQ(samsung->commands.size(), 62U);
     EXPECT_EQ(samsung->powerType, 1);
     EXPECT_FALSE(samsung->powerOn.empty());
     EXPECT_EQ(samsung->inputs.size(), 5U);
@@ -149,8 +132,8 @@ TEST(IrDatabase, ReadsRecordWithPowerAndInputs) {
 }
 
 TEST(IrDatabase, RendersCommandsToKnownProtocols) {
-    TempDir dir;
-    const auto database = buildFixture(dir);
+    test::TempFolder dir("irdb");
+    const auto database = buildFixture(dir.path());
     const auto samsung = database.device(entryOf(database, "samsung"));
     ASSERT_TRUE(samsung);
 
@@ -170,11 +153,11 @@ TEST(IrDatabase, RendersCommandsToKnownProtocols) {
 }
 
 TEST(IrDatabase, CancelledBuildLeavesNoFile) {
-    TempDir dir;
+    test::TempFolder dir("irdb");
+    const auto files = test::writeIrDatabaseSource(dir.path());
     const auto file = dir.path() / "cancelled.irdb";
-    auto stats =
-        irdb::buildDatabase(kData / "device_features_raw.jsonl.gz", kData / "AllProtocols.json.gz",
-                            file, "test", [](std::uint64_t, std::uint64_t) { return false; });
+    auto stats = irdb::buildDatabase(files.devices, files.protocols, file, "test",
+                                     [](std::uint64_t, std::uint64_t) { return false; });
     // В фикстуре меньше 256 строк: ход сообщается в конце, отменять уже поздно — база собрана.
     if (!stats) {
         EXPECT_EQ(stats.error().code, ErrorCode::Cancelled);
@@ -184,22 +167,24 @@ TEST(IrDatabase, CancelledBuildLeavesNoFile) {
 }
 
 TEST(IrDatabase, RejectsOtherFiles) {
-    EXPECT_FALSE(irdb::IrDatabase::open(kData / "AllProtocols.json.gz"));
-    EXPECT_EQ(irdb::IrDatabase::open(kData / "missing.irdb").error().code, ErrorCode::NotFound);
+    test::TempFolder dir("irdb");
+    const auto files = test::writeIrDatabaseSource(dir.path());
+    EXPECT_FALSE(irdb::IrDatabase::open(files.protocols));
+    EXPECT_EQ(irdb::IrDatabase::open(dir.path() / "missing.irdb").error().code, ErrorCode::NotFound);
     EXPECT_FALSE(irdb::ProtocolLibrary::parse("{}"));
 }
 
 TEST(IrDatabase, ImportsDeviceIntoConfiguration) {
-    TempDir dir;
-    const auto database = buildFixture(dir);
+    test::TempFolder dir("irdb");
+    const auto database = buildFixture(dir.path());
     const auto samsung = database.device(entryOf(database, "samsung"));
     ASSERT_TRUE(samsung);
 
     ConfigDocument document = ConfigDocument::createNew("Test");
     auto report = document.importDbDevice(*samsung, database.protocols());
     ASSERT_TRUE(report) << report.error().message;
-    EXPECT_EQ(report->commands, 96);
-    EXPECT_EQ(report->protocolCommands, 96); // все — протоколом, SsIr.bin не тронут
+    EXPECT_EQ(report->commands, static_cast<int>(samsung->commands.size()));
+    EXPECT_EQ(report->protocolCommands, report->commands); // все — протоколом, SsIr.bin не тронут
     EXPECT_TRUE(report->power);
     EXPECT_TRUE(report->inputs);
     EXPECT_GT(report->hardButtons, 20);
@@ -227,8 +212,8 @@ TEST(IrDatabase, ImportsDeviceIntoConfiguration) {
 }
 
 TEST(IrDatabase, ResolvesHubKeyCodesIntoIrData) {
-    TempDir dir;
-    const auto database = buildFixture(dir);
+    test::TempFolder dir("irdb");
+    const auto database = buildFixture(dir.path());
     const auto samsung = database.device(entryOf(database, "samsung"));
     ASSERT_TRUE(samsung);
     const std::string keyCode = samsung->commands.front().keyCode;
@@ -272,8 +257,8 @@ TEST(IrDatabase, ResolvesHubKeyCodesIntoIrData) {
 }
 
 TEST(IrDatabase, MatchesStockHubDeviceByCommandNames) {
-    TempDir dir;
-    const auto database = buildFixture(dir);
+    test::TempFolder dir("irdb");
+    const auto database = buildFixture(dir.path());
     const auto samsung = database.device(entryOf(database, "samsung"));
     ASSERT_TRUE(samsung);
     const std::string known = samsung->commands.front().name; // «0»
@@ -318,8 +303,8 @@ TEST(IrDatabase, MatchesStockHubDeviceByCommandNames) {
 }
 
 TEST(IrDatabase, RanksCandidatesByCommandNameMatch) {
-    TempDir dir;
-    const auto database = buildFixture(dir);
+    test::TempFolder dir("irdb");
+    const auto database = buildFixture(dir.path());
     const std::size_t samsungEntry = entryOf(database, "samsung");
     const auto samsung = database.device(samsungEntry);
     ASSERT_TRUE(samsung);
@@ -355,8 +340,8 @@ TEST(IrDatabase, RanksCandidatesByCommandNameMatch) {
 }
 
 TEST(IrDatabase, ImportsToggleDeviceWithRelativeInputs) {
-    TempDir dir;
-    const auto database = buildFixture(dir);
+    test::TempFolder dir("irdb");
+    const auto database = buildFixture(dir.path());
     const auto yamaha = database.device(entryOf(database, "yamaha"));
     ASSERT_TRUE(yamaha);
 
@@ -369,13 +354,12 @@ TEST(IrDatabase, ImportsToggleDeviceWithRelativeInputs) {
 }
 
 TEST(IrDatabase, ImportsIntoRealConfigurationReusingLogitechProtocol) {
-    TempDir dir;
-    const auto database = buildFixture(dir);
+    test::TempFolder dir("irdb");
+    const auto database = buildFixture(dir.path());
     const auto sony = database.device(entryOf(database, "sony"));
     ASSERT_TRUE(sony);
 
-    auto document =
-        ConfigDocument::open(std::filesystem::path(HARMONY_SOURCE_DIR) / "app" / "resources" / "demo");
+    auto document = ConfigDocument::open(kDemo);
     ASSERT_TRUE(document) << document.error().message;
     const std::size_t devices = document->model().devices.size();
     auto report = document->importDbDevice(*sony, database.protocols());
@@ -399,8 +383,8 @@ TEST(IrDatabase, ImportsIntoRealConfigurationReusingLogitechProtocol) {
 }
 
 TEST(IrDatabase, ImportUsesProtocolsWhenRawTableIsFull) {
-    TempDir dir;
-    const auto database = buildFixture(dir);
+    test::TempFolder dir("irdb");
+    const auto database = buildFixture(dir.path());
     const auto samsung = database.device(entryOf(database, "samsung"));
     ASSERT_TRUE(samsung);
     ConfigDocument document = ConfigDocument::createNew("Full");
@@ -419,8 +403,8 @@ TEST(IrDatabase, ImportUsesProtocolsWhenRawTableIsFull) {
 }
 
 TEST(IrDatabase, CompilesEveryFixtureCommandToRemoteProgram) {
-    TempDir dir;
-    const auto database = buildFixture(dir);
+    test::TempFolder dir("irdb");
+    const auto database = buildFixture(dir.path());
     for (std::size_t entry = 0; entry < database.entries().size(); ++entry) {
         const auto device = database.device(entry);
         ASSERT_TRUE(device);
@@ -434,8 +418,8 @@ TEST(IrDatabase, CompilesEveryFixtureCommandToRemoteProgram) {
 }
 
 TEST(IrDatabase, CompiledProtocolMatchesLogitechBlock) {
-    TempDir dir;
-    const auto database = buildFixture(dir);
+    test::TempFolder dir("irdb");
+    const auto database = buildFixture(dir.path());
     const auto sony = database.device(entryOf(database, "sony"));
     ASSERT_TRUE(sony);
     const auto zero = std::ranges::find(sony->commands, std::string("0"), &irdb::DbCommand::name);
@@ -446,8 +430,7 @@ TEST(IrDatabase, CompiledProtocolMatchesLogitechBlock) {
 
     // Запись 4 образца (PlayStation 2) собрана программой Logitech из тех же таймингов Sony,
     // только кадр в 20 бит. С поправкой длины кадра наша запись должна совпасть побайтно.
-    std::ifstream file(std::filesystem::path(HARMONY_SOURCE_DIR) / "app" / "resources" / "demo" / "IrProto.bin",
-                       std::ios::binary);
+    std::ifstream file(kDemo / "IrProto.bin", std::ios::binary);
     const formats::Bytes bytes((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
     const auto table = formats::parseIrProto(bytes);
     ASSERT_TRUE(table) << table.error().message;
@@ -466,8 +449,8 @@ TEST(IrDatabase, CompiledProtocolMatchesLogitechBlock) {
 }
 
 TEST(IrDatabase, CompiledRepeatCodeIsSentWhileHeld) {
-    TempDir dir;
-    const auto database = buildFixture(dir);
+    test::TempFolder dir("irdb");
+    const auto database = buildFixture(dir.path());
     const auto yamaha = database.device(entryOf(database, "yamaha"));
     ASSERT_TRUE(yamaha);
     const auto& command = yamaha->commands.front(); // Toshiba 32 Bit: (данные)(Repeat)()

@@ -26,8 +26,6 @@ using namespace harmony;
 
 namespace {
 
-const std::filesystem::path kData(HARMONY_TEST_DATA_DIR);
-
 formats::Bytes readFile(const std::filesystem::path& path) {
     std::ifstream file(path, std::ios::binary);
     return {std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>()};
