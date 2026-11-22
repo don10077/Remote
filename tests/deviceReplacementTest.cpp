@@ -3,25 +3,27 @@
  * @brief Тесты замены устройства в активностях и подбора команд.
  */
 
+#include "configFixtures.h"
+
 #include "harmony/core/configDocument.h"
 #include "harmony/core/macro.h"
 
 #include <gtest/gtest.h>
 
 #include <algorithm>
-#include <filesystem>
 
 using namespace harmony;
 
 namespace {
 
-const std::filesystem::path kSampleDir = std::filesystem::path(HARMONY_TEST_DATA_DIR) / "userconfig";
-constexpr const char* kTv = "92555930"; ///< Hisense — в семи активностях
+constexpr const char* kTv = harmony::test::kTvId; ///< Телевизор — в активностях 300 и 500
 
+/// Активность 500 тоже включает телевизор 100: замена только в 300 оставляет прежнее
+/// устройство нужным, а полная замена затрагивает обе активности.
 ConfigDocument openSample() {
-    auto document = ConfigDocument::open(kSampleDir);
-    EXPECT_TRUE(document) << (document ? "" : document.error().message);
-    return std::move(*document);
+    return harmony::test::openFixture(harmony::test::replaceIn(
+        harmony::test::kConfigXml, "Activity", harmony::test::kDvdActivityId,
+        "<On>400</On>", "<On>400</On><On>100</On>"));
 }
 
 /// Новый телевизор с командами @p names (сигнал любой).
@@ -77,7 +79,7 @@ TEST(DeviceReplacement, MovesEverythingToTheNewDevice) {
     EXPECT_FALSE(document.activitiesUsingDevice(id).empty());
     // Ничего не ссылается на удалённое и не шлёт несуществующих команд.
     EXPECT_LE(errors(document), errorsBefore);
-    EXPECT_EQ(document.toXml().find(std::string(kTv)), std::string::npos);
+    EXPECT_EQ(document.toXml().find(std::string("<DeviceId>") + kTv + "</DeviceId>"), std::string::npos);
 }
 
 TEST(DeviceReplacement, OnlyChosenActivitiesAndExplicitMapping) {
@@ -113,7 +115,7 @@ TEST(DeviceReplacement, OnlyChosenActivitiesAndExplicitMapping) {
     bool louder = false;
     for (const auto& group : changed->controlGroups) {
         for (const auto& button : group.buttons) {
-            louder = louder || button.actionId == id + "_Louder_Hold";
+            louder = louder || button.actionId.starts_with(id + "_Louder_");
         }
     }
     EXPECT_TRUE(louder);
@@ -210,21 +212,20 @@ std::string reportText(const DeviceReplacementReport& report) {
 } // namespace
 
 /**
- * Точные счётчики отчёта на тестовой конфигурации. Числа сняты со старой реализации
- * replaceDevice (до разбиения на этапы): тест сторожит, что подсчёт не изменился.
- *
- * Сценарий задевает все счётчики: кнопки переходят и убираются, шаг запуска Home переходит,
- * шаги выбора входа теряются (у нового телевизора нет входов), в макросе один шаг переходит,
- * один убирается, пауза остаётся.
+ * Точные счётчики отчёта на фикстуре. Числа следуют из её конструкции: замена затрагивает
+ * активности 300 и 500 (телевизор 100 включён в обеих), кнопка PowerToggle переходит,
+ * Aspect убирается (у нового телевизора нет такой команды), шаг запуска Home переходит,
+ * выбор входа HDMI3 теряется (у нового нет входов), в макросе шаг Home переходит, Text
+ * убирается, пауза остаётся.
  */
 TEST(DeviceReplacement, ReportCountsEverything) {
     ConfigDocument document = openSample();
     const std::string activity = tvActivity(document);
     ASSERT_FALSE(activity.empty());
-    // Макрос телевизора: «0», пауза, «1»; у нового будет «0», но не «1».
+    // Макрос телевизора: Home, пауза, Text; у нового будет Home, но не Text.
     ASSERT_TRUE(document.setHardMacro(ButtonOwner::activity(activity), "Red",
-                                      {{kTv, StateStep::press("0")}, {kTv, StateStep::pause(500)},
-                                       {kTv, StateStep::press("1")}}));
+                                      {{kTv, StateStep::press("Home")}, {kTv, StateStep::pause(500)},
+                                       {kTv, StateStep::press("Text")}}));
     const std::string id = newTv(document, {"PowerToggle", "VolumeUp", "VolumeDown", "Mute", "Home", "Menu",
                                             "Select", "DirectionUp", "DirectionDown", "0"});
 
@@ -236,7 +237,7 @@ TEST(DeviceReplacement, ReportCountsEverything) {
 
     ASSERT_TRUE(report) << report.error().message;
     EXPECT_EQ(reportText(*report),
-              "activities=8 buttons=26 steps=1 macroSteps=1 removed=55 inputsLost=7 oldRemoved=1");
+              "activities=2 buttons=1 steps=1 macroSteps=1 removed=2 inputsLost=1 oldRemoved=1");
 }
 
 TEST(DeviceReplacement, RejectsBadArguments) {

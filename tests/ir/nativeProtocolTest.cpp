@@ -148,8 +148,8 @@ TEST(NativeProtocol, OtherProtocolsAreNotNative) {
 TEST(CarrierVm, AgreesWithTheSimpleRendererOnRealCommands) {
     // Каждая команда по протоколу из настоящей конфигурации: исполнитель узнаёт то же,
     // что простой разбор кода.
-    auto config = formats::readUserConfiguration(kData / "userconfig" / "UserConfiguration.xml");
-    auto table = formats::parseIrProto(readFile(kData / "userconfig" / "IrProto.bin"));
+    auto config = formats::readUserConfiguration(std::filesystem::path(HARMONY_SOURCE_DIR) / "app" / "resources" / "demo" / "UserConfiguration.xml");
+    auto table = formats::parseIrProto(readFile(std::filesystem::path(HARMONY_SOURCE_DIR) / "app" / "resources" / "demo" / "IrProto.bin"));
     ASSERT_TRUE(config && table);
     int compared = 0;
     for (const auto& device : config->devices) {

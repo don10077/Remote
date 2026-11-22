@@ -13,8 +13,14 @@
  * конкретного файла, не утверждаются.
  */
 
+#include "harmony/core/formats/ezhex.h"
+#include "harmony/core/formats/zipArchive.h"
+
 #include <algorithm>
+#include <cstdlib>
 #include <filesystem>
+#include <fstream>
+#include <iterator>
 #include <string>
 #include <vector>
 
@@ -24,8 +30,16 @@
 
 namespace harmony::test {
 
-/// '*' и '?' в имени файла. Имена с датой (`Harmony-665-20261119-1105.remote.json`) сравниваются
-/// как есть, поэтому тест выбирает самый свежий файл по маске и пишет, какой взял.
+using formats::Bytes;
+
+/// Корень локальных дампов; переменная окружения позволяет проверить запуск без них.
+inline std::filesystem::path dumpRoot() {
+    if (const auto* path = std::getenv("HARMONY_DUMPS_DIR")) return path;
+    return HARMONY_DUMPS_DIR;
+}
+
+/// '*' и '?' в имени файла. Имена с датой (`Harmony-665-20261119-1105.remote.json`)
+/// сравниваются как есть, поэтому тест берёт самый свежий файл по маске и пишет, какой взял.
 inline bool matchesMask(const std::string& name, const std::string& mask) {
     std::size_t i = 0, j = 0, star = std::string::npos, match = 0;
     while (j < name.size()) {
@@ -39,22 +53,72 @@ inline bool matchesMask(const std::string& name, const std::string& mask) {
 }
 
 /**
- * @brief Файл дампа по папке и маске, самый свежий по имени.
- * @param folder Папка внутри `dumps/`, например `EZHex/harmony900` или `Json/665`.
- * @return Путь; пусто — папки или файла нет (тест должен пропуститься).
+ * @brief Файлы дампа по папке и маске, по алфавиту (самый свежий — последний).
+ * @param folder Папка внутри `dumps/`, например `EZHex` или `Json/665`.
+ * @return Пути; пусто — папки или файлов нет (тест должен пропуститься).
  */
-inline std::filesystem::path dumpFile(const std::string& folder, const std::string& mask) {
-    const std::filesystem::path root = std::filesystem::path(HARMONY_DUMPS_DIR) / folder;
+inline std::vector<std::filesystem::path> dumpFiles(const std::string& folder, const std::string& mask) {
+    const auto base = dumpRoot();
+    if (base.empty()) return {};
+    const std::filesystem::path root = base / folder;
     if (root.empty() || !std::filesystem::exists(root)) return {};
-    std::vector<std::string> names;
-    for (const auto& entry : std::filesystem::directory_iterator(root)) {
+    std::vector<std::filesystem::path> found;
+    for (const auto& entry : std::filesystem::recursive_directory_iterator(root)) {
         if (!entry.is_regular_file()) continue;
-        const std::string name = entry.path().filename().string();
-        if (matchesMask(name, mask)) names.push_back(name);
+        if (matchesMask(entry.path().filename().string(), mask)) found.push_back(entry.path());
     }
-    if (names.empty()) return {};
-    std::sort(names.begin(), names.end());
-    return root / names.back();
+    std::sort(found.begin(), found.end());
+    return found;
+}
+
+/// Самый свежий файл по маске.
+inline std::filesystem::path dumpFile(const std::string& folder, const std::string& mask) {
+    const auto files = dumpFiles(folder, mask);
+    return files.empty() ? std::filesystem::path{} : files.back();
+}
+
+/// Содержимое файла.
+inline Bytes readFile(const std::filesystem::path& path) {
+    std::ifstream stream(path, std::ios::binary);
+    return {std::istreambuf_iterator<char>(stream), std::istreambuf_iterator<char>()};
+}
+
+/// Содержимое текстового файла (XML, JSON).
+inline std::string readText(const std::filesystem::path& path) {
+    std::ifstream stream(path, std::ios::binary);
+    return {std::istreambuf_iterator<char>(stream), std::istreambuf_iterator<char>()};
+}
+
+/**
+ * @brief Архив внутри .EZHex.
+ * @param path Файл дампа.
+ * @return Архив; пусто — файл не читается или это не ZIP (binary HID без архива).
+ */
+inline formats::ZipArchive archiveOf(const std::filesystem::path& path) {
+    const Bytes bytes = readFile(path);
+    const auto container = formats::parseEzHex(bytes);
+    if (!container) return {};
+    const auto archive = formats::readZip(container->payload);
+    return archive ? std::move(*archive) : formats::ZipArchive{};
+}
+
+/**
+ * @brief Распакованное содержимое записи архива.
+ * @param archive Архив из `archiveOf()`.
+ * @param name Имя записи, например `userconfig/IrProto.bin`.
+ * @return Данные; пусто — записи нет или она испорчена.
+ */
+inline Bytes entryData(const formats::ZipArchive& archive, const std::string& name) {
+    const auto* entry = archive.find(name);
+    if (entry == nullptr) return {};
+    const auto data = formats::entryContent(*entry);
+    return data ? std::move(*data) : Bytes{};
+}
+
+/// Содержимое записи архива как текст (XML).
+inline std::string entryText(const formats::ZipArchive& archive, const std::string& name) {
+    const Bytes data = entryData(archive, name);
+    return {data.begin(), data.end()};
 }
 
 } // namespace harmony::test

@@ -3,25 +3,23 @@
  * @brief Тесты пометки «не отправлять на пульт».
  */
 
+#include "configFixtures.h"
+
 #include "harmony/core/configDocument.h"
 
 #include <gtest/gtest.h>
 
 #include <algorithm>
-#include <filesystem>
 
 using namespace harmony;
 
 namespace {
 
-const std::filesystem::path kSampleDir = std::filesystem::path(HARMONY_TEST_DATA_DIR) / "userconfig";
-constexpr const char* kTv = "92555930";    ///< Hisense — в семи активностях
-constexpr const char* kUnused = "68367800"; ///< Panasonic — ни в одной
+constexpr const char* kTv = harmony::test::kTvId;         ///< Телевизор — в активности 300
+constexpr const char* kUnused = harmony::test::kPlayerId; ///< Плеер — в активности 300 не участвует
 
 ConfigDocument openSample() {
-    auto document = ConfigDocument::open(kSampleDir);
-    EXPECT_TRUE(document) << (document ? "" : document.error().message);
-    return std::move(*document);
+    return harmony::test::configFixture();
 }
 
 /// Первая обычная активность (не «выключить всё»).
@@ -77,13 +75,13 @@ TEST(NotSent, MarkSurvivesAndUnmarkRestoresTheFile) {
 
 TEST(NotSent, NamesTheDeviceThatHoldsTheActivity) {
     ConfigDocument document = openSample();
-    const model::Activity* watchTv = document.model().findActivity("79016674"); // «ТВ + AV»
+    const model::Activity* watchTv = document.model().findActivity(harmony::test::kActivityId);
     ASSERT_NE(watchTv, nullptr);
     EXPECT_TRUE(document.model().notSentDevicesOf(*watchTv).empty());
 
     ASSERT_TRUE(document.setDeviceNotSent(kTv, true));
     ASSERT_TRUE(document.setDeviceNotSent(kUnused, true)); // активности не нужен — в причины не попадает
-    watchTv = document.model().findActivity("79016674");   // правка перечитала модель
+    watchTv = document.model().findActivity(harmony::test::kActivityId); // правка перечитала модель
     const auto blocking = document.model().notSentDevicesOf(*watchTv);
     ASSERT_EQ(blocking.size(), 1U);
     EXPECT_EQ(blocking.front()->id, kTv);
@@ -103,7 +101,7 @@ TEST(NotSent, DeviceTakesItsActivitiesAlong) {
         EXPECT_EQ(remote.model().findActivity(id), nullptr) << id;
     }
     // Ничего не ссылается на убранное; у пульта лишних ошибок нет.
-    EXPECT_EQ(remote.toXml().find(std::string(kTv)), std::string::npos);
+    EXPECT_EQ(remote.toXml().find(std::string("<DeviceId>") + kTv + "</DeviceId>"), std::string::npos);
     EXPECT_LE(countProblems(remote.check(), Problem::Severity::Error),
               countProblems(document.check(), Problem::Severity::Error));
     EXPECT_EQ(remote.toXml().find("harmony:not-sent"), std::string::npos);

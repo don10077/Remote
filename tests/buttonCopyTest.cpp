@@ -3,23 +3,24 @@
  * @brief Тесты копирования кнопок активности в другие активности.
  */
 
+#include "configFixtures.h"
+
 #include "harmony/core/configDocument.h"
 
 #include <gtest/gtest.h>
 
 #include <algorithm>
-#include <filesystem>
 
 using namespace harmony;
 
 namespace {
 
-const std::filesystem::path kSampleDir = std::filesystem::path(HARMONY_TEST_DATA_DIR) / "userconfig";
-
+/// Активность 500 тоже включает телевизор 100: иначе копировать было бы некуда —
+/// кнопки копируются только на устройства, которые в активности работают.
 ConfigDocument openSample() {
-    auto document = ConfigDocument::open(kSampleDir);
-    EXPECT_TRUE(document) << (document ? "" : document.error().message);
-    return std::move(*document);
+    return harmony::test::openFixture(harmony::test::replaceIn(
+        harmony::test::kConfigXml, "Activity", harmony::test::kDvdActivityId,
+        "<On>400</On>", "<On>400</On><On>100</On>"));
 }
 
 /// Кнопка активности: аппаратная по имени или экранная по месту.

@@ -11,9 +11,6 @@
 
 #include <algorithm>
 #include <deque>
-#include <filesystem>
-#include <fstream>
-#include <iterator>
 #include <memory>
 
 using namespace harmony::transport;
@@ -24,13 +21,18 @@ using usbnet::Packet;
 
 namespace {
 
-std::vector<std::uint8_t> readFile(const std::filesystem::path& path) {
-    std::ifstream file(path, std::ios::binary);
-    return {std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>()};
-}
-
 const std::vector<std::uint8_t>& sampleEzHex() {
-    static const auto bytes = readFile(std::filesystem::path(HARMONY_TEST_DATA_DIR) / "ezhex" / "harmony900.EZHex");
+    // Несколько порций обмена и неполная последняя: проверяем прогресс и отмену.
+    static const auto bytes = [] {
+        harmony::formats::EzHex file;
+        file.payload.resize(8193);
+        file.payload[0] = 'P';
+        file.payload[1] = 'K';
+        for (std::size_t i = 2; i < file.payload.size(); ++i) {
+            file.payload[i] = static_cast<std::uint8_t>(i);
+        }
+        return *harmony::formats::writeEzHex(file);
+    }();
     return bytes;
 }
 

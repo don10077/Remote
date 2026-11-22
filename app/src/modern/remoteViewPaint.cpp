@@ -320,7 +320,8 @@ void drawStyledText(QPainter& p, const QRectF& rect, const QString& text, const 
 /**
  * Плитка-картинка из resources/sprites (`cell.image` экрана в remote.json), одна на все
  * ячейки: на экране избранного это уменьшенная плитка активностей. "shadow": true — мягкая
- * тень вправо-вниз, как у плиток 1000 (значения сняты с tools/sprites/compose.py).
+ * тень вправо-вниз, как у плиток 1000 (числа подогнаны глазами по фотографии экрана 1000;
+ * скрипт-генератор compose.py удалён 20.11.2026 — эти значения остались в коде).
  */
 struct TileFace {
     QImage image;

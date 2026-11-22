@@ -8,6 +8,7 @@
 #include "harmony/core/formats/container.h"
 #include "harmony/core/formats/zipArchive.h"
 #include "harmony/core/undo/documentEdit.h"
+#include "dumpFiles.h"
 
 #include <gtest/gtest.h>
 
@@ -22,7 +23,10 @@ namespace formats = harmony::formats;
 namespace {
 
 const std::filesystem::path kData(HARMONY_TEST_DATA_DIR);
-const std::filesystem::path kSample = kData / "ezhex" / "harmony900.EZHex";
+// Дамп реального Harmony 900 (dumps/, не в git): без него тесты пропускаются (правило 19).
+const std::filesystem::path kSample = harmony::test::dumpRoot() / "EZHex" / "harmony900" / "900.EZHex";
+// Конфигурация реального пульта — встроенный пример приложения (tests/data/userconfig перенесён туда).
+const std::filesystem::path kSampleDir = std::filesystem::path(HARMONY_SOURCE_DIR) / "app" / "resources" / "demo";
 
 formats::Bytes readFile(const std::filesystem::path& path) {
     std::ifstream file(path, std::ios::binary);
@@ -95,15 +99,25 @@ private:
     std::filesystem::path path_;
 };
 
+/// Проверки локального дампа пропускаются в CI, где его нет.
+class ConfigEzHexDump : public ::testing::Test {
+protected:
+    void SetUp() override {
+        if (!std::filesystem::is_regular_file(kSample)) {
+            GTEST_SKIP() << "Local Harmony 900 dump is not installed: " << kSample;
+        }
+    }
+};
+
 } // namespace
 
-TEST(ConfigEzHex, OpensRemoteDump) {
+TEST_F(ConfigEzHexDump, OpensRemoteDump) {
     auto document = ConfigDocument::open(kSample);
     ASSERT_TRUE(document) << document.error().message;
 
     EXPECT_EQ(document->model().devices.size(), 8U);
     EXPECT_EQ(document->model().activities.size(), 9U);
-    EXPECT_EQ(document->name(), "harmony900");
+    EXPECT_EQ(document->name(), kSample.stem().string());
     EXPECT_EQ(document->ezhexFile(), kSample);
     EXPECT_EQ(document->location(), kSample);
     EXPECT_FALSE(document->hasFolder());
@@ -209,7 +223,7 @@ TEST(ConfigEzHex, ImportsNativeHidWaveformWithoutAnExternalRuntime) {
     EXPECT_EQ(*formats::entryContent(*archiveOf(*saved).find("source/Original.EZHex")),bytes);
 }
 
-TEST(ConfigEzHex, Recognizes1100IdentityButDoesNotEnableWriting) {
+TEST_F(ConfigEzHexDump, Recognizes1100IdentityButDoesNotEnableWriting) {
     for (const int skin : {62, 63, 64}) {
         auto container = formats::parseEzHex(readFile(kSample));
         ASSERT_TRUE(container);
@@ -226,7 +240,7 @@ TEST(ConfigEzHex, Recognizes1100IdentityButDoesNotEnableWriting) {
     }
 }
 
-TEST(ConfigEzHex, UnchangedDumpIsWrittenBackByteForByte) {
+TEST_F(ConfigEzHexDump, UnchangedDumpIsWrittenBackByteForByte) {
     auto document = ConfigDocument::open(kSample);
     ASSERT_TRUE(document);
 
@@ -236,7 +250,7 @@ TEST(ConfigEzHex, UnchangedDumpIsWrittenBackByteForByte) {
     EXPECT_EQ(*bytes, readFile(kSample));
 }
 
-TEST(ConfigEzHex, EditKeepsOtherRemoteFilesIntact) {
+TEST_F(ConfigEzHexDump, EditKeepsOtherRemoteFilesIntact) {
     auto document = ConfigDocument::open(kSample);
     ASSERT_TRUE(document);
     ASSERT_TRUE(document->setDeviceLabel("82969357", "Ресивер"));
@@ -258,7 +272,7 @@ TEST(ConfigEzHex, EditKeepsOtherRemoteFilesIntact) {
     EXPECT_EQ(reopened->model().findDevice("82969357")->label, "Ресивер");
 }
 
-TEST(ConfigEzHex, ForRemoteFixesFileModes) {
+TEST_F(ConfigEzHexDump, ForRemoteFixesFileModes) {
     auto document = ConfigDocument::open(kSample);
     ASSERT_TRUE(document);
     const auto dump = archiveOf(readFile(kSample));
@@ -304,7 +318,7 @@ TEST(ConfigEzHex, NewConfigBuildsCompletePackage) {
 
 TEST(ConfigEzHex, SaveAsEzHexBecomesLocation) {
     TempDir temp;
-    auto document = ConfigDocument::open(kData / "userconfig");
+    auto document = ConfigDocument::open(kSampleDir);
     ASSERT_TRUE(document);
     const auto file = temp.path() / "копия.EZHex";
 
@@ -321,19 +335,22 @@ TEST(ConfigEzHex, SaveAsEzHexBecomesLocation) {
     EXPECT_EQ(reopened->model().findActivity("79016674")->label, "Телевизор");
 }
 
-TEST(ConfigEzHex, DumpSavedToFolderGivesSameFiles) {
+TEST_F(ConfigEzHexDump, DumpSavedToFolderGivesSameFiles) {
     TempDir temp;
     auto document = ConfigDocument::open(kSample);
     ASSERT_TRUE(document);
 
     ASSERT_TRUE(document->saveAs(temp.path()));
 
-    EXPECT_EQ(readFile(temp.path() / "UserConfiguration.xml"), readFile(kData / "userconfig" / "UserConfiguration.xml"));
-    EXPECT_EQ(readFile(temp.path() / "IrProto.bin"), readFile(kData / "userconfig" / "IrProto.bin"));
+    const auto archive = archiveOf(readFile(kSample));
+    EXPECT_EQ(readFile(temp.path() / "UserConfiguration.xml"),
+              *formats::entryContent(*archive.find("userconfig/UserConfiguration.xml")));
+    EXPECT_EQ(readFile(temp.path() / "IrProto.bin"),
+              *formats::entryContent(*archive.find("userconfig/IrProto.bin")));
     EXPECT_TRUE(document->ezhexFile().empty());
 }
 
-TEST(ConfigEzHex, ReplaceContentKeepsLocationAndUndoes) {
+TEST_F(ConfigEzHexDump, ReplaceContentKeepsLocationAndUndoes) {
     // Открыта новая конфигурация в папке; с пульта прочитан дамп — заменяем им содержимое.
     TempDir dir;
     auto current = harmony::ConfigDocument::createNew("Моя");
@@ -358,7 +375,7 @@ TEST(ConfigEzHex, ReplaceContentKeepsLocationAndUndoes) {
     EXPECT_TRUE(current.model().devices.empty());
 }
 
-TEST(ConfigEzHex, ContentWithoutTablesDropsThemFromTheArchive) {
+TEST_F(ConfigEzHexDump, ContentWithoutTablesDropsThemFromTheArchive) {
     auto document = ConfigDocument::open(kSample);
     ASSERT_TRUE(document) << document.error().message;
     ASSERT_NE(archiveOf(*document->toEzHex(false)).find("userconfig/IrProto.bin"), nullptr);

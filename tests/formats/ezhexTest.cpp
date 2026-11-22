@@ -1,31 +1,22 @@
 /**
  * @file ezhexTest.cpp
- * @brief Тесты .EZHex и ZIP: разбор настоящего дампа пульта, сборка байт в байт, замена файлов.
+ * @brief Тесты .EZHex и ZIP: разбор контейнера, сборка байт в байт, замена файлов.
  */
 
 #include "harmony/core/formats/ezhex.h"
 #include "harmony/core/formats/zipArchive.h"
+#include "zipFixtures.h"
 
 #include <gtest/gtest.h>
 
-#include <filesystem>
-#include <fstream>
-#include <iterator>
 #include <string>
 
 using namespace harmony::formats;
 
 namespace {
 
-const std::filesystem::path kData(HARMONY_TEST_DATA_DIR);
-
-Bytes readFile(const std::filesystem::path& path) {
-    std::ifstream file(path, std::ios::binary);
-    return {std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>()};
-}
-
 Bytes sample() {
-    return readFile(kData / "ezhex" / "harmony900.EZHex");
+    return harmony::test::zipEzHex();
 }
 
 Bytes bytesOf(const std::string& text) {
@@ -34,7 +25,7 @@ Bytes bytesOf(const std::string& text) {
 
 } // namespace
 
-TEST(EzHex, ParsesDumpOfHarmony900) {
+TEST(EzHex, ParsesHarmony900Container) {
     auto ezhex = parseEzHex(sample());
     ASSERT_TRUE(ezhex) << ezhex.error().message;
     EXPECT_EQ(ezhex->identity.architecture, 15);
@@ -44,7 +35,7 @@ TEST(EzHex, ParsesDumpOfHarmony900) {
     EXPECT_TRUE(ezhex->header.ends_with("</INFORMATION>\r\n"));
 }
 
-TEST(EzHex, HeaderTemplateMatchesRealOne) {
+TEST(EzHex, HeaderTemplateMatchesContainer) {
     auto ezhex = parseEzHex(sample());
     ASSERT_TRUE(ezhex);
 
@@ -95,7 +86,7 @@ TEST(Zip, ReadsAllEntriesWithMetadata) {
     auto zip = readZip(ezhex->payload);
     ASSERT_TRUE(zip) << zip.error().message;
 
-    ASSERT_EQ(zip->entries.size(), 40U);
+    ASSERT_EQ(zip->entries.size(), 6U);
     EXPECT_EQ(zip->entries[0].name, "userconfig/");
     const ZipEntry* script = zip->find(".preinstall");
     ASSERT_NE(script, nullptr);

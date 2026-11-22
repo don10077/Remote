@@ -3,24 +3,22 @@
  * @brief Тесты сравнения команд устройств и копирования отмеченных команд.
  */
 
+#include "configFixtures.h"
+
 #include "harmony/core/configDocument.h"
 
 #include <gtest/gtest.h>
 
 #include <algorithm>
-#include <filesystem>
 
 using namespace harmony;
 
 namespace {
 
-const std::filesystem::path kSampleDir = std::filesystem::path(HARMONY_TEST_DATA_DIR) / "userconfig";
-constexpr const char* kTv = "68367800"; ///< Panasonic: команды по протоколу
+constexpr const char* kTv = harmony::test::kTvId; ///< Телевизор фикстуры
 
 ConfigDocument openSample() {
-    auto document = ConfigDocument::open(kSampleDir);
-    EXPECT_TRUE(document) << (document ? "" : document.error().message);
-    return std::move(*document);
+    return harmony::test::configFixture();
 }
 
 /// NEC-сигнал адрес/команда.
@@ -79,34 +77,40 @@ TEST(DeviceComparison, StatusesAndSignals) {
 
 TEST(DeviceComparison, CopiesMarkedCommands) {
     ConfigDocument document = openSample();
-    auto target = document.createDevice({"Copy", "Television", "Panasonic", "X"});
-    ASSERT_TRUE(target);
+    auto source = document.createDevice({"Source", "Television", "Acme", "S"});
+    auto target = document.createDevice({"Copy", "Television", "Acme", "X"});
+    ASSERT_TRUE(source && target);
+    ASSERT_TRUE(document.learnCommand(*source, "VolumeUp", nec(2, 3)));
+    ASSERT_TRUE(document.learnCommand(*source, "PowerOn", nec(2, 4)));
+    ASSERT_TRUE(document.learnCommand(*source, "PowerOff", nec(2, 5)));
+    ASSERT_TRUE(document.learnCommand(*source, "PowerToggle", nec(2, 6)));
     ASSERT_TRUE(document.learnCommand(*target, "VolumeUp", nec(1, 1))); // заменится
     const std::size_t errorsBefore = countProblems(document.check(), Problem::Severity::Error);
 
-    auto copied = document.copyCommands(kTv, *target, {"VolumeUp", "PowerOn", "PowerOff", "Mute"});
+    auto copied = document.copyCommands(*source, *target, {"VolumeUp", "PowerOn", "PowerOff"});
     ASSERT_TRUE(copied) << copied.error().message;
-    EXPECT_EQ(*copied, 4);
-    const auto list = document.compareDeviceCommands(kTv, *target);
-    for (const char* name : {"VolumeUp", "PowerOn", "PowerOff", "Mute"}) {
+    EXPECT_EQ(*copied, 3);
+    const auto list = document.compareDeviceCommands(*source, *target);
+    for (const char* name : {"VolumeUp", "PowerOn", "PowerOff"}) {
         ASSERT_NE(find(list, name), nullptr) << name;
         EXPECT_EQ(find(list, name)->status, CommandComparison::Status::Same) << name;
     }
-    EXPECT_EQ(find(list, "VolumeDown")->status, CommandComparison::Status::OnlyFirst);
+    EXPECT_EQ(find(list, "PowerToggle")->status, CommandComparison::Status::OnlyFirst);
     // Команды питания — питание описано, как при обучении.
     auto states = document.deviceStates(*target);
     ASSERT_TRUE(states);
     EXPECT_EQ(states->power.mode, PowerSetup::Mode::Discrete);
     EXPECT_LE(countProblems(document.check(), Problem::Severity::Error), errorsBefore);
     // Сигнал скопированной команды — тот же.
-    EXPECT_EQ(document.commandSignal(kTv, "Mute")->durations, document.commandSignal(*target, "Mute")->durations);
+    EXPECT_EQ(document.commandSignal(*source, "VolumeUp")->durations,
+              document.commandSignal(*target, "VolumeUp")->durations);
 }
 
 TEST(DeviceComparison, RejectsBadArguments) {
     ConfigDocument document = openSample();
-    EXPECT_EQ(document.copyCommands(kTv, "nope", {"Mute"}).error().code, ErrorCode::NotFound);
-    EXPECT_EQ(document.copyCommands(kTv, kTv, {"Mute"}).error().code, ErrorCode::Format);
-    auto target = document.createDevice({"Copy", "Television", "Panasonic", "X"});
+    EXPECT_EQ(document.copyCommands(kTv, "nope", {"VolumeUp"}).error().code, ErrorCode::NotFound);
+    EXPECT_EQ(document.copyCommands(kTv, kTv, {"VolumeUp"}).error().code, ErrorCode::Format);
+    auto target = document.createDevice({"Copy", "Television", "Acme", "X"});
     ASSERT_TRUE(target);
     EXPECT_EQ(document.copyCommands(kTv, *target, {"NoSuchCommand"}).error().code, ErrorCode::NotFound);
 }

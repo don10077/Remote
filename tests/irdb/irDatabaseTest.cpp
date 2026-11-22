@@ -375,7 +375,7 @@ TEST(IrDatabase, ImportsIntoRealConfigurationReusingLogitechProtocol) {
     ASSERT_TRUE(sony);
 
     auto document =
-        ConfigDocument::open(std::filesystem::path(HARMONY_TEST_DATA_DIR) / "userconfig");
+        ConfigDocument::open(std::filesystem::path(HARMONY_SOURCE_DIR) / "app" / "resources" / "demo");
     ASSERT_TRUE(document) << document.error().message;
     const std::size_t devices = document->model().devices.size();
     auto report = document->importDbDevice(*sony, database.protocols());
@@ -446,7 +446,7 @@ TEST(IrDatabase, CompiledProtocolMatchesLogitechBlock) {
 
     // Запись 4 образца (PlayStation 2) собрана программой Logitech из тех же таймингов Sony,
     // только кадр в 20 бит. С поправкой длины кадра наша запись должна совпасть побайтно.
-    std::ifstream file(std::filesystem::path(HARMONY_TEST_DATA_DIR) / "userconfig" / "IrProto.bin",
+    std::ifstream file(std::filesystem::path(HARMONY_SOURCE_DIR) / "app" / "resources" / "demo" / "IrProto.bin",
                        std::ios::binary);
     const formats::Bytes bytes((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
     const auto table = formats::parseIrProto(bytes);

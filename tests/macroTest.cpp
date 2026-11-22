@@ -3,25 +3,22 @@
  * @brief Кнопки-макросы: шаги в ActionLists.xml, сохранение, проверка, использование команд.
  */
 
+#include "configFixtures.h"
+
 #include "harmony/core/configDocument.h"
 #include "harmony/core/macro.h"
 
 #include <gtest/gtest.h>
 
 #include <algorithm>
-#include <filesystem>
 #include <string>
 
 using namespace harmony;
 
 namespace {
 
-const std::filesystem::path kSampleDir = std::filesystem::path(HARMONY_TEST_DATA_DIR) / "userconfig";
-
 ConfigDocument sample() {
-    auto document = ConfigDocument::open(kSampleDir);
-    EXPECT_TRUE(document) << document.error().message;
-    return std::move(*document);
+    return harmony::test::configFixture();
 }
 
 /// Активность и два её устройства с командами (для шагов макроса).

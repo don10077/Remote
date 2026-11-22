@@ -2,8 +2,9 @@
 # Короткий прогон всех фаззеров: fuzz/run.sh <каталог сборки> [секунд на цель]
 #   например: fuzz/run.sh build/fuzz 60
 #
-# Начальный корпус — файлы из tests/data (только читаются). Новые входы libFuzzer
-# пишет в <каталог сборки>/fuzz-corpus/<цель>, падения — в <каталог сборки>/fuzz-crashes.
+# Начальный корпус — данные из tests/data и настоящие дампы из dumps/ (только читаются).
+# Новые входы libFuzzer пишет в <каталог сборки>/fuzz-corpus/<цель>, падения —
+# в <каталог сборки>/fuzz-crashes.
 
 set -euo pipefail
 
@@ -15,19 +16,24 @@ root="$(cd "$(dirname "$0")/.." && pwd)"
 build="$(realpath "$1")"
 seconds="${2:-60}"
 data="$root/tests/data"
+dumps="$root/dumps"
 seeds="$build/fuzz-seeds"
 crashes="$build/fuzz-crashes"
 mkdir -p "$seeds" "$crashes"
 
 # --- Начальные корпуса ------------------------------------------------------
 mkdir -p "$seeds/ezhex" "$seeds/zip" "$seeds/irtables" "$seeds/usbnet"
-cp "$data"/ezhex/*.EZHex "$seeds/ezhex/"
-# Для zip — ZIP из .EZHex: всё, начиная с первой сигнатуры «PK\3\4».
-for f in "$data"/ezhex/*.EZHex; do
-    python3 -I -c 'import sys; b = open(sys.argv[1], "rb").read(); open(sys.argv[2], "wb").write(b[b.index(b"PK\x03\x04"):])' \
-        "$f" "$seeds/zip/$(basename "$f").zip"
-done
-cp "$data"/irtables/*.bin "$data"/userconfig/*.bin "$seeds/irtables/"
+# Настоящие дампы — в `dumps/` (в git не попадает): без неё корпус для этих целей пустой.
+if [ -d "$dumps" ]; then
+    cp "$dumps"/EZHex/*/*.EZHex "$seeds/ezhex/"
+    # Для zip — ZIP из .EZHex: всё, начиная с первой сигнатуры «PK\3\4».
+    for f in "$dumps"/EZHex/*/*.EZHex; do
+        python3 -I -c 'import sys; b = open(sys.argv[1], "rb").read(); open(sys.argv[2], "wb").write(b[b.index(b"PK\x03\x04"):])' \
+            "$f" "$seeds/zip/$(basename "$f").zip"
+    done
+fi
+# Таблицы ИК: те, что лежат в git, плюс файлы встроенного примера (данные, не фикстура).
+cp "$data"/irtables/*.bin "$root"/app/resources/demo/*.bin "$seeds/irtables/"
 # usbnet: ответ GET_SYSTEM_INFO (статус 1) с одним двухбайтовым параметром (заголовок, длина, данные).
 printf '\x10\x61\x01\x01\x02\x00\x0f' > "$seeds/usbnet/systemInfo.bin"
 

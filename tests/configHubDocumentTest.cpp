@@ -20,7 +20,8 @@ using harmony::ErrorCode;
 
 namespace {
 
-const std::filesystem::path kSampleDir = std::filesystem::path(HARMONY_TEST_DATA_DIR) / "userconfig";
+// Конфигурация реального пульта — встроенный пример приложения (tests/data/userconfig перенесён туда).
+const std::filesystem::path kSampleDir = std::filesystem::path(HARMONY_SOURCE_DIR) / "app" / "resources" / "demo";
 
 /// Родные файлы ресурсов хаба: одно устройство, активность и «Выключить всё».
 constexpr std::string_view kHubJson = R"({

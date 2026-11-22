@@ -24,7 +24,9 @@ namespace formats = harmony::formats;
 namespace {
 
 const std::filesystem::path kData(HARMONY_TEST_DATA_DIR);
-const std::filesystem::path kSampleDir = kData / "userconfig";
+// Конфигурация реального пульта — встроенный пример приложения (данные, перенесённые
+// из tests/data/userconfig). Тесты читают её напрямую: содержимое совпадает с ожиданиями.
+const std::filesystem::path kSampleDir = std::filesystem::path(HARMONY_SOURCE_DIR) / "app" / "resources" / "demo";
 
 constexpr const char* kTv = "92555930";       ///< Hisense: протокол 1, входы HDMI1…
 constexpr const char* kReceiver = "82969357"; ///< Denon: протоколы 2 и 3

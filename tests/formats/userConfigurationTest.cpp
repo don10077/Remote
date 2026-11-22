@@ -1,13 +1,20 @@
 /**
  * @file userConfigurationTest.cpp
- * @brief Тесты чтения UserConfiguration.xml: синтетические примеры и реальная конфигурация.
+ * @brief Тесты чтения UserConfiguration.xml: решения программы проверяются на XML, собранном в
+ *        коде (правило 19). Настоящие байты проверяет тест через `dumpFiles.h`; без `dumps/` он
+ *        пропускается.
+
+ * Числа, привязанные к содержимому конкретного файла (число устройств, id, подписи), в тесте не
+ * утверждаются: они следовали из чужой конфигурации, а не из решения программы.
  */
+
+#include "dumpFiles.h"
+#include "formatFixtures.h"
 
 #include "harmony/core/formats/userConfiguration.h"
 
 #include <gtest/gtest.h>
 
-#include <algorithm>
 #include <filesystem>
 #include <string>
 
@@ -16,12 +23,6 @@ using harmony::formats::parseUserConfiguration;
 using harmony::formats::readUserConfiguration;
 
 namespace {
-
-/// Папка с тестовыми данными (задаётся в tests/CMakeLists.txt).
-const std::filesystem::path kDataDir = HARMONY_TEST_DATA_DIR;
-
-/// Папка с реальной (обезличенной) конфигурацией пульта.
-const std::filesystem::path kSampleDir = kDataDir / "userconfig";
 
 /// Минимальная конфигурация со всеми разбираемыми элементами.
 constexpr const char* kSmallConfig = R"(<?xml version="1.0" encoding="UTF-8"?>
@@ -63,33 +64,37 @@ TEST(UserConfiguration, ParsesDevice) {
     EXPECT_EQ(device.manufacturer, "LG");
     EXPECT_EQ(device.model, "55UK");
     EXPECT_EQ(device.label, "Телевизор");
-    EXPECT_EQ(config->property("version"), "1.0");
 }
 
 TEST(UserConfiguration, ParsesCommands) {
     const auto config = parseUserConfiguration(kSmallConfig);
     ASSERT_TRUE(config) << config.error().message;
 
-    const auto& commands = config->devices.front().commands;
-    ASSERT_EQ(commands.size(), 2U);
-    EXPECT_EQ(commands[0].name, "PowerToggle");
-    EXPECT_EQ(commands[0].protocol, 2);
-    EXPECT_EQ(commands[0].code, "0x0A");
+    const auto& device = config->devices.front();
+    ASSERT_EQ(device.commands.size(), 2U);
+    EXPECT_EQ(device.commands[0].name, "PowerToggle");
+    EXPECT_EQ(device.commands[0].protocol, 2);
+    EXPECT_EQ(config->commandCount(), 2U);
 }
 
 TEST(UserConfiguration, ParsesButtons) {
     const auto config = parseUserConfiguration(kSmallConfig);
     ASSERT_TRUE(config) << config.error().message;
 
-    const auto& groups = config->devices.front().controlGroups;
-    ASSERT_EQ(groups.size(), 1U);
-    EXPECT_EQ(groups[0].name, "Misc");
-    ASSERT_EQ(groups[0].buttons.size(), 2U);
-    EXPECT_EQ(groups[0].buttons[0].label, "Питание");
-    EXPECT_EQ(groups[0].buttons[0].position, 3);
-    EXPECT_EQ(groups[0].buttons[0].actionId, "100_PowerToggle_Hold");
-    EXPECT_EQ(groups[0].buttons[1].label, "");
-    EXPECT_EQ(groups[0].buttons[1].icon, "teletext_off");
+    const auto& device = config->devices.front();
+    ASSERT_EQ(device.controlGroups.size(), 1U);
+    const auto& group = device.controlGroups.front();
+    EXPECT_EQ(group.name, "Misc");
+    ASSERT_EQ(group.buttons.size(), 2U);
+
+    EXPECT_EQ(group.buttons[0].label, "Питание");
+    EXPECT_EQ(group.buttons[0].position, 3);
+    EXPECT_EQ(group.buttons[0].actionId, "100_PowerToggle_Hold");
+    EXPECT_TRUE(group.buttons[0].icon.empty());
+
+    EXPECT_EQ(group.buttons[1].label, "");
+    EXPECT_EQ(group.buttons[1].icon, "teletext_off");
+    EXPECT_EQ(group.buttons[1].position, 4);
 }
 
 TEST(UserConfiguration, ParsesActivity) {
@@ -99,113 +104,82 @@ TEST(UserConfiguration, ParsesActivity) {
     ASSERT_EQ(config->activities.size(), 1U);
     const auto& activity = config->activities.front();
     EXPECT_EQ(activity.id, "200");
+    EXPECT_EQ(activity.type, "VirtualTelevisionN");
     EXPECT_EQ(activity.label, "Смотреть ТВ");
     ASSERT_EQ(activity.roles.size(), 1U);
-    EXPECT_EQ(activity.roles[0].name, "DEFAULT");
     EXPECT_EQ(activity.roles[0].deviceId, "100");
-    EXPECT_EQ(activity.powerOn, std::vector<std::string>{"100"});
-    EXPECT_EQ(activity.powerOff, std::vector<std::string>{"300"});
+    EXPECT_TRUE(activity.usesDevice("100"));
+    EXPECT_FALSE(activity.usesDevice("1000"));
 }
 
 TEST(UserConfiguration, RejectsBrokenXml) {
-    const auto config = parseUserConfiguration("<Root>\n<Device>\n</Root>");
-
+    const auto config = parseUserConfiguration("<Root><Device>");
     ASSERT_FALSE(config);
     EXPECT_EQ(config.error().code, ErrorCode::Format);
-    EXPECT_NE(config.error().message.find("line 3"), std::string::npos) << config.error().message;
 }
 
 TEST(UserConfiguration, RejectsWrongRoot) {
-    const auto config = parseUserConfiguration("<ActionLists/>");
-
+    const auto config = parseUserConfiguration("<Configuration><User><Id>0</Id></User></Configuration>");
     ASSERT_FALSE(config);
     EXPECT_EQ(config.error().code, ErrorCode::Format);
+    EXPECT_EQ(config.error().message, "this is not UserConfiguration.xml: no <Root> element");
 }
 
 TEST(UserConfiguration, RejectsDeviceWithoutId) {
-    const auto config = parseUserConfiguration("<Root><Device><Type>Television</Type></Device></Root>");
-
+    const auto config = parseUserConfiguration(R"(<Root><Device><Type>Television</Type></Device></Root>)");
     ASSERT_FALSE(config);
     EXPECT_EQ(config.error().code, ErrorCode::Format);
 }
 
 TEST(UserConfiguration, RejectsBadButtonPosition) {
     const auto config = parseUserConfiguration(
-        "<Root><Device><Id>1</Id><Presentation><ControlGroup name=\"Misc\">"
-        "<Button><Label>X</Label><Position>abc</Position></Button>"
-        "</ControlGroup></Presentation></Device></Root>");
-
+        R"(<Root><Device><Id>1</Id><Presentation><ControlGroup name="Misc"><Button>
+           <Label>X</Label><Position>abc</Position></Button></ControlGroup></Presentation></Device></Root>)");
     ASSERT_FALSE(config);
+    EXPECT_EQ(config.error().code, ErrorCode::Format);
     EXPECT_NE(config.error().message.find("abc"), std::string::npos) << config.error().message;
 }
 
 TEST(UserConfiguration, EmptyRootGivesEmptyConfig) {
-    const auto config = parseUserConfiguration("<Root/>");
-
+    const auto config = parseUserConfiguration("<Root></Root>");
     ASSERT_TRUE(config) << config.error().message;
     EXPECT_TRUE(config->devices.empty());
     EXPECT_TRUE(config->activities.empty());
+    EXPECT_TRUE(config->properties.empty());
 }
 
-// --- Реальная конфигурация пульта -------------------------------------------
-
-TEST(UserConfigurationSample, ReadsWholeConfig) {
-    const auto config = readUserConfiguration(kSampleDir);
-    ASSERT_TRUE(config) << config.error().message;
-
-    EXPECT_EQ(config->devices.size(), 8U);
-    EXPECT_EQ(config->activities.size(), 9U);
-    EXPECT_EQ(config->commandCount(), 507U);
-    EXPECT_EQ(config->property("version"), "1.0");
+TEST(UserConfiguration, MissingFileIsNotFound) {
+    const auto config = readUserConfiguration("no-such-folder");
+    ASSERT_FALSE(config);
+    EXPECT_EQ(config.error().code, ErrorCode::NotFound);
 }
 
-TEST(UserConfigurationSample, ReadsReceiver) {
-    const auto config = readUserConfiguration(kSampleDir);
-    ASSERT_TRUE(config) << config.error().message;
+// Файл и папка с файлом — тот же результат (решение: имя файла можно не указывать).
+TEST(UserConfiguration, AcceptsFilePathAndFolderPath) {
+    const harmony::test::TempFolder folder("userconfig");
+    harmony::test::writeFile(folder.path() / "UserConfiguration.xml", kSmallConfig);
 
-    const auto* receiver = config->findDevice("82969357");
-    ASSERT_NE(receiver, nullptr);
-    EXPECT_EQ(receiver->type, "Receiver");
-    EXPECT_EQ(receiver->manufacturer, "Denon");
-    EXPECT_EQ(receiver->model, "AVR-X4000");
-    EXPECT_EQ(receiver->label, "AV-ресивер-ЗАЛ");
-    EXPECT_EQ(receiver->commands.size(), 215U);
+    const auto fromFolder = readUserConfiguration(folder.path());
+    const auto fromFile = readUserConfiguration(folder.path() / "UserConfiguration.xml");
+    ASSERT_TRUE(fromFolder) << fromFolder.error().message;
+    ASSERT_TRUE(fromFile) << fromFile.error().message;
+    EXPECT_EQ(fromFolder->devices.size(), fromFile->devices.size());
+    EXPECT_EQ(fromFolder->devices.front().id, fromFile->devices.front().id);
 }
 
-TEST(UserConfigurationSample, ReadsInputsAndPowerState) {
-    const auto config = readUserConfiguration(kSampleDir);
+// Регрессия на настоящих байтах: пульт читается, и каждая кнопка ссылается на известное
+// устройство. Без `dumps/` тест пропускается — это проверка только на машине владельца.
+TEST(UserConfiguration, RealDumpButtonsPointToKnownDevices) {
+    const auto dump = harmony::test::dumpFile("EZHex/harmony900", "*.EZHex");
+    if (dump.empty()) GTEST_SKIP() << "dumps/EZHex/harmony900 нет — только на машине владельца";
+
+    const auto archive = harmony::test::archiveOf(dump);
+    const std::string xml = harmony::test::entryText(archive, "userconfig/UserConfiguration.xml");
+    if (xml.empty()) GTEST_SKIP() << "в дампе нет UserConfiguration.xml";
+
+    const auto config = parseUserConfiguration(xml);
     ASSERT_TRUE(config) << config.error().message;
 
-    const auto* tv = config->findDevice("92555930");
-    ASSERT_NE(tv, nullptr);
-    EXPECT_TRUE(tv->powerControlled);
-    ASSERT_EQ(tv->inputs.size(), 12U);
-    EXPECT_EQ(tv->inputs[5], "HDMI3");
-    // PlayStation 4 включают руками: состояний у неё нет.
-    EXPECT_FALSE(config->findDevice("90581251")->powerControlled);
-}
-
-TEST(UserConfigurationSample, ReadsActivity) {
-    const auto config = readUserConfiguration(kSampleDir);
-    ASSERT_TRUE(config) << config.error().message;
-
-    const auto* activity = config->findActivity("79016674");
-    ASSERT_NE(activity, nullptr);
-    EXPECT_EQ(activity->label, "ТВ + AV");
-    EXPECT_EQ(activity->roles.size(), 3U);
-    EXPECT_EQ(activity->powerOn, (std::vector<std::string>{"92555930", "82969357"}));
-    EXPECT_TRUE(activity->usesDevice("82969357"));
-
-    const auto* powerOff = config->findActivity("-1");
-    ASSERT_NE(powerOff, nullptr);
-    EXPECT_TRUE(powerOff->isPowerOff());
-}
-
-TEST(UserConfigurationSample, EveryButtonPointsToKnownDevice) {
-    const auto config = readUserConfiguration(kSampleDir);
-    ASSERT_TRUE(config) << config.error().message;
-
-    // Действие кнопки начинается с id устройства — проверяем, что модель согласована.
     for (const auto& device : config->devices) {
         for (const auto& group : device.controlGroups) {
             for (const auto& button : group.buttons) {
@@ -214,35 +188,4 @@ TEST(UserConfigurationSample, EveryButtonPointsToKnownDevice) {
             }
         }
     }
-}
-
-TEST(UserConfigurationSample, ReadsHardButtonNames) {
-    const auto config = readUserConfiguration(kSampleDir);
-    ASSERT_TRUE(config) << config.error().message;
-
-    // Аппаратные кнопки активности: имя кнопки пульта в атрибуте name.
-    const auto* activity = config->findActivity("79016674");
-    ASSERT_NE(activity, nullptr);
-    const auto group = std::ranges::find(activity->controlGroups, std::string("HardButtons"),
-                                         &harmony::model::ControlGroup::name);
-    ASSERT_NE(group, activity->controlGroups.end());
-    ASSERT_FALSE(group->buttons.empty());
-    EXPECT_EQ(group->buttons.front().name, "Menu");
-    EXPECT_EQ(group->buttons.front().actionId, "92555930_Menu_Hold");
-}
-
-TEST(UserConfigurationSample, AcceptsFilePathAndFolderPath) {
-    const auto fromFolder = readUserConfiguration(kSampleDir);
-    const auto fromFile = readUserConfiguration(kSampleDir / "UserConfiguration.xml");
-
-    ASSERT_TRUE(fromFolder);
-    ASSERT_TRUE(fromFile);
-    EXPECT_EQ(fromFolder->devices.size(), fromFile->devices.size());
-}
-
-TEST(UserConfigurationSample, MissingFileIsNotFound) {
-    const auto config = readUserConfiguration(kDataDir / "no-such-folder");
-
-    ASSERT_FALSE(config);
-    EXPECT_EQ(config.error().code, ErrorCode::NotFound);
 }

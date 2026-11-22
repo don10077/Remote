@@ -7,12 +7,11 @@
 #include "harmony/core/formats/ezhex.h"
 #include "harmony/core/formats/zipArchive.h"
 #include "harmony/core/remotePreferences.h"
+#include "configFixtures.h"
+#include "zipFixtures.h"
 
 #include <gtest/gtest.h>
 
-#include <filesystem>
-#include <fstream>
-#include <iterator>
 #include <string>
 #include <vector>
 
@@ -22,15 +21,12 @@ namespace formats = harmony::formats;
 
 namespace {
 
-const std::filesystem::path kSample = std::filesystem::path(HARMONY_TEST_DATA_DIR) / "ezhex" / "harmony900.EZHex";
-
-formats::Bytes readFile(const std::filesystem::path& path) {
-    std::ifstream file(path, std::ios::binary);
-    return {std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>()};
+formats::Bytes sampleBytes() {
+    return harmony::test::zipEzHex(harmony::test::kConfigXml);
 }
 
 ConfigDocument sample() {
-    auto document = ConfigDocument::fromEzHex(readFile(kSample), "sample");
+    auto document = ConfigDocument::fromEzHex(sampleBytes(), "sample");
     EXPECT_TRUE(document) << document.error().message;
     return std::move(*document);
 }
@@ -65,11 +61,15 @@ TEST(RemotePreferences, ValuesOutsideTheFirmwareRangeAreRefused) {
 
 TEST(RemotePreferences, ChangingASettingTouchesOnlyItsFile) {
     ConfigDocument document = sample();
-    const auto before = archiveOf(*document.toEzHex(false));
+    const auto original = document.toEzHex(false);
+    ASSERT_TRUE(original) << original.error().message;
+    const auto before = archiveOf(*original);
     ASSERT_TRUE(document.setRemotePreference("backlight_level", "33"));
     EXPECT_EQ(document.remotePreference("backlight_level"), "33");
 
-    const auto after = archiveOf(*document.toEzHex(false));
+    const auto saved = document.toEzHex(false);
+    ASSERT_TRUE(saved) << saved.error().message;
+    const auto after = archiveOf(*saved);
     for (const auto& entry : before.entries) {
         if (entry.name == "platformconfig/system_backlightlevel.dat") {
             continue;
@@ -82,7 +82,9 @@ TEST(RemotePreferences, ChangingASettingTouchesOnlyItsFile) {
     ASSERT_NE(level, nullptr);
     EXPECT_EQ(*formats::entryContent(*level), (formats::Bytes{'3', '3'}));
     // Для пульта — права, при которых служба настроек может его читать и писать.
-    const auto forRemote = archiveOf(*document.toEzHex(true));
+    const auto remote = document.toEzHex(true);
+    ASSERT_TRUE(remote) << remote.error().message;
+    const auto forRemote = archiveOf(*remote);
     EXPECT_EQ(forRemote.find("platformconfig/system_backlightlevel.dat")->unixMode(), 0100666U);
 }
 
@@ -139,7 +141,7 @@ std::string rfMap(const std::vector<std::string>& devices) {
 } // namespace
 
 TEST(RfBlaster, WriteKeepsTheRemotesCurrentRfSettings) {
-    const auto original = readFile(kSample);
+    const auto original = sampleBytes();
     auto document = ConfigDocument::fromEzHex(withRfMap(original, rfMap({"old"})), "open");
     auto remote = ConfigDocument::fromEzHex(withRfMap(original, rfMap({"paired-on-remote"})), "remote");
     ASSERT_TRUE(document && remote);
@@ -158,7 +160,7 @@ TEST(RfBlaster, WriteKeepsTheRemotesCurrentRfSettings) {
 }
 
 TEST(RfBlaster, CheckWarnsAboutDevicesNotOnTheBlaster) {
-    auto base = ConfigDocument::fromEzHex(readFile(kSample), "sample");
+    auto base = ConfigDocument::fromEzHex(sampleBytes(), "sample");
     ASSERT_TRUE(base);
     const auto& devices = base->model().devices;
     ASSERT_GE(devices.size(), 2U);
@@ -166,13 +168,13 @@ TEST(RfBlaster, CheckWarnsAboutDevicesNotOnTheBlaster) {
     for (std::size_t i = 1; i < devices.size(); ++i) {
         mapped.push_back(devices[i].id);
     }
-    auto document = ConfigDocument::fromEzHex(withRfMap(readFile(kSample), rfMap(mapped)), "rf");
+    auto document = ConfigDocument::fromEzHex(withRfMap(sampleBytes(), rfMap(mapped)), "rf");
     ASSERT_TRUE(document);
     EXPECT_EQ(document->devicesOutsideRf(), std::vector<std::string>{devices.front().id});
 
     // Без бластера (только передний ИК) — предупреждать не о чем.
     auto front = ConfigDocument::fromEzHex(
-        withRfMap(readFile(kSample), "<RemoteInfo><Controllers><Controller><Guid>0</Guid></Controller>"
+        withRfMap(sampleBytes(), "<RemoteInfo><Controllers><Controller><Guid>0</Guid></Controller>"
                                      "</Controllers></RemoteInfo>"),
         "front");
     ASSERT_TRUE(front);

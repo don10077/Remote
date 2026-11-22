@@ -53,6 +53,9 @@ add_executable(harmony_tests
     undoEditsTest.cpp
 )
 
+# Помощники тестов (`dumpFiles.h`, `formatFixtures.h`) лежат в `tests/` — видны всем тестам.
+target_include_directories(harmony_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+
 # Путь к тестовым данным (данные, которые лежат в git) и к настоящим дампам (не в git —
 # тесты на них пропускаются без папки, правило 19).
 target_compile_definitions(harmony_tests PRIVATE
@@ -88,6 +91,7 @@ if(HARMONY_BUILD_APP)
         commandDialogTest.cpp
         remoteViewTest.cpp
         remoteResourcesTest.cpp
+        noProfileWidgetsTest.cpp
         assignmentGateTest.cpp
         ../app/src/assignmentGate.cpp
         ../app/src/assignmentGate.h

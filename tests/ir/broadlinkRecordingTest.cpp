@@ -1,6 +1,7 @@
 /**
  * @file broadlinkRecordingTest.cpp
- * @brief Сверка с настоящими сигналами, записанными Broadlink RM4 (tools/broadlinkLearn.py).
+ * @brief Сверка с настоящими сигналами, записанными Broadlink RM4 (стенд 2026-11-04, файлы в
+ *        tests/data/broadlink; скрипт-рекордер удалён — новых протоколов добавлять не планируется).
  *
  * Записи пульта Harmony (в JSON есть "code"): carrierVm по тому же коду и протоколу
  * из IrProto.bin должен дать тот же сигнал. Записи родных пультов устройств ("remote"):
@@ -104,7 +105,7 @@ TEST(BroadlinkRecording, HarmonySignalsMatchCarrierVm) {
     if (all.empty()) {
         GTEST_SKIP() << "нет записей Harmony в " << kRecordings.string();
     }
-    auto table = formats::parseIrProto(readFile(kData / "userconfig" / "IrProto.bin"));
+    auto table = formats::parseIrProto(readFile(std::filesystem::path(HARMONY_SOURCE_DIR) / "app" / "resources" / "demo" / "IrProto.bin"));
     ASSERT_TRUE(table) << table.error().message;
     for (const auto& recording : all) {
         SCOPED_TRACE(recording.file);

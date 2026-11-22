@@ -3,24 +3,21 @@
  * @brief Значки экранных кнопок: список прошивки, установка, снятие, проверка.
  */
 
+#include "configFixtures.h"
+
 #include "harmony/core/buttonIcons.h"
 #include "harmony/core/configDocument.h"
 
 #include <gtest/gtest.h>
 
-#include <filesystem>
-
 using namespace harmony;
 
 namespace {
 
-const std::filesystem::path kSampleDir = std::filesystem::path(HARMONY_TEST_DATA_DIR) / "userconfig";
-constexpr const char* kTv = "92555930"; ///< У него экранные кнопки с подписями
+constexpr const char* kTv = harmony::test::kTvId; ///< У него экранные кнопки с подписями
 
 ConfigDocument sample() {
-    auto document = ConfigDocument::open(kSampleDir);
-    EXPECT_TRUE(document) << document.error().message;
-    return std::move(*document);
+    return harmony::test::configFixture();
 }
 
 const model::Button* softAt(const ConfigDocument& document, int position) {

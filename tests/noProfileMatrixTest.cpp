@@ -1,38 +1,29 @@
 /**
  * @file noProfileMatrixTest.cpp
- * @brief T1: матрица «открыть без профиля». Ожидания — текущее поведение; где оно изменится
- *        запланированными шагами, помечено в тексте теста.
+ * @brief T1: матрица «открыть без профиля». Проверяются решения программы: какое имя модели
+ *        документ выбирает, что запрещает, что разрешает. Ожидания — текущее поведение; где
+ *        запланированный шаг его изменит, помечено в тексте теста.
  *
- * Проверяются решения программы: какое имя модели документ выбирает, что запрещает, что
- * разрешает. Файл нужен только там, где решение зависит от настоящих байтов (identity
- * архитектуры 15 / skin 61); такие тесты читают `dumps/` через `dumpFiles.h` и пропускаются
- * без папки (правило 19). Тест «читается ли файл» не пишется.
+ * Файл нужен только там, где решение зависит от настоящих байтов: такие тесты читают `dumps/`
+ * через `dumpFiles.h` и пропускаются без папки (правило 19). Тест «читается ли файл» не пишется.
  */
 
 #include "dumpFiles.h"
+#include "formatFixtures.h"
 
 #include "harmony/core/configDocument.h"
-#include "harmony/core/formats/container.h"
+#include "harmony/core/remoteCatalog.h"
 #include "harmony/core/remoteProfile.h"
 
 #include <gtest/gtest.h>
 
-#include <filesystem>
-#include <fstream>
-#include <iterator>
 #include <string>
 #include <vector>
 
 using harmony::ConfigDocument;
 using harmony::ErrorCode;
-using harmony::formats::Bytes;
 
 namespace {
-
-Bytes readFile(const std::filesystem::path& path) {
-    std::ifstream stream(path, std::ios::binary);
-    return {std::istreambuf_iterator<char>(stream), std::istreambuf_iterator<char>()};
-}
 
 /// Документ с свойством HarmonyTargetRemote (XML в памяти, без файлов).
 harmony::Result<ConfigDocument> documentWithTarget(const std::string& target) {
@@ -42,7 +33,7 @@ harmony::Result<ConfigDocument> documentWithTarget(const std::string& target) {
 }
 
 /**
- * Каталог текущей модели (`harmony::remoteProfiles`), который приложение строит из ресурсов.
+ * Каталог модели (`harmony::remoteProfiles`), который приложение строит из ресурсов.
  * Тест строит свой каталог и возвращает штатный в TearDown, чтобы не мешать другим тестам.
  */
 class CatalogTest : public testing::Test {
@@ -71,20 +62,20 @@ TEST_F(CatalogTest, PropertyIsTargetRemote) {
     EXPECT_EQ(document->targetRemote(), "525");
 }
 
-// Без свойства модель берётся из identity дампа (arch 15 / skin 61 → 900).
-TEST_F(CatalogTest, IdentityGivesModelWhenNoProperty) {
-    const auto dump = harmony::test::dumpFile("EZHex/harmony900", "*.EZHex");
-    if (dump.empty()) GTEST_SKIP() << "dumps/EZHex/harmony900 нет — проверка только на машине владельца";
-    const auto document = ConfigDocument::fromEzHex(readFile(dump), "без свойства");
-    ASSERT_TRUE(document) << document.error().message;
-    ASSERT_TRUE(harmony::remoteProfile("900") != nullptr);
-    EXPECT_EQ(document->targetRemote(), "900"); // M2: через каталог, результат тот же
+// Свойства нет — решение даёт identity. Сегодня identity без дампа по умолчанию архитектура 15
+// и skin 61 (`ezhex.h:34–35`), поэтому программа называет такой документ 900. Это и есть
+// ветвление по модели, запрещённое правилами: после M2 имя должно браться из каталога.
+TEST_F(CatalogTest, IdentityWithoutPropertyNamesTheDefaultModel) {
+    const auto document = ConfigDocument::createNew("новая");
+    EXPECT_EQ(document.targetRemote(), "900") << "изменится в M2: имя берётся из каталога";
 }
 
-// Ни свойства, ни identity — модель не выбрана.
-TEST_F(CatalogTest, NoIdentityMeansUnknownModel) {
-    const auto document = ConfigDocument::createNew("новая");
-    EXPECT_EQ(document.targetRemote(), "unknown");
+// Skin, модели которого нет в каталоге: программа не знает модель — ветвлений по skin нет.
+// Фикстура собрана в коде, поэтому тест зелёный на любой машине.
+TEST_F(CatalogTest, UnknownModelWhenSkinIsNotInTheCatalog) {
+    const auto document = ConfigDocument::fromEzHex(harmony::test::minimalEzHex(14, 999), "без профиля");
+    ASSERT_TRUE(document) << document.error().message;
+    EXPECT_EQ(document->targetRemote(), "unknown");
 }
 
 // 525 нельзя выбрать целевой моделью: её нет в каталоге.
@@ -108,15 +99,23 @@ TEST_F(CatalogTest, UsesUsbNetFollowsCatalog) {
 }
 
 // Запись на пульт запрещена, когда каталог говорит «модель не пишется» (driver none),
-// даже если документ — 900.
+// даже если документ выглядит как 900.
 TEST_F(CatalogTest, WritingForbiddenWhenCatalogModelCannotWrite) {
-    const auto dump = harmony::test::dumpFile("EZHex/harmony900", "*.EZHex");
-    if (dump.empty()) GTEST_SKIP() << "dumps/EZHex/harmony900 нет — проверка только на машине владельца";
-    const auto document = ConfigDocument::fromEzHex(readFile(dump), "driver none");
-    ASSERT_TRUE(document) << document.error().message;
+    const auto document = ConfigDocument::createNew("driver none");
     clearCatalog();
     addToCatalog("900", "none", "harmony-xml");
-    const auto result = document->toEzHex(true);
+    const auto result = document.toEzHex(true);
     ASSERT_FALSE(result);
     EXPECT_EQ(result.error().code, ErrorCode::Unsupported) << result.error().message; // изменится в W3 (OD9)
+}
+
+// Настоящие байты: identity из дампа пульта 900 (архитектура 15, skin 61) без свойства называет
+// документ 900. Без `dumps/` тест пропускается — это регрессия на машине владельца.
+TEST_F(CatalogTest, IdentityFromRealDumpGivesModel) {
+    const auto dump = harmony::test::dumpFile("EZHex/harmony900", "*.EZHex");
+    if (dump.empty()) GTEST_SKIP() << "dumps/EZHex/harmony900 нет — только на машине владельца";
+    const auto document = ConfigDocument::fromEzHex(harmony::test::readFile(dump), "без свойства");
+    ASSERT_TRUE(document) << document.error().message;
+    EXPECT_TRUE(harmony::remoteProfile("900") != nullptr);
+    EXPECT_EQ(document->targetRemote(), "900"); // M2: через каталог, результат тот же
 }

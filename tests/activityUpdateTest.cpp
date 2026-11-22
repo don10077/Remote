@@ -1,15 +1,20 @@
 /**
  * @file activityUpdateTest.cpp
  * @brief Тесты правки состава активности: устройства, роли, входы, тип, кнопки.
+ *
+ * Решения программы проверяются на конфигурации, собранной в коде (правило 19).
  */
 
+#include "configFixtures.h"
+
+#include "harmony/core/activityDraft.h"
 #include "harmony/core/configDocument.h"
 
 #include <gtest/gtest.h>
 
 #include <algorithm>
-#include <filesystem>
 #include <string>
+#include <vector>
 
 using harmony::ActivityDraft;
 using harmony::ConfigDocument;
@@ -17,22 +22,11 @@ using harmony::ErrorCode;
 
 namespace {
 
-const std::filesystem::path kSampleDir = std::filesystem::path(HARMONY_TEST_DATA_DIR) / "userconfig";
-
-constexpr const char* kWatchTv = "79016674"; ///< «ТВ + AV»: Hisense + ресивер, входы HDMI3 и TV Audio
-constexpr const char* kTv = "92555930";
-constexpr const char* kReceiver = "82969357";
-constexpr const char* kDune = "68380504";
-
-ConfigDocument openSample() {
-    auto document = ConfigDocument::open(kSampleDir);
-    EXPECT_TRUE(document) << document.error().message;
-    return std::move(*document);
-}
-
-const harmony::model::Activity& watchTv(const ConfigDocument& document) {
-    return *document.model().findActivity(kWatchTv);
-}
+using harmony::test::kActivityId;
+using harmony::test::kPlayerId;
+using harmony::test::kPowerOffId;
+using harmony::test::kReceiverId;
+using harmony::test::kTvId;
 
 int buttonsOf(const harmony::model::Activity& activity, const std::string& deviceId) {
     int count = 0;
@@ -44,112 +38,140 @@ int buttonsOf(const harmony::model::Activity& activity, const std::string& devic
     return count;
 }
 
+const harmony::model::Activity& activity(const ConfigDocument& document) {
+    return *document.model().findActivity(kActivityId);
+}
+
 } // namespace
 
 TEST(ActivityUpdate, DraftOfReadsCurrentComposition) {
-    const ConfigDocument document = openSample();
+    const ConfigDocument document = harmony::test::configFixture();
+    const ActivityDraft draft = harmony::draftOf(activity(document));
 
-    const ActivityDraft draft = harmony::draftOf(watchTv(document));
-
-    EXPECT_EQ(draft.label, "ТВ + AV");
-    EXPECT_EQ(draft.devices, (std::vector<std::string>{kTv, kReceiver}));
-    EXPECT_EQ(draft.controlDevice, kTv);
-    EXPECT_EQ(draft.volumeDevice, kReceiver);
-    EXPECT_EQ(draft.displayDevice, kTv);
-    ASSERT_EQ(draft.inputs.size(), 2U);
-    EXPECT_EQ(draft.inputs[0], (std::pair<std::string, std::string>{kTv, "HDMI3"}));
+    EXPECT_EQ(draft.label, "Смотреть ТВ");
+    EXPECT_EQ(draft.devices, (std::vector<std::string>{kTvId, kReceiverId}));
+    EXPECT_EQ(draft.controlDevice, kTvId);
+    EXPECT_EQ(draft.volumeDevice, kReceiverId);
+    EXPECT_TRUE(draft.displayDevice.empty()) << "роли DISPLAY в фикстуре нет";
+    ASSERT_EQ(draft.inputs.size(), 1U);
+    EXPECT_EQ(draft.inputs[0], (std::pair<std::string, std::string>{kTvId, "HDMI3"}));
 }
 
 TEST(ActivityUpdate, UnchangedDraftKeepsFileIntact) {
-    ConfigDocument document = openSample();
+    ConfigDocument document = harmony::test::configFixture();
     const std::string before = document.toXml();
 
-    ASSERT_TRUE(document.updateActivity(kWatchTv, harmony::draftOf(watchTv(document)), false));
+    ASSERT_TRUE(document.updateActivity(kActivityId, harmony::draftOf(activity(document)), false));
 
-    EXPECT_EQ(document.toXml(), before); // правка «ничего не изменив» не трогает файл
+    EXPECT_EQ(document.toXml(), before) << "правка «ничего не изменив» не трогает файл";
 }
 
 TEST(ActivityUpdate, AddsDeviceAndChangesInput) {
-    ConfigDocument document = openSample();
-    ActivityDraft draft = harmony::draftOf(watchTv(document));
-    draft.devices.push_back(kDune);
-    draft.controlDevice = kDune;
+    ConfigDocument document = harmony::test::configFixture();
+    ActivityDraft draft = harmony::draftOf(activity(document));
+    draft.devices.push_back(kPlayerId);
+    draft.controlDevice = kPlayerId;
     draft.inputs[0].second = "HDMI1";
 
-    ASSERT_TRUE(document.updateActivity(kWatchTv, draft, false));
+    ASSERT_TRUE(document.updateActivity(kActivityId, draft, false));
 
-    const auto& activity = watchTv(document);
-    EXPECT_EQ(activity.powerOn.size(), 3U);
-    EXPECT_EQ(std::ranges::count(activity.powerOff, std::string(kDune)), 0);
-    EXPECT_EQ(activity.roleDevice("DEFAULT"), kDune);
-    EXPECT_EQ(activity.inputs[0].second, "HDMI1");
-    // Остальные действия при запуске (команда Home телевизору) сохранились — после входов.
+    const auto& updated = activity(document);
+    EXPECT_EQ(updated.powerOn, (std::vector<std::string>{kTvId, kReceiverId, kPlayerId}));
+    EXPECT_EQ(updated.roleDevice("DEFAULT"), kPlayerId);
+    EXPECT_EQ(updated.roleDevice("VOLUME"), kReceiverId);
+    ASSERT_EQ(updated.inputs.size(), 1U);
+    EXPECT_EQ(updated.inputs[0], (std::pair<std::string, std::string>{kTvId, "HDMI1"}));
+
+    // Другое действие при запуске сохранилось и стоит после входов.
     const std::string xml = document.toXml();
-    const auto home = xml.find("<Parameter name=\"Command\">Home</Parameter>");
+    const auto kept = xml.find("<Parameter name=\"Command\">Home</Parameter>");
     const auto input = xml.find("<Parameter name=\"Value\">HDMI1</Parameter>");
-    ASSERT_NE(home, std::string::npos);
-    EXPECT_LT(input, home);
+    ASSERT_NE(kept, std::string::npos);
+    EXPECT_LT(input, kept);
 }
 
 TEST(ActivityUpdate, RemovingDeviceDropsItsButtonsAndActions) {
-    ConfigDocument document = openSample();
-    ActivityDraft draft = harmony::draftOf(watchTv(document));
-    ASSERT_GT(buttonsOf(watchTv(document), kReceiver), 0);
-    draft.devices = {kTv};
+    ConfigDocument document = harmony::test::configFixture();
+    ActivityDraft draft = harmony::draftOf(activity(document));
+    const int receiverButtons = buttonsOf(activity(document), kReceiverId);
+    ASSERT_GT(receiverButtons, 0);
+
+    draft.devices = {kTvId};
     draft.volumeDevice.clear();
-    draft.inputs = {{kTv, "HDMI3"}};
-    EXPECT_EQ(harmony::buttonsLostBy(watchTv(document), draft), buttonsOf(watchTv(document), kReceiver));
+    draft.inputs = {{kTvId, "HDMI3"}};
+    EXPECT_EQ(harmony::buttonsLostBy(activity(document), draft), receiverButtons);
 
-    ASSERT_TRUE(document.updateActivity(kWatchTv, draft, false));
+    ASSERT_TRUE(document.updateActivity(kActivityId, draft, false));
 
-    const auto& activity = watchTv(document);
-    EXPECT_EQ(buttonsOf(activity, kReceiver), 0);
-    EXPECT_EQ(activity.roleDevice("VOLUME"), kTv); // громкость — у управления
-    EXPECT_NE(std::ranges::find(activity.powerOff, std::string(kReceiver)), activity.powerOff.end());
-    ASSERT_EQ(activity.inputs.size(), 1U);
+    const auto& updated = activity(document);
+    EXPECT_EQ(buttonsOf(updated, kReceiverId), 0) << "кнопки убранного устройства удалены";
+    EXPECT_EQ(updated.roleDevice("VOLUME"), kTvId) << "громкость — у устройства управления";
+    EXPECT_EQ(updated.powerOn, (std::vector<std::string>{kTvId}));
+    EXPECT_EQ(updated.powerOff, (std::vector<std::string>{kReceiverId, kPlayerId}))
+        << "остальные устройства выключаются";
+    EXPECT_TRUE(updated.usesDevice(kTvId));
+    EXPECT_FALSE(updated.usesDevice(kReceiverId));
 }
 
 TEST(ActivityUpdate, ReassignsHardButtonsByRoles) {
-    ConfigDocument document = openSample();
-    ActivityDraft draft = harmony::draftOf(watchTv(document));
-    draft.volumeDevice = kTv;
+    ConfigDocument document = harmony::test::configFixture();
+    ActivityDraft draft = harmony::draftOf(activity(document));
+    draft.volumeDevice = kTvId;
 
-    ASSERT_TRUE(document.updateActivity(kWatchTv, draft, true));
+    ASSERT_TRUE(document.updateActivity(kActivityId, draft, true));
 
-    for (const auto& group : watchTv(document).controlGroups) {
-        for (const auto& button : group.buttons) {
-            if (button.name == "VolumeUp") {
-                EXPECT_EQ(button.actionId, std::string(kTv) + "_VolumeUp_Hold");
-            }
+    const auto& updated = activity(document);
+    const harmony::model::ControlGroup* hard = nullptr;
+    for (const auto& group : updated.controlGroups) {
+        if (group.name == "HardButtons") {
+            hard = &group;
+            break;
         }
     }
-    EXPECT_EQ(buttonsOf(watchTv(document), kReceiver), 1); // экранная кнопка ресивера осталась
+    ASSERT_NE(hard, nullptr);
+    const harmony::model::Button* volume = nullptr;
+    for (const auto& button : hard->buttons) {
+        if (button.name == "VolumeUp") volume = &button;
+    }
+    ASSERT_NE(volume, nullptr);
+    EXPECT_EQ(volume->actionId, std::string(kTvId) + "_VolumeUp_Hold")
+        << "аппаратная клавиша переназначена устройству громкости";
+    for (const auto& button : hard->buttons) {
+        EXPECT_FALSE(button.actionId.starts_with(std::string(kReceiverId) + "_")) << button.actionId;
+    }
+    EXPECT_EQ(buttonsOf(updated, kReceiverId), 1) << "экранные кнопки остались за своим устройством";
 }
 
 TEST(ActivityUpdate, ChangingTypeReplacesPropertiesAndChannelList) {
-    ConfigDocument document = openSample();
-    ActivityDraft draft = harmony::draftOf(watchTv(document));
+    ConfigDocument document = harmony::test::configFixture();
+    ActivityDraft draft = harmony::draftOf(activity(document));
     draft.type = "VirtualDvd";
     draft.label = "Кино";
 
-    ASSERT_TRUE(document.updateActivity(kWatchTv, draft, false));
+    ASSERT_TRUE(document.updateActivity(kActivityId, draft, false));
 
     const std::string xml = document.toXml();
-    const auto start = xml.find("<Id>79016674</Id>");
+    const auto start = xml.find("<Id>" + std::string(kActivityId) + "</Id>");
     const auto end = xml.find("</Activity>", start);
-    const std::string activity = xml.substr(start, end - start);
-    EXPECT_NE(activity.find("<Type>VirtualDvd</Type>"), std::string::npos);
-    EXPECT_NE(activity.find("EnableSmartMenu"), std::string::npos);
-    EXPECT_EQ(activity.find("ChannelList"), std::string::npos);
-    EXPECT_EQ(watchTv(document).label, "Кино");
+    ASSERT_NE(start, std::string::npos);
+    ASSERT_NE(end, std::string::npos);
+    const std::string block = xml.substr(start, end - start);
+
+    EXPECT_NE(block.find("<Type>VirtualDvd</Type>"), std::string::npos);
+    EXPECT_NE(block.find("EnableSmartMenu"), std::string::npos) << "свойства — как у нового типа";
+    EXPECT_EQ(block.find("ChannelList"), std::string::npos) << "список каналов остаётся только у ТВ";
+    EXPECT_EQ(activity(document).label, "Кино");
 }
 
 TEST(ActivityUpdate, RejectsPowerOffAndBadDrafts) {
-    ConfigDocument document = openSample();
-    ActivityDraft draft = harmony::draftOf(watchTv(document));
+    ConfigDocument document = harmony::test::configFixture();
+    const ActivityDraft draft = harmony::draftOf(activity(document));
 
-    EXPECT_EQ(document.updateActivity("-1", draft, false).error().code, ErrorCode::Unsupported);
+    EXPECT_EQ(document.updateActivity(kPowerOffId, draft, false).error().code, ErrorCode::Unsupported);
     EXPECT_EQ(document.updateActivity("нет", draft, false).error().code, ErrorCode::NotFound);
-    draft.devices.clear();
-    EXPECT_EQ(document.updateActivity(kWatchTv, draft, false).error().code, ErrorCode::Format);
+
+    ActivityDraft empty = draft;
+    empty.devices.clear();
+    EXPECT_EQ(document.updateActivity(kActivityId, empty, false).error().code, ErrorCode::Format);
+    EXPECT_EQ(document.toXml(), harmony::test::kConfigXml) << "отказ ничего не изменил";
 }

@@ -19,7 +19,8 @@ using namespace harmony::ir;
 
 namespace {
 
-const std::filesystem::path kConfig = std::filesystem::path(HARMONY_TEST_DATA_DIR) / "userconfig";
+// Конфигурация реального пульта — встроенный пример приложения (tests/data/userconfig перенесён туда).
+const std::filesystem::path kConfig = std::filesystem::path(HARMONY_SOURCE_DIR) / "app" / "resources" / "demo";
 
 /// Сигнал с кодированием длиной паузы (биты — в порядке передачи).
 IrSignal pulseDistance(int headerMark, int headerSpace, int mark, int zero, int one, const std::vector<bool>& bits) {
@@ -237,7 +238,7 @@ TEST(IrDecode, Rc6Modes) {
 
 TEST(IrDecode, Rc6OtherModesAndLengths) {
     // Sky (RC6-6-20): устройство 0x0C, подустройство 0, команда 0x5C — как выучил Harmony 900
-    // на стенде 2026-11-04 (кадр tools/irFrames.py, излучённый RM4).
+    // на стенде 2026-11-04 (docs/protocol-bench-decoded.json, кадр излучал RM4).
     IrSignal sky;
     sky.durations = {2496, -868, 461, -407, 460, -407, 459, -825, 461, -824, 850, -469, 461, -407, 459,
                      -424, 434, -449, 851, -434, 434, -821, 460, -438, 435, -434, 459, -408, 460, -407,
@@ -275,7 +276,7 @@ IrSignal samsung36(unsigned address, unsigned extension, unsigned command, unsig
 
 TEST(IrDecode, Samsung36) {
     // Адрес 0x0400, команда 0x5A — как выучил Harmony 900 на стенде 2026-11-04
-    // (кадр tools/irFrames.py, излучённый RM4).
+    // (docs/protocol-bench-decoded.json, кадр излучал RM4).
     IrSignal s36;
     s36.durations = {4237, -4312, 486, -478, 460, -471, 460, -473, 486, -478, 486, -445, 486, -446,
                      486, -478, 460, -471, 460, -473, 486, -445, 486, -1426, 460, -489, 459, -472,
@@ -317,7 +318,7 @@ IrSignal konka(unsigned address, unsigned command, int bitCount = 16) {
 
 TEST(IrDecode, Konka) {
     // Адрес 0x02, команда 0x4F — как выучил Harmony 900 на стенде 2026-11-04
-    // (кадр tools/irFrames.py, излучённый RM4).
+    // (docs/protocol-bench-decoded.json, кадр излучал RM4).
     IrSignal learned;
     learned.durations = {2781, -2904, 486, -1442, 486, -1441, 460, -1437, 460, -1437, 485, -1442,
                          461, -1435, 459, -2368, 487, -1442, 459, -1435, 487, -2373, 460, -1437,
@@ -348,7 +349,8 @@ TEST(IrDecode, UnknownSignalIsNotDecoded) {
     EXPECT_FALSE(decode(noise));
 }
 
-// Кадры протоколов, которых программа не знает, — как их собирает tools/irFrames.py.
+// Кадры протоколов, которых программа не знает, — такими, как их собирал стенд
+// (docs/protocol-bench-unknown.json, 2026-11-04).
 // Стенд 2026-11-04 показал, что декодер выдавал их за известные протоколы.
 
 TEST(IrDecode, LongerFrameOfUnknownProtocolIsNotDecoded) {

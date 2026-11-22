@@ -1,28 +1,30 @@
 /**
  * @file irTablesTest.cpp
  * @brief Тесты IrProto.bin и SsIr.bin: разбор, сборка байт в байт, перенос протоколов.
+ *
+ * Решения программы проверяются на данных, собранных в коде, — эти тесты зелёные на любой
+ * машине. Настоящие байты проверяет отдельный тест через `dumpFiles.h`: без `dumps/` он
+ * пропускается и остаётся регрессией на машине владельца (правило 19).
  */
+
+#include "dumpFiles.h"
+#include "formatFixtures.h"
 
 #include "harmony/core/formats/irTables.h"
 
 #include <gtest/gtest.h>
 
-#include <algorithm>
-#include <filesystem>
-#include <fstream>
-#include <iterator>
-#include <span>
+#include <cstdio>
 #include <string>
 
 using namespace harmony::formats;
 
 namespace {
 
-const std::filesystem::path kData(HARMONY_TEST_DATA_DIR);
-
-Bytes readFile(const std::filesystem::path& path) {
-    std::ifstream file(path, std::ios::binary);
-    return {std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>()};
+IrTable oneTable(std::uint8_t marker) {
+    IrTable table;
+    table.entries.push_back(harmony::test::protocolEntry(marker));
+    return table;
 }
 
 } // namespace
@@ -32,40 +34,56 @@ TEST(IrTables, Crc32MatchesZlib) {
     EXPECT_EQ(crc32({reinterpret_cast<const std::uint8_t*>(text.data()), text.size()}), 0xCBF43926U);
 }
 
-TEST(IrTables, ParsesSampleIrProto) {
-    const Bytes file = readFile(kData / "userconfig" / "IrProto.bin");
-    auto table = parseIrProto(file);
-    ASSERT_TRUE(table) << table.error().message;
-    EXPECT_EQ(table->entries.size(), 5U); // в образце команды ссылаются на протоколы 0…4
-    EXPECT_EQ(protocolHash(file), "0x8595F4FF"); // совпадает с хешем в UserConfiguration.xml
-}
+// Таблица, собранная в коде, читается обратно теми же записями: смещения и CRC сходятся.
+TEST(IrTables, TableBuiltInCodeIsReadBackTheSame) {
+    IrTable table;
+    table.entries = {harmony::test::protocolEntry(0x11), harmony::test::protocolEntry(0x22),
+                     harmony::test::protocolEntry(0x33)};
 
-TEST(IrTables, IrProtoRoundTripIsLossless) {
-    for (const char* name : {"userconfig/IrProto.bin", "irtables/IrProto8.bin"}) {
-        const Bytes file = readFile(kData / name);
-        auto table = parseIrProto(file);
-        ASSERT_TRUE(table) << name << ": " << table.error().message;
-        EXPECT_EQ(writeIrProto(*table), file) << name;
+    const Bytes file = writeIrProto(table);
+    const auto parsed = parseIrProto(file);
+    ASSERT_TRUE(parsed) << parsed.error().message;
+    ASSERT_EQ(parsed->entries.size(), table.entries.size());
+    for (std::size_t i = 0; i < table.entries.size(); ++i) {
+        EXPECT_EQ(parsed->entries[i], table.entries[i]) << "запись " << i;
     }
+    // Хеш для XML берётся из обёртки, поэтому round trip его сохраняет.
+    EXPECT_EQ(protocolHash(file), protocolHash(writeIrProto(*parsed)));
 }
 
-TEST(IrTables, ProtocolsAreRelocatable) {
-    // Протокол из одного файла, записанный в другой на другое место, читается обратно тем же.
-    auto source = parseIrProto(readFile(kData / "irtables" / "IrProto8.bin"));
-    auto target = parseIrProto(readFile(kData / "userconfig" / "IrProto.bin"));
-    ASSERT_TRUE(source && target);
-    const Bytes moved = source->entries.back();
-    const std::size_t index = target->intern(moved);
-    EXPECT_EQ(index, 5U);
+// Одинаковые протоколы не дублируются; новый — после существующих. Индекс следует из конструкции.
+TEST(IrTables, InternKeepsOneCopyOfEachProtocol) {
+    IrTable table;
+    const Bytes first = harmony::test::protocolEntry(0x11);
+    const Bytes second = harmony::test::protocolEntry(0x22);
 
-    auto reread = parseIrProto(writeIrProto(*target));
-    ASSERT_TRUE(reread) << reread.error().message;
-    EXPECT_EQ(reread->entries[index], moved);
-    EXPECT_EQ(reread->intern(moved), index); // одинаковые протоколы не дублируются
+    EXPECT_EQ(table.intern(first), 0U);
+    EXPECT_EQ(table.intern(second), 1U);
+    EXPECT_EQ(table.intern(first), 0U) << "тот же протокол получает тот же номер";
+    EXPECT_EQ(table.entries.size(), 2U) << "дубль не добавляется";
+    EXPECT_EQ(table.intern(harmony::test::protocolEntry(0x33)), 2U);
+    EXPECT_EQ(table.entries.size(), 3U);
 }
 
+// Протокол из одной таблицы, перенесённый в другую, читается обратно тем же.
+TEST(IrTables, RelocatedProtocolIsReadBackTheSame) {
+    const IrTable source = oneTable(0x22);
+    IrTable target;
+    target.entries.push_back(harmony::test::protocolEntry(0x99));
+
+    const Bytes moved = source.entries.front();
+    const std::size_t index = target.intern(moved);
+    EXPECT_EQ(index, 1U) << "перенесённый протокол — после существующей записи";
+
+    const auto parsed = parseIrProto(writeIrProto(target));
+    ASSERT_TRUE(parsed) << parsed.error().message;
+    IrTable reread = *parsed;
+    EXPECT_EQ(reread.entries[index], moved);
+    EXPECT_EQ(reread.intern(moved), index);
+}
+
+// Две секции-указателя на одну секцию (как у Samsung32: повтор — тот же кадр).
 TEST(IrTables, SharedSectionIsRelocatedOnce) {
-    // Две секции-указателя на одну секцию (как у Samsung32: повтор — тот же кадр).
     const Bytes header = {0x01, 0x4B, 0x66, 0x00, 0x00, 0x32, 0x02, 0x0B, 0x00, 0x0B, 0x00};
     Bytes entry(header.size() + 16, 0);
     std::copy(header.begin(), header.end(), entry.begin());
@@ -88,22 +106,28 @@ TEST(IrTables, SharedSectionIsRelocatedOnce) {
     EXPECT_EQ(reread->entries[1], entry);
 }
 
-TEST(IrTables, RejectsDamagedIrProto) {
-    Bytes file = readFile(kData / "userconfig" / "IrProto.bin");
-    file[40] ^= 0xFF;
+// Испорченная запись: контрольная сумма не сходится — файл отвергается.
+TEST(IrTables, RejectsTableWithBrokenChecksum) {
+    IrTable table;
+    table.entries = {harmony::test::protocolEntry(0x11), harmony::test::protocolEntry(0x22)};
+    Bytes file = writeIrProto(table);
+    ASSERT_TRUE(parseIrProto(file));
+    file[14] ^= 0xFF; // байт внутри записи, CRC не пересчитана
     EXPECT_EQ(parseIrProto(file).error().code, harmony::ErrorCode::Format);
 }
 
-TEST(IrTables, SsIrRoundTripIsLossless) {
-    for (const char* name : {"userconfig/SsIr.bin", "irtables/SsIr2.bin"}) {
-        const Bytes file = readFile(kData / name);
-        auto table = parseSsIr(file);
-        ASSERT_TRUE(table) << name << ": " << table.error().message;
-        EXPECT_EQ(writeSsIr(*table), file) << name;
-    }
-    EXPECT_EQ(parseSsIr(readFile(kData / "irtables" / "SsIr2.bin"))->entries.size(), 2U);
+// Указатель секции за пределами записи — таблицу записать нельзя.
+TEST(IrTables, RejectsProtocolPointingOutsideItsEntry) {
+    IrTable table = oneTable(0x11);
+    table.entries[0][7] = 0xFF;   // указатель первой секции
+    table.entries[0][8] = 0xFF;
+    const auto built = buildIrProto(table);
+    ASSERT_FALSE(built);
+    EXPECT_EQ(built.error().code, harmony::ErrorCode::Format);
+    EXPECT_TRUE(writeIrProto(table).empty());
 }
 
+// Смещения 16-битные: большая таблица не помещается, и писатель это отказывает.
 TEST(IrTables, TableThatOverflowsSixteenBitOffsetsDoesNotFit) {
     IrTable table;
     EXPECT_TRUE(fitsOffsets(table));
@@ -111,6 +135,7 @@ TEST(IrTables, TableThatOverflowsSixteenBitOffsetsDoesNotFit) {
     EXPECT_TRUE(fitsOffsets(table));
     table.entries.back().push_back(0x01);
     EXPECT_FALSE(fitsOffsets(table));
+    EXPECT_FALSE(buildIrProto(table));
 }
 
 TEST(IrTables, EmptyTablesAreValid) {
@@ -122,37 +147,24 @@ TEST(IrTables, EmptyTablesAreValid) {
     EXPECT_TRUE(raw->entries.empty());
 }
 
-TEST(IrTables, RejectsProtocolPointingOutsideItsEntry) {
-    // Указатель первой секции первого протокола — до начала записи; CRC пересчитан,
-    // поэтому отказ — из-за самого протокола.
-    Bytes file = readFile(kData / "userconfig" / "IrProto.bin");
-    ASSERT_TRUE(parseIrProto(file));
-    constexpr std::size_t kData0 = 8 + 5; // обёртка и заголовок; дальше 01, число записей, смещения
-    const std::size_t first = kData0 + (file[kData0 + 3] | (file[kData0 + 4] << 8));
-    ASSERT_GT(file[first + 6], 0U); // у протокола есть секции
-    file[first + 7] = 0x01;
-    file[first + 8] = 0x00;
-    const std::uint32_t crc = crc32(std::span<const std::uint8_t>(file).subspan(8));
-    file[0] = static_cast<std::uint8_t>(crc & 0xFF);
-    file[1] = static_cast<std::uint8_t>((crc >> 8) & 0xFF);
-    file[2] = static_cast<std::uint8_t>((crc >> 16) & 0xFF);
-    file[3] = static_cast<std::uint8_t>((crc >> 24) & 0xFF);
-    EXPECT_EQ(parseIrProto(file).error().code, harmony::ErrorCode::Format);
-}
+// Регрессия на настоящих байтах: разобранный файл пульта собирается обратно байт в байт.
+TEST(IrTables, RealDumpTablesAreWrittenBackByteForByte) {
+    const auto dumps = harmony::test::dumpFiles("EZHex", "*.EZHex");
+    if (dumps.empty()) GTEST_SKIP() << "dumps/ нет — только на машине владельца";
 
-TEST(IrTables, DamagedProtocolIsNotWritten) {
-    auto table = parseIrProto(readFile(kData / "userconfig" / "IrProto.bin"));
-    ASSERT_TRUE(table) << table.error().message;
-    ASSERT_TRUE(buildIrProto(*table));
-    // Указатель секции за пределами записи: переложить запись в таблицу нельзя.
-    table->entries[0][7] = 0xFF;
-    table->entries[0][8] = 0xFF;
-    const auto built = buildIrProto(*table);
-    ASSERT_FALSE(built);
-    EXPECT_EQ(built.error().code, harmony::ErrorCode::Format);
-    EXPECT_TRUE(writeIrProto(*table).empty());
-
-    IrTable huge;
-    huge.entries.push_back(Bytes(0x10000, 0x01));
-    EXPECT_FALSE(buildIrProto(huge));
+    std::size_t checked = 0;
+    for (const auto& path : dumps) {
+        const auto archive = harmony::test::archiveOf(path);
+        if (archive.entries.empty()) continue; // binary HID без ZIP-архива
+        for (const char* name : {"userconfig/IrProto.bin", "userconfig/SsIr.bin"}) {
+            const Bytes file = harmony::test::entryData(archive, name);
+            if (file.empty()) continue;
+            const bool isProto = std::string(name) == "userconfig/IrProto.bin";
+            const auto table = isProto ? parseIrProto(file) : parseSsIr(file);
+            ASSERT_TRUE(table) << path.string() << " " << name << ": " << table.error().message;
+            EXPECT_EQ(isProto ? writeIrProto(*table) : writeSsIr(*table), file) << path.string();
+            ++checked;
+        }
+    }
+    if (checked == 0) GTEST_SKIP() << "в dumps/ нет записей IrProto.bin/SsIr.bin";
 }
