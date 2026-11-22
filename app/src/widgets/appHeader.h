@@ -51,8 +51,12 @@ public:
      */
     void setConnectionState(bool connected, const QString& text);
 
-    /// Устанавливает доступность записи для выбранного проекта.
-    void setWriteEnabled(bool writable);
+    /**
+     * @brief Доступность записи и её обоснование.
+     * @param writable Запись разрешена — решение `canWriteTo()`.
+     * @param reason Подсказка: почему запись разрешена или запрещена.
+     */
+    void setWriteEnabled(bool writable, const QString& reason = {});
 
     /// Подпись кнопки чтения: для USB HID-моделей чтение сразу сохраняет файл для анализа.
     void setReadSavesFile(bool saves);

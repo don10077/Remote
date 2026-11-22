@@ -23,10 +23,10 @@ int failure(const harmony::Error& error) {
 int runTransferCommand(std::span<char*> args, const std::string& host) {
     const std::string_view command(args[1]);
     if (command == "models") {
-        std::cout << "ID\tModel\tRead\tWrite file\tWrite tested\tPhoto/zones\n";
+        std::cout << "ID\tModel\tRead\tRaw restore\tConfig write tested\tPhoto/zones\n";
         for (const auto& model : harmony::remoteCatalog())
             std::cout << model.id << '\t' << model.name << '\t' << (model.readable ? "yes" : "no") << '\t'
-                      << (model.writable ? "yes" : "no") << '\t' << (model.writeTested ? "yes" : "no") << '\t'
+                      << (model.rawRestore ? "yes" : "no") << '\t' << (model.configWriteTested ? "yes" : "no") << '\t'
                       << (harmony::remoteProfile(model.id) != nullptr ? "yes" : "no") << '\n';
         return 0;
     }

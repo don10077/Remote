@@ -13,7 +13,7 @@
 
 #include "configDocumentImpl.h"
 #include "harmony/core/remotePreferences.h"
-#include "harmony/core/remoteProfile.h"
+#include "harmony/core/writePolicy.h"
 #include "harmony/core/formats/binaryHid.h"
 #include "harmony/core/remoteCatalog.h"
 
@@ -195,14 +195,14 @@ Result<ConfigDocument> ConfigDocument::fromEzHex(std::span<const std::uint8_t> e
 }
 
 Result<std::vector<std::uint8_t>> ConfigDocument::toEzHex(bool forRemote) const {
-    // Конфигурацию другого формата (хаб) можно сохранить в файл, но не отправить на пульт.
-    // Формат записан в XML (SourceFormat), поэтому сохранённый .EZHex откроется снова как хаб.
-    if (forRemote && !backend()->canWriteToRemote()) {
-        return std::unexpected(detail::readOnlyError().error());
-    }
-    const auto* target = remoteProfile(targetRemote());
-    if (forRemote && (!target || !target->writable || identity().architecture != 15 || identity().skin != 61)) {
-        return makeError(ErrorCode::Unsupported, "writing configurations for target remote %1 is not implemented; this is an experimental project profile", {targetRemote()});
+    // Право записи решает canWriteTo(): каталог (configWriteTested) и формат документа.
+    // Профиль оформления на решение не влияет (W3). Формат записан в XML (SourceFormat),
+    // поэтому сохранённый .EZHex откроется снова как хаб.
+    if (forRemote) {
+        const auto decision = canWriteTo(*this);
+        if (decision.verdict != WriteVerdict::Allowed) {
+            return makeError(ErrorCode::Unsupported, decision.reason);
+        }
     }
     // На пульт — без помеченного «не отправлять».
     if (forRemote && hasNotSent()) {

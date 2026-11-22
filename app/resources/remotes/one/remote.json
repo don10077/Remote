@@ -3,8 +3,7 @@
         "touch": true
     },
     "connection": {
-        "driver": "usb-hid",
-        "format": "gspm"
+        "driver": "usb-hid"
     },
     "display": {
         "rect": [

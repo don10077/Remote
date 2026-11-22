@@ -10,7 +10,7 @@
 #include "../remoteResources.h"
 #include "../zoneEditing.h"
 
-#include "harmony/core/remoteProfile.h"
+#include "harmony/core/remoteCatalog.h"
 
 #include <QCheckBox>
 #include <QColor>
@@ -164,32 +164,23 @@ bool ZoneEditorDialog::save() {
 }
 
 void ZoneEditorDialog::refreshRemote() {
-    const QList<QObject*> widgets{nameEdit_, driverBox_, formatBox_, touchCheck_, tileColorEdit_, tileBorderEdit_};
+    const QList<QObject*> widgets{nameEdit_, driverBox_, touchCheck_, tileColorEdit_, tileBorderEdit_};
     for (QObject* widget : widgets) widget->blockSignals(true);
     nameEdit_->setText(remote_.value(QStringLiteral("name")).toString());
 
-    // Без поля в файле действует значение встроенного пульта, у своего пульта — «none» (как в reload()).
-    const auto* profile = harmony::remoteProfile(model_.toStdString());
-    const auto connection = remote_.value(QStringLiteral("connection")).toObject();
-    const QString driver = connection.value(QStringLiteral("driver"))
-                               .toString(profile ? QString::fromStdString(profile->driver) : fromView(harmony::driver::kNone));
-    const QString format = connection.value(QStringLiteral("format"))
-                               .toString(profile ? QString::fromStdString(profile->format) : fromView(harmony::configFormat::kNone));
-    const auto select = [](QComboBox* box, const QString& value) {
-        if (box->findData(value) < 0) box->addItem(value, value); // неизвестное значение видно, а не подменено
-        box->setCurrentIndex(box->findData(value));
-    };
-    select(driverBox_, driver);
-    select(formatBox_, format);
-    if (harmony::writableCombination(driver.toStdString(), format.toStdString()))
-        connectionHint_->setText(tr("The program reads this remote and writes its configuration."));
-    else if (harmony::readableConnection(driver.toStdString()))
-        connectionHint_->setText(tr("The program reads this remote. Writing a configuration to the remote is implemented "
-                                    "only for USB network + Harmony XML."));
-    else
-        connectionHint_->setText(tr("The program does not connect to this remote. Writing a configuration to the remote "
-                                    "is implemented only for USB network + Harmony XML."));
-
+    // W3: `connection.driver` — способ подключения, заданный пользователем; без поля в файле
+    // показывается значение каталога модели. Право записи решает canWriteTo(), не этот список.
+    const QString driver = remote_.value(QStringLiteral("connection")).toObject()
+                               .value(QStringLiteral("driver")).toString();
+    const QString shown = driver.isEmpty()
+        ? fromView(harmony::linkName(harmony::modelLink(model_.toStdString())))
+        : driver;
+    // reload() отклоняет неизвестное имя, поэтому shown всегда есть в списке kLinkNames.
+    for (int i = 0; i < driverBox_->count(); ++i)
+        if (driverBox_->itemData(i).toString() == shown) {
+            driverBox_->setCurrentIndex(i);
+            break;
+        }
     touchCheck_->setChecked(remote_.value(QStringLiteral("capabilities")).toObject().value(QStringLiteral("touch")).toBool());
     const auto tiles = remote_.value(QStringLiteral("tiles")).toObject();
     tileColorEdit_->setText(tiles.value(QStringLiteral("color")).toString());

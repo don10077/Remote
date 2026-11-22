@@ -10,9 +10,10 @@ namespace harmony::test {
 /**
  * @brief ZIP-конфигурация Harmony 900 с заданным XML и известными метаданными записей.
  * @param xml Содержимое UserConfiguration.xml.
+ * @param identity Identity контейнера; по умолчанию 900 (15/61).
  * @return EZHex без зависимости от локальных дампов.
  */
-inline Bytes zipEzHex(std::string_view xml = "<Root/>") {
+inline Bytes zipEzHex(std::string_view xml = "<Root/>", const formats::RemoteIdentity identity = {}) {
     formats::ZipArchive archive;
     constexpr std::uint32_t time = 1'700'000'000;
     const auto add = [&](const std::string& name, std::uint32_t mode, std::string_view text) {
@@ -26,6 +27,7 @@ inline Bytes zipEzHex(std::string_view xml = "<Root/>") {
     archive.entries.push_back(formats::makeEntry("userconfig/IrProto.bin", 0100664, tables.irProto, time));
     add("userconfig/UserConfiguration.xml", 0100664, xml);
     formats::EzHex file;
+    file.identity = identity;
     file.payload = formats::writeZip(archive);
     return *formats::writeEzHex(file);
 }

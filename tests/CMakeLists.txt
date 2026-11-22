@@ -35,6 +35,8 @@ add_executable(harmony_tests
     fixturesTest.cpp
     remoteCatalogTest.cpp
     modelInfoTest.cpp
+    writePolicyTest.cpp
+    writePolicyGateTest.cpp
     ir/broadlinkRecordingTest.cpp
     ir/irProtocolTest.cpp
     ir/nativeProtocolTest.cpp

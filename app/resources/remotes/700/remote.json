@@ -3,8 +3,7 @@
         "touch": false
     },
     "connection": {
-        "driver": "usb-hid",
-        "format": "arch14"
+        "driver": "usb-hid"
     },
     "display": {
         "rect": [

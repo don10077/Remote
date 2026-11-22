@@ -118,18 +118,8 @@ QString driverTitle(const QString& id) {
     if (id == QLatin1String("usb-net")) return QCoreApplication::translate("ZoneEditorDialog", "USB network (900, 1000, 1100)");
     if (id == QLatin1String("usb-hid")) return QCoreApplication::translate("ZoneEditorDialog", "USB HID (One, 600–700)");
     if (id == QLatin1String("hub")) return QCoreApplication::translate("ZoneEditorDialog", "Harmony Hub over the network");
+    if (id == QLatin1String("mh")) return QCoreApplication::translate("ZoneEditorDialog", "MyHarmony over the network");
     if (id == QLatin1String("none")) return QCoreApplication::translate("ZoneEditorDialog", "No connection");
-    return id;
-}
-
-/// Название формата конфигурации (`connection.format`).
-QString formatTitle(const QString& id) {
-    if (id == QLatin1String("harmony-xml")) return QCoreApplication::translate("ZoneEditorDialog", "Harmony XML (900)");
-    if (id == QLatin1String("device-sequence")) return QCoreApplication::translate("ZoneEditorDialog", "Device sequence (1000, 1100)");
-    if (id == QLatin1String("gspm")) return QCoreApplication::translate("ZoneEditorDialog", "GSPM (One)");
-    if (id == QLatin1String("arch14")) return QCoreApplication::translate("ZoneEditorDialog", "Architecture 14 (600–700)");
-    if (id == QLatin1String("hub-json")) return QCoreApplication::translate("ZoneEditorDialog", "Harmony Hub files");
-    if (id == QLatin1String("none")) return QCoreApplication::translate("ZoneEditorDialog", "Unknown");
     return id;
 }
 
@@ -734,24 +724,12 @@ ZoneEditorDialog::ZoneEditorDialog(const QString& model, QWidget* parent) : QDia
     remoteForm->addRow(tr("Name:"), nameEdit_);
     driverBox_ = new QComboBox(this);
     driverBox_->setObjectName("zoneDriver");
-    for (const auto id : harmony::driver::kAll) driverBox_->addItem(driverTitle(fromView(id)), fromView(id));
+    for (const auto id : harmony::kLinkNames) driverBox_->addItem(driverTitle(fromView(id)), fromView(id));
     driverBox_->setToolTip(tr("How the program talks to the remote."));
     connect(driverBox_, qOverload<int>(&QComboBox::activated), this, [this] {
         setRemoteField({QStringLiteral("connection"), QStringLiteral("driver")}, driverBox_->currentData().toString());
     });
     remoteForm->addRow(tr("Connection:"), driverBox_);
-    formatBox_ = new QComboBox(this);
-    formatBox_->setObjectName("zoneFormat");
-    for (const auto id : harmony::configFormat::kAll) formatBox_->addItem(formatTitle(fromView(id)), fromView(id));
-    formatBox_->setToolTip(tr("Format of the configuration stored on the remote."));
-    connect(formatBox_, qOverload<int>(&QComboBox::activated), this, [this] {
-        setRemoteField({QStringLiteral("connection"), QStringLiteral("format")}, formatBox_->currentData().toString());
-    });
-    remoteForm->addRow(tr("Configuration:"), formatBox_);
-    connectionHint_ = new QLabel(this);
-    connectionHint_->setObjectName("pageMeta");
-    connectionHint_->setWordWrap(true);
-    remoteForm->addRow(connectionHint_);
     touchCheck_ = new QCheckBox(tr("Touch screen"), this);
     touchCheck_->setObjectName("zoneTouch");
     touchCheck_->setToolTip(tr("Tiles on the screen react to clicks. Without a touch screen they are chosen with the buttons next to the screen."));
@@ -844,7 +822,7 @@ ZoneEditorDialog::ZoneEditorDialog(const QString& model, QWidget* parent) : QDia
     // Списки не растягивают панель под длинный текст (ширину задаёт разделитель),
     // но и не схлопываются: Expanding + минимум в 10 символов.
     for (auto* box : {modelBox_, layerBox_, kindBox_, actionBox_, commandBox_, targetBox_, buttonBox_, roleBox_,
-                      panelRoleBox_, driverBox_, formatBox_}) {
+                      panelRoleBox_, driverBox_}) {
         box->setSizeAdjustPolicy(QComboBox::AdjustToMinimumContentsLengthWithIcon);
         box->setMinimumContentsLength(10);
         box->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);

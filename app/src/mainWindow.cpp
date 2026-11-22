@@ -5,7 +5,7 @@
 
 #include "mainWindow.h"
 #include "harmony/core/remoteCatalog.h"
-#include "harmony/core/remoteProfile.h"
+#include "harmony/core/writePolicy.h"
 #include "harmony/core/undo/documentEdit.h"
 #include "appSettings.h"
 #include "configLibrary.h"
@@ -418,18 +418,21 @@ void MainWindow::closeConfig() {
 
 void MainWindow::updateTitle() {
     const bool open = document_ != nullptr;
-    // Правится всё, но конфигурация другого формата (хаб) на пульт не пишется.
-    const bool canWrite = open && document_->backend()->canWriteToRemote();
+    // Право записи решает ядро (canWriteTo): каталог и формат документа. Профиль оформления
+    // на него не влияет (W3).
+    const auto decision = open ? harmony::canWriteTo(*document_) : harmony::WriteDecision{};
+    const bool canWrite = open && decision.verdict == harmony::WriteVerdict::Allowed;
+    const QString writing = open ? labels::writeVerdict(decision.verdict) : QString();
     saveAction_->setEnabled(open);
     saveAsAction_->setEnabled(open);
     closeAction_->setEnabled(open);
     recoverIrAction_->setEnabled(open);
     if (open) selectedRemote_ = QString::fromStdString(document_->targetRemote());
-    const auto* target = remoteProfile(selectedRemote_.toStdString());
-    writeRemoteAction_->setEnabled(canWrite && target && target->writable);
+    writeRemoteAction_->setEnabled(canWrite);
+    writeRemoteAction_->setToolTip(writing);
     // Чтение — сбор сведений с любого подключённого пульта: профиль и целевая модель на него не влияют.
     readRemoteAction_->setEnabled(true);
-    header_->setWriteEnabled(canWrite && target && target->writable);
+    header_->setWriteEnabled(canWrite, writing);
     header_->setReadSavesFile(true);
     const auto link = modelLink(selectedRemote_.toStdString());
     if (link == LinkKind::None)

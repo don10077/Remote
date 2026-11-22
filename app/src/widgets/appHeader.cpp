@@ -91,8 +91,9 @@ void AppHeader::setConnectionState(bool connected, const QString& text) {
     writeButton_->setVisible(connected);
 }
 
-void AppHeader::setWriteEnabled(bool writable) {
+void AppHeader::setWriteEnabled(bool writable, const QString& reason) {
     writeButton_->setEnabled(writable);
+    writeButton_->setToolTip(reason);
 }
 
 void AppHeader::setReadSavesFile(bool saves) {

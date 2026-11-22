@@ -114,11 +114,14 @@ QStringList skipped();
 /// Файлы remote.json в старой схеме, которые последний reload() перевёл на новую в памяти.
 QStringList migratedByReload();
 /**
- * Переводит описание пульта прошлой версии программы на текущую схему: connection
- * (driver/configFormat/transport → driver/format), поля style и compact экранов (→ картинка фона с шапкой
- * и panel.text)
- * и поле touch экранов (→ capabilities.touch пульта).
- * Недостающие значения берутся у встроенного описания того же пульта. Остальное не меняется.
+ * @brief Переводит описание пульта прошлой версии программы на текущую схему.
+ *
+ * Из блока `connection` убираются `format`, `configFormat` и `transport` (W3: формат больше не
+ * участвует); `driver` остаётся — это способ связи, заданный пользователем, и он важнее
+ * каталога модели. Старые имена значений (`hid`, `harmony900`) переводятся на текущие.
+ * Поля style и compact экранов (→ картинка фона с шапкой и panel.text) и поле touch экранов
+ * (→ capabilities.touch пульта). Недостающие значения берутся у встроенного описания того же пульта.
+ * Остальное не меняется.
  * @return true, если что-то изменилось.
  */
 bool migrateRemote(QJsonObject& remote, const QString& modelId);

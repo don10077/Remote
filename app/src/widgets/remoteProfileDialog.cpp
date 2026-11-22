@@ -1,8 +1,11 @@
 #include "remoteProfileDialog.h"
 #include "aboutDialog.h"
+#include "../labels.h"
 #include "../remoteResources.h"
+#include "harmony/core/modelInfo.h"
 #include "harmony/core/remoteCatalog.h"
 #include "harmony/core/remoteProfile.h"
+#include "harmony/core/writePolicy.h"
 #include "../modern/remoteView.h"
 
 #include <QComboBox>
@@ -49,7 +52,9 @@ RemoteProfileDialog::RemoteProfileDialog(const QString& current, QWidget* parent
     auto* status = new QLabel(this);
     status->setWordWrap(true);
     status->setMinimumWidth(300);
-    auto* notice = new QLabel(tr("Devices, activities and IR codes are kept. Changing the target does not convert the remote's binary format. Experimental models cannot be written yet."), this);
+    // Про запись говорит статус по решению ядра (canWriteTo), поэтому общая фраза про
+    // «экспериментальные модели» здесь не нужна.
+    auto* notice = new QLabel(tr("Devices, activities and IR codes are kept. Changing the target does not convert the remote's binary format."), this);
     notice->setWordWrap(true);
     fields->addWidget(new QLabel(tr("Remote model:"), this));
     fields->addWidget(models_);
@@ -84,7 +89,6 @@ RemoteProfileDialog::RemoteProfileDialog(const QString& current, QWidget* parent
         const auto modelId = id.toStdString();
         const auto* profile = remoteProfile(modelId);
         const auto* model = catalogModel(modelId);
-        // W2: подпись про запись возьмёт canWriteTo() (W1); пока — профиль.
         buttons->button(QDialogButtonBox::Ok)->setEnabled(id.isEmpty() || profile != nullptr || model != nullptr);
         if (id.isEmpty()) {
             image->clear();
@@ -96,26 +100,28 @@ RemoteProfileDialog::RemoteProfileDialog(const QString& current, QWidget* parent
             status->setText(tr("This remote has a configuration error. Open the zone editor for this remote and fix it.\n\n%1").arg(problem));
             return;
         }
+        // W2: решение о записи берётся из ядра (canWriteTo); текст произносится один раз —
+        // по verdict, как и подсказка кнопки в главном окне.
+        const auto decision = harmony::canWriteTo(harmony::modelInfo(modelId));
+        const QString zones = RemoteView::hardKeyIds(id).isEmpty()
+            ? tr("No command zones yet: button editing is unavailable.")
+            : tr("Button assignment and project saving are available.");
+        const QString writing = labels::writeVerdict(decision.verdict);
         if (!profile) {
             if (!model) {
                 image->clear();
-                status->setText(tr("This remote model is unknown."));
+                status->setText(tr("This remote model is unknown.") + QStringLiteral(" ") + writing);
                 return;
             }
             // Модель каталога без профиля: фото и зон нет, кнопки назначаются в таблице.
             image->setText(tr("No remote image: buttons are assigned in the table. You can add an image in the zone editor."));
-            status->setText(RemoteView::hardKeyIds(id).isEmpty()
-                ? tr("No command zones yet: button editing is unavailable. Writing to this remote is disabled.")
-                : tr("Button assignment and project saving are available. Writing to this remote is disabled."));
+            status->setText(zones + QStringLiteral(" ") + writing);
             return;
         }
         QPixmap photo;
         photo.loadFromData(remoteResources::data(QString::fromUtf8(profile->image.data())));
         image->setPixmap(photo.scaled(image->size(), Qt::KeepAspectRatio, Qt::SmoothTransformation));
-        status->setText(profile->writable ? tr("Configuration writing supported")
-            : RemoteView::hardKeyIds(selectedRemote()).isEmpty()
-                ? tr("No command zones yet: button editing is unavailable. Writing to this remote is disabled.")
-                : tr("Button assignment and project saving are available. Writing to this remote is disabled."));
+        status->setText(zones + QStringLiteral(" ") + writing);
     };
     connect(models_, &QComboBox::currentIndexChanged, this, refresh);
     connect(buttons, &QDialogButtonBox::accepted, this, &QDialog::accept);

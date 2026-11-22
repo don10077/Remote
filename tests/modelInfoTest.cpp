@@ -41,12 +41,12 @@ TEST_F(ModelInfoTest, EmptyAndUnknownIdsHaveNoCapabilities) {
 }
 
 TEST_F(ModelInfoTest, ProfileResolutionUsesExactIdAndCurrentRegistry) {
-    harmony::remoteProfiles.push_back({"600", "Profile 600", "", false, "none", "none"});
+    harmony::remoteProfiles.push_back({"600", "Profile 600", "", ""});
     EXPECT_TRUE(harmony::profileFor("600").loaded);
     EXPECT_EQ(harmony::profileFor("600i").folder, "remotes/600i");
     EXPECT_FALSE(harmony::profileFor("600i").loaded);
     EXPECT_FALSE(harmony::modelInfo("600i").hasProfile);
-    harmony::remoteProfiles.push_back({"600i", "Custom name", "", false, "none", "none"});
+    harmony::remoteProfiles.push_back({"600i", "Custom name", "", ""});
     const auto info = harmony::modelInfo("600i");
     EXPECT_TRUE(info.hasProfile);
     EXPECT_TRUE(info.known);
@@ -61,7 +61,7 @@ TEST_F(ModelInfoTest, DocumentSummaryFollowsTargetChanges) {
     ASSERT_TRUE(document.setTargetRemote("525"));
     EXPECT_EQ(document.targetModel().id, "525");
     EXPECT_EQ(document.targetModel().architecture, 9);
-    harmony::remoteProfiles.push_back({"my-remote", "My remote", "", false, "usb-net", "none"});
+    harmony::remoteProfiles.push_back({"my-remote", "My remote", "", "usb-net"});
     ASSERT_TRUE(document.setTargetRemote("my-remote"));
     const auto info = document.targetModel();
     EXPECT_TRUE(info.custom);
@@ -69,6 +69,7 @@ TEST_F(ModelInfoTest, DocumentSummaryFollowsTargetChanges) {
     EXPECT_FALSE(info.known);
     EXPECT_EQ(info.name, "My remote");
     EXPECT_EQ(info.architecture, 0);
-    EXPECT_EQ(info.link, harmony::LinkKind::None);
+    EXPECT_EQ(info.link, harmony::LinkKind::UsbNet)
+        << "модели нет в каталоге: способ подключения из remote.json";
 }
 } // namespace

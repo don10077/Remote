@@ -5,6 +5,8 @@
 #include "../app/src/labels.h"
 #include "../app/src/theme.h"
 #include "harmony/core/remoteProfile.h"
+#include "harmony/core/modelInfo.h"
+#include "harmony/core/writePolicy.h"
 
 #include <QApplication>
 #include <QDir>
@@ -136,7 +138,10 @@ TEST(RemoteView, BundledProfilesMatchPhotosAndHaveExplicitZones) {
             }
         }
         EXPECT_EQ(harmony::app::RemoteView::hardKeyIds(QString::fromUtf8(profile.id.data())), commandKeys);
-        EXPECT_EQ(profile.writable, profile.id == "900");
+        // W3: в профиле нет права записи — решение даёт каталог (configWriteTested).
+        EXPECT_EQ(harmony::canWriteTo(harmony::modelInfo(profile.id)).verdict,
+                  profile.id == "900" ? harmony::WriteVerdict::Allowed : harmony::WriteVerdict::Experimental)
+            << profile.id;
     }
 }
 

@@ -10,9 +10,10 @@ ModelInfo modelInfo(std::string_view modelId) {
     result.hasProfile = profileFor(modelId).loaded;
     if (const auto* model = catalogModel(modelId)) {
         result.architecture = model->architecture;
-        result.link = model->link;
         result.known = true;
     }
+    // Способ связи: значение файла приоритетнее каталога (W3).
+    result.link = modelLink(modelId);
     result.custom = !result.known && result.hasProfile;
     return result;
 }

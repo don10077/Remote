@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <array>
 #include <cctype>
+#include <optional>
 
 namespace harmony {
 
@@ -22,8 +23,8 @@ const RemoteModel* catalogModel(std::string_view id) {
                                        .architecture = 0,
                                        .link = LinkKind::None,
                                        .readable = true,
-                                       .writable = true,
-                                       .writeTested = false};
+                                       .rawRestore = true,
+                                       .configWriteTested = false};
     if (id == "auto") return &automatic;
     for (const auto& model : remoteCatalog())
         if (model.id == id) return &model;
@@ -36,7 +37,39 @@ const RemoteModel* catalogModelBySkin(int skin) {
     return nullptr;
 }
 
+std::optional<LinkKind> linkFromName(std::string_view name) {
+    for (const auto& item : kLinkNames) {
+        if (item != name) continue;
+        if (item == "none") return LinkKind::None;
+        if (item == "usb-net") return LinkKind::UsbNet;
+        if (item == "usb-hid") return LinkKind::UsbHid;
+        if (item == "mh") return LinkKind::Mh;
+        return LinkKind::Hub;
+    }
+    return std::nullopt;
+}
+
+std::string_view linkName(LinkKind link) {
+    switch (link) {
+        case LinkKind::UsbNet: return "usb-net";
+        case LinkKind::UsbHid: return "usb-hid";
+        case LinkKind::Mh:     return "mh";
+        case LinkKind::Hub:    return "hub";
+        case LinkKind::None:   break;
+    }
+    return "none";
+}
+
+/**
+ * @brief Способ связи модели: значение `connection.driver` профиля, если оно задано,
+ * иначе — каталог (W3, решено владельцем 22.11).
+ * @param modelId Id модели; пустой id — каталог (для `auto` он отвечает через catalogModel).
+ * @return Способ связи; неизвестная модель без поля в файле — `LinkKind::None`.
+ */
 LinkKind modelLink(std::string_view modelId) {
+    if (const auto* profile = remoteProfile(modelId)) {
+        if (const auto kind = linkFromName(profile->driver)) return *kind;
+    }
     const auto* model = catalogModel(modelId);
     return model != nullptr ? model->link : LinkKind::None;
 }

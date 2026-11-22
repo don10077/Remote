@@ -105,9 +105,9 @@ TEST(RemoteCatalog, ModelsWithoutArtworkStillHaveTransferCapabilities) {
     for (const auto id : {"745", "659", "880", "harman-kardon-tc-30", "monster-avl-300", "800", "200", "350"}) {
         const auto* model = catalogModel(id);
         ASSERT_NE(model, nullptr) << id;
-        EXPECT_TRUE(model->writable) << id;
+        EXPECT_TRUE(model->rawRestore) << id;
         EXPECT_EQ(remoteProfile(id), nullptr) << id;
-        EXPECT_FALSE(model->writeTested) << id;
+        EXPECT_FALSE(model->configWriteTested) << id;
         EXPECT_FALSE(model->skins.empty()) << id;
     }
     std::set<std::string_view> ids;
@@ -117,8 +117,8 @@ TEST(RemoteCatalog, ModelsWithoutArtworkStillHaveTransferCapabilities) {
         for (const int skin : model.skins) EXPECT_TRUE(skins.insert(skin).second) << skin;
     }
     EXPECT_FALSE(catalogModel("1000")->readable);
-    EXPECT_TRUE(catalogModel("1000")->writable);
-    EXPECT_FALSE(catalogModel("1100i")->writable);
+    EXPECT_TRUE(catalogModel("1000")->rawRestore);
+    EXPECT_FALSE(catalogModel("1100i")->rawRestore);
 }
 
 TEST(ConcordTransfer, ReadsMhContainerWithoutRequiringEditorSupport) {

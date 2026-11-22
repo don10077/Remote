@@ -258,11 +258,15 @@ TEST(ZoneEditorDialog, RemoteFieldsAreWrittenToFileRightAway) {
 
     harmony::app::ZoneEditorDialog dialog("600");
     auto* touch = dialog.findChild<QCheckBox*>("zoneTouch");
-    auto* format = dialog.findChild<QComboBox*>("zoneFormat");
+    auto* driver = dialog.findChild<QComboBox*>("zoneDriver");
     ASSERT_NE(touch, nullptr);
-    ASSERT_NE(format, nullptr);
+    ASSERT_NE(driver, nullptr);
+    // W3: список формата убран (его никто не читает: формат определяется данными файла и
+    // семейством каталога); список связи остался — без поля в файле показывает значение
+    // каталога, с полем показывает значение файла и он приоритетнее.
+    EXPECT_EQ(driver->currentData().toString(), "usb-hid");
+    EXPECT_EQ(dialog.findChild<QComboBox*>("zoneFormat"), nullptr);
     EXPECT_FALSE(touch->isChecked());
-    EXPECT_EQ(format->currentData().toString(), "arch14");
     touch->setChecked(true);
     QFile after(path);
     ASSERT_TRUE(after.open(QIODevice::ReadOnly));
@@ -273,6 +277,49 @@ TEST(ZoneEditorDialog, RemoteFieldsAreWrittenToFileRightAway) {
     QByteArray expected = original;
     expected.replace("\"touch\": false", "\"touch\": true");
     EXPECT_EQ(text, expected);
+}
+
+// Файл прошлой версии: driver — значение пользователя, он сохраняется; поля format и
+// transport из прошлой схемы убираются (формат определяется семейством и данными файла).
+TEST(ZoneEditorDialog, ConnectionFieldIsKeptAndFormatIsDropped) {
+    ASSERT_TRUE(harmony::app::remoteResources::reload().isEmpty());
+    const QString path = QDir(harmony::app::remoteResources::folder()).filePath("remotes/600/remote.json");
+    QByteArray previous;
+    {
+        QFile in(path);
+        if (in.open(QIODevice::ReadOnly)) previous = in.readAll();
+        const auto remote = QJsonDocument::fromJson(previous).object();
+        QJsonObject old{ remote };
+        old["connection"] = QJsonObject{{"transport", "usb-hid"}, {"driver", "hid"}, {"configFormat", "unsupported"}};
+        QFile out(path);
+        ASSERT_TRUE(out.open(QIODevice::WriteOnly));
+        const QByteArray bytes = QJsonDocument(old).toJson(QJsonDocument::Indented);
+        ASSERT_EQ(out.write(bytes), bytes.size());
+    }
+    const auto restore = qScopeGuard([&] {
+        QFile out(path);
+        if (out.open(QIODevice::WriteOnly)) out.write(previous);
+        out.close();
+        harmony::app::remoteResources::reload();
+    });
+    ASSERT_TRUE(harmony::app::remoteResources::reload().isEmpty());
+
+    harmony::app::ZoneEditorDialog dialog("600");
+    auto* driver = dialog.findChild<QComboBox*>("zoneDriver");
+    auto* touch = dialog.findChild<QCheckBox*>("zoneTouch");
+    ASSERT_NE(driver, nullptr);
+    ASSERT_NE(touch, nullptr);
+    EXPECT_EQ(driver->currentData().toString(), "usb-hid") << "старое имя hid переводится на новую схему";
+    touch->setChecked(true); // правка пишется сразу
+
+    QFile after(path);
+    ASSERT_TRUE(after.open(QIODevice::ReadOnly));
+    const auto saved = QJsonDocument::fromJson(after.readAll()).object();
+    const auto connection = saved["connection"].toObject();
+    EXPECT_EQ(connection.value("driver").toString(), "usb-hid");
+    EXPECT_FALSE(connection.contains("format"));
+    EXPECT_FALSE(connection.contains("transport"));
+    EXPECT_TRUE(saved["capabilities"].toObject().value("touch").toBool());
 }
 
 TEST(ZoneEditorDialog, PanelRoleIsChosenFromList) {

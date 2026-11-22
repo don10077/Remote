@@ -13,6 +13,7 @@
 
 #include "harmony/core/error.h"
 #include "harmony/core/ir/irSignal.h"
+#include "harmony/core/writePolicy.h"
 
 #include <QKeySequence>
 #include <QString>
@@ -78,6 +79,16 @@ QString signalSummary(const ir::IrSignal& signal);
  * причина (Error::cause) добавляется через «: ».
  */
 QString errorText(const Error& error);
+
+/**
+ * @brief Подпись решения о записе на пульт — для подсказки кнопки и диалога выбора модели.
+ *
+ * Ядро даёт обоснование (WriteDecision::reason) без перевода; интерфейс показывает текст по
+ * verdict, поэтому решение произносится одним местом и не дублируется по окнам.
+ * @param verdict Решение `canWriteTo()`.
+ * @return Текст на языке интерфейса.
+ */
+QString writeVerdict(WriteVerdict verdict);
 
 /// @return Сочетание клавиш стандартного действия, как его пишет система («Ctrl+Z», на macOS «⌘Z»).
 QString shortcut(QKeySequence::StandardKey key);

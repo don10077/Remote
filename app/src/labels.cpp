@@ -266,6 +266,22 @@ QString errorText(const Error& error) {
     return text;
 }
 
+QString writeVerdict(WriteVerdict verdict) {
+    switch (verdict) {
+        case WriteVerdict::Allowed:
+            return QCoreApplication::translate("labels", "Writing is confirmed on the real remote");
+        case WriteVerdict::Experimental:
+            return QCoreApplication::translate("labels", "Writing on this model is not tested yet");
+        case WriteVerdict::WrongFormat:
+            return QCoreApplication::translate("labels", "This document format is not written to the remote");
+        case WriteVerdict::ModelMismatch:
+            return QCoreApplication::translate("labels", "The file identity does not belong to the target model");
+        case WriteVerdict::UnknownModel:
+            return QCoreApplication::translate("labels", "No target model, or it is not in the catalog");
+    }
+    return {};
+}
+
 QString shortcut(QKeySequence::StandardKey key) {
     return QKeySequence(key).toString(QKeySequence::NativeText);
 }

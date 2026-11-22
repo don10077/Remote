@@ -1210,11 +1210,6 @@ Add a device?</source>
       <translation>Применить на пульте</translation>
     </message>
     <message>
-      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
-      <source>Architecture 14 (600–700)</source>
-      <translation>Архитектура 14 (600–700)</translation>
-    </message>
-    <message>
       <location filename="../../../app/src/widgets/irDatabasePanel.cpp" />
       <source>Archive files</source>
       <translation>Файлы архива</translation>
@@ -1515,8 +1510,8 @@ Add a device?</source>
     </message>
     <message>
       <location filename="../../../app/src/widgets/remoteProfileDialog.cpp" />
-      <source>Button assignment and project saving are available. Writing to this remote is disabled.</source>
-      <translation>Доступны назначение кнопок и сохранение проекта. Запись на этот пульт отключена.</translation>
+      <source>Button assignment and project saving are available.</source>
+      <translation type="unfinished" />
     </message>
     <message>
       <location filename="../../../app/src/widgets/configView.cpp" />
@@ -2303,11 +2298,6 @@ Add a device?</source>
       <translation>Конфигурация прочитана с пульта: %1, %2.</translation>
     </message>
     <message>
-      <location filename="../../../app/src/widgets/remoteProfileDialog.cpp" />
-      <source>Configuration writing supported</source>
-      <translation>Запись конфигурации поддерживается</translation>
-    </message>
-    <message>
       <location filename="../../../app/src/remoteSession.cpp" />
       <source>Configuration written to the remote</source>
       <translation>Конфигурация записана на пульт</translation>
@@ -2326,11 +2316,6 @@ Add a device?</source>
       <location filename="../../../app/src/mainWindowRemote.cpp" />
       <source>Configuration written, remote restarted.&lt;br&gt;&lt;br&gt;The remote's previous configuration is saved: %1</source>
       <translation>Конфигурация записана, пульт перезапущен.&lt;br&gt;&lt;br&gt;Прежняя конфигурация пульта сохранена: %1</translation>
-    </message>
-    <message>
-      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
-      <source>Configuration:</source>
-      <translation>Конфигурация:</translation>
     </message>
     <message>
       <location filename="../../../app/src/widgets/startDialog.cpp" />
@@ -2410,11 +2395,6 @@ Add a device?</source>
       <location filename="../../../transport/src/tcpChannel.cpp" />
       <source>connection to the remote lost (sending)</source>
       <translation>связь с пультом потеряна (отправка)</translation>
-    </message>
-    <message>
-      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
-      <source>Connection:</source>
-      <translation>Подключение:</translation>
     </message>
     <message>
       <location filename="../../../app/src/remoteSession.cpp" />
@@ -3016,11 +2996,6 @@ Copy saved: %2</source>
       <translation>Устройство не найдено.</translation>
     </message>
     <message>
-      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
-      <source>Device sequence (1000, 1100)</source>
-      <translation>Device sequence (1000, 1100)</translation>
-    </message>
-    <message>
       <location filename="../../../core/src/configDocumentCheck.cpp" />
       <source>Device without a name</source>
       <translation>Устройство без имени</translation>
@@ -3088,8 +3063,8 @@ Copy saved: %2</source>
     </message>
     <message>
       <location filename="../../../app/src/widgets/remoteProfileDialog.cpp" />
-      <source>Devices, activities and IR codes are kept. Changing the target does not convert the remote's binary format. Experimental models cannot be written yet.</source>
-      <translation>Устройства, активности и ИК-коды сохраняются. Выбор модели не преобразует внутренний формат конфигурации. Запись для экспериментальных моделей пока недоступна.</translation>
+      <source>Devices, activities and IR codes are kept. Changing the target does not convert the remote's binary format.</source>
+      <translation type="unfinished" />
     </message>
     <message>
       <location filename="../../../app/src/widgets/configView.cpp" />
@@ -3600,11 +3575,6 @@ Copy saved: %2</source>
       <translation>Например, Гостиная</translation>
     </message>
     <message>
-      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
-      <source>Format of the configuration stored on the remote.</source>
-      <translation>Формат конфигурации, которая хранится на пульте.</translation>
-    </message>
-    <message>
       <location filename="../../../app/src/widgets/irDatabasePanel.cpp" />
       <source>Format version: %1</source>
       <translation>Версия формата: %1</translation>
@@ -3658,11 +3628,6 @@ Copy saved: %2</source>
       <location filename="../../../app/src/helpContent.cpp" />
       <source>Getting started</source>
       <translation>Начало работы</translation>
-    </message>
-    <message>
-      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
-      <source>GSPM (One)</source>
-      <translation>GSPM (One)</translation>
     </message>
     <message>
       <location filename="../../../core/src/formats/gspm.cpp" />
@@ -3747,16 +3712,6 @@ Copy saved: %2</source>
       <translation>Конфигурация Harmony Hub (*.hub.json);;Все файлы (*)</translation>
     </message>
     <message>
-      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
-      <source>Harmony Hub files</source>
-      <translation>Файлы Harmony Hub</translation>
-    </message>
-    <message>
-      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
-      <source>Harmony Hub over the network</source>
-      <translation>Harmony Hub по сети</translation>
-    </message>
-    <message>
       <location filename="../../../app/src/widgets/disclaimerDialog.cpp" />
       <source>Harmony is an unofficial program. It is not made, endorsed or supported by Logitech.</source>
       <translation>Harmony — неофициальная программа. Logitech её не создавала, не одобряла и не поддерживает.</translation>
@@ -3775,11 +3730,6 @@ Copy saved: %2</source>
       <location filename="../../../transport/src/hidChannel.cpp" />
       <source>Harmony USB HID remote not found</source>
       <translation>Пульт Harmony USB HID не найден</translation>
-    </message>
-    <message>
-      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
-      <source>Harmony XML (900)</source>
-      <translation>Harmony XML (900)</translation>
     </message>
     <message>
       <location filename="../../../app/src/mainWindow.cpp" />
@@ -4005,11 +3955,6 @@ Copy saved: %2</source>
       <location filename="../../../app/src/mainWindowMenus.cpp" />
       <source>How the open configuration differs from another one: a recent one or a file</source>
       <translation>Чем открытая конфигурация отличается от другой: из недавних или из файла</translation>
-    </message>
-    <message>
-      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
-      <source>How the program talks to the remote.</source>
-      <translation>Как программа связывается с пультом.</translation>
     </message>
     <message>
       <location filename="../../../app/src/widgets/configView.cpp" />
@@ -4957,8 +4902,8 @@ The file holds the Hub's answer as it is — device names, models and commands, 
     </message>
     <message>
       <location filename="../../../app/src/widgets/remoteProfileDialog.cpp" />
-      <source>No command zones yet: button editing is unavailable. Writing to this remote is disabled.</source>
-      <translation>Командные зоны пока не заданы: редактирование кнопок недоступно. Запись на этот пульт отключена.</translation>
+      <source>No command zones yet: button editing is unavailable.</source>
+      <translation type="unfinished" />
     </message>
     <message>
       <location filename="../../../core/src/configDocumentCommands.cpp" />
@@ -4975,11 +4920,6 @@ The file holds the Hub's answer as it is — device names, models and commands, 
       <location filename="../../../app/src/widgets/startDialog.cpp" />
       <source>No configurations yet</source>
       <translation>Пока нет ни одной конфигурации</translation>
-    </message>
-    <message>
-      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
-      <source>No connection</source>
-      <translation>Без подключения</translation>
     </message>
     <message>
       <location filename="../../../app/src/mainWindow.cpp" />
@@ -5122,6 +5062,11 @@ The file holds the Hub's answer as it is — device names, models and commands, 
       <location filename="../../../core/src/configDocumentStates.cpp" />
       <source>no steps for “%1”</source>
       <translation>нет шагов для «%1»</translation>
+    </message>
+    <message>
+      <location filename="../../../app/src/labels.cpp" />
+      <source>No target model, or it is not in the catalog</source>
+      <translation type="unfinished" />
     </message>
     <message>
       <location filename="../../../app/src/widgets/versionsDialog.cpp" />
@@ -7888,6 +7833,11 @@ They will not be sent to the remote either. When the device is made active again
       <translation>в файле нет ни одного устройства: %1</translation>
     </message>
     <message>
+      <location filename="../../../app/src/labels.cpp" />
+      <source>The file identity does not belong to the target model</source>
+      <translation type="unfinished" />
+    </message>
+    <message>
       <location filename="../../../transport/src/concordTransfer.cpp" />
       <source>The file is not a user configuration</source>
       <translation>Файл не является пользовательской конфигурацией</translation>
@@ -8186,11 +8136,6 @@ They will not be sent to the remote either. When the device is made active again
       <translation>проблемы уже нет</translation>
     </message>
     <message>
-      <location filename="../../../app/src/widgets/zoneEditorRemoteFile.cpp" />
-      <source>The program does not connect to this remote. Writing a configuration to the remote is implemented only for USB network + Harmony XML.</source>
-      <translation>Программа не подключается к этому пульту. Запись конфигурации на пульт реализована только для пары «USB-сеть + Harmony XML».</translation>
-    </message>
-    <message>
       <location filename="../../../app/src/mainWindowMenus.cpp" />
       <source>The program finds the remote at %1 by itself — the state is shown at the top right.&lt;br&gt;&lt;br&gt;&lt;b&gt;Windows:&lt;/b&gt; you need the driver from Logitech Harmony Remote Software 7.8 (Logitech's servers are closed, the installer is available in archives, e.g. on archive.org). You don't need to run the Logitech program itself.&lt;br&gt;&lt;br&gt;&lt;b&gt;Linux:&lt;/b&gt; the remote waits for an address via DHCP. Press “Set up USB” once (administrator password needed), then reconnect the remote.&lt;br&gt;&lt;br&gt;After connecting wait a few seconds: the remote is not ready immediately. Before any write the program saves a backup of the remote's current configuration to the folder “%2”.</source>
       <translation>Программа находит пульт по адресу %1 сама — состояние видно справа вверху.&lt;br&gt;&lt;br&gt;&lt;b&gt;Windows:&lt;/b&gt; нужен драйвер из Logitech Harmony Remote Software 7.8 (серверы Logitech закрыты, установщик есть в архивах, например на archive.org). Саму программу Logitech запускать не нужно.&lt;br&gt;&lt;br&gt;&lt;b&gt;Linux:&lt;/b&gt; пульт ждёт адрес по DHCP. Один раз нажмите «Настроить USB» (понадобится пароль администратора) и переподключите пульт.&lt;br&gt;&lt;br&gt;После подключения подождите несколько секунд: пульт готов не сразу. Перед любой записью программа сама сохраняет резервную копию текущей конфигурации пульта в папку «%2».</translation>
@@ -8209,16 +8154,6 @@ They will not be sent to the remote either. When the device is made active again
       <location filename="../../../app/src/widgets/versionsDialog.cpp" />
       <source>The program keeps the configuration's earlier states: automatically every few minutes while there are unsaved changes, before every save and when you ask. On the right — what changes if the selected version is restored.</source>
       <translation>Программа хранит прежние состояния конфигурации: раз в несколько минут, пока есть несохранённые правки, перед каждым сохранением и по вашей просьбе. Справа — что изменится, если восстановить выбранную версию.</translation>
-    </message>
-    <message>
-      <location filename="../../../app/src/widgets/zoneEditorRemoteFile.cpp" />
-      <source>The program reads this remote and writes its configuration.</source>
-      <translation>Программа читает этот пульт и записывает его конфигурацию.</translation>
-    </message>
-    <message>
-      <location filename="../../../app/src/widgets/zoneEditorRemoteFile.cpp" />
-      <source>The program reads this remote. Writing a configuration to the remote is implemented only for USB network + Harmony XML.</source>
-      <translation>Программа читает этот пульт. Запись конфигурации на пульт реализована только для пары «USB-сеть + Harmony XML».</translation>
     </message>
     <message>
       <location filename="../../../core/src/configDocumentProperties.cpp" />
@@ -8771,6 +8706,11 @@ They will not be sent to the remote either. When the device is made active again
       <translation>Устройство — экран: активности могут выводить на него изображение.</translation>
     </message>
     <message>
+      <location filename="../../../app/src/labels.cpp" />
+      <source>This document format is not written to the remote</source>
+      <translation type="unfinished" />
+    </message>
+    <message>
       <location filename="../../../core/src/irdb/protocolLibrary.cpp" />
       <source>this is not a database protocol file (AllProtocols.json)</source>
       <translation>это не файл протоколов базы (AllProtocols.json)</translation>
@@ -9138,11 +9078,6 @@ They will not be sent to the remote either. When the device is made active again
       <translation>неизвестно</translation>
     </message>
     <message>
-      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
-      <source>Unknown</source>
-      <translation>Неизвестен</translation>
-    </message>
-    <message>
       <location filename="../../../core/src/configDocumentAdd.cpp" />
       <source>unknown activity type “%1”</source>
       <translation>неизвестный тип активности «%1»</translation>
@@ -9240,11 +9175,6 @@ They will not be sent to the remote either. When the device is made active again
       <translation>Настройка связи по USB убрана</translation>
     </message>
     <message>
-      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
-      <source>USB HID (One, 600–700)</source>
-      <translation>USB HID (One, 600–700)</translation>
-    </message>
-    <message>
       <location filename="../../../app/src/widgets/aboutDialog.cpp" />
       <source>USB HID remotes</source>
       <translation>пульты USB HID</translation>
@@ -9253,11 +9183,6 @@ They will not be sent to the remote either. When the device is made active again
       <location filename="../../../app/src/mainWindow.cpp" />
       <source>USB HID · connect and read</source>
       <translation>USB HID · подключите и прочитайте</translation>
-    </message>
-    <message>
-      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
-      <source>USB network (900, 1000, 1100)</source>
-      <translation>USB-сеть (900, 1000, 1100)</translation>
     </message>
     <message>
       <location filename="../../../app/src/widgets/protocolCommandDialog.cpp" />
@@ -9552,9 +9477,14 @@ They will not be sent to the remote either. When the device is made active again
       <translation>Запись отменена. Резервная копия сохранена: %1</translation>
     </message>
     <message>
-      <location filename="../../../core/src/configDocumentPackage.cpp" />
-      <source>writing configurations for target remote %1 is not implemented; this is an experimental project profile</source>
-      <translation>Запись конфигурации для пульта %1 ещё не реализована. Выбран экспериментальный профиль проекта</translation>
+      <location filename="../../../app/src/labels.cpp" />
+      <source>Writing is confirmed on the real remote</source>
+      <translation type="unfinished" />
+    </message>
+    <message>
+      <location filename="../../../app/src/labels.cpp" />
+      <source>Writing on this model is not tested yet</source>
+      <translation type="unfinished" />
     </message>
     <message>
       <location filename="../../../app/src/remoteSession.cpp" />

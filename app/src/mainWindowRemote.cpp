@@ -14,7 +14,7 @@
 #include "harmony/core/configDiff.h"
 #include "harmony/core/formats/remoteCapture.h"
 #include "harmony/core/remoteCatalog.h"
-#include "harmony/core/remoteProfile.h"
+#include "harmony/core/writePolicy.h"
 #include "harmony/transport/remoteServices.h"
 
 #include <QApplication>
@@ -292,8 +292,12 @@ void MainWindow::writeToRemote() {
     if (!document_ || !remoteReady([this] { writeToRemote(); })) {
         return;
     }
-    const auto* profile = remoteProfile(document_->targetRemote());
-    if (!profile || !profile->writable) return;
+    // Право записи решает ядро (W1) — то же решение, что показывает подсказка кнопки.
+    const auto decision = harmony::canWriteTo(*document_);
+    if (decision.verdict != harmony::WriteVerdict::Allowed) {
+        QMessageBox::warning(this, tr("Write to remote"), labels::writeVerdict(decision.verdict));
+        return;
+    }
     // Сначала — проверка: с ошибками часть кнопок на пульте молча не сработает.
     const auto problems = document_->check();
     if (const auto errors = static_cast<qsizetype>(countProblems(problems, Problem::Severity::Error)); errors > 0) {

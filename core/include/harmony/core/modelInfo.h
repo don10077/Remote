@@ -9,7 +9,7 @@ struct ModelInfo {
     std::string id;             ///< Пусто — модель не выбрана.
     std::string name;           ///< Каталог → профиль → id; пустое имя переводит UI.
     int architecture = 0;      ///< 0 — семейство неизвестно.
-    LinkKind link = LinkKind::None; ///< Подключение только из каталога.
+    LinkKind link = LinkKind::None; ///< connection.driver файла, если задан, иначе каталог (W3).
     bool known = false;        ///< Модель есть в каталоге.
     bool custom = false;       ///< Модели нет в каталоге, но есть загруженное оформление.
     bool hasProfile = false;   ///< profileFor(id).loaded в момент запроса.

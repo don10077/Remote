@@ -34,7 +34,7 @@ foreach(i RANGE ${last})
     else()
         message(FATAL_ERROR "remoteCatalog.json: unknown link '${link}' for model ${id}")
     endif()
-    foreach(field read write writeTested)
+    foreach(field read rawRestore configWriteTested)
         string(JSON value ERROR_VARIABLE valueError GET "${catalog}" ${i} ${field})
         if(valueError OR NOT value)
             set(${field} false)
@@ -45,6 +45,6 @@ foreach(i RANGE ${last})
 
     # Именованная инициализация: порядок полей структуры больше не важен.
     string(APPEND entries
-        "RemoteModel{.id = \"${id}\", .name = \"${name}\", .skins = {${skins}}, .architecture = ${architecture}, .link = ${linkExpr}, .readable = ${read}, .writable = ${write}, .writeTested = ${writeTested}},\n")
+        "RemoteModel{.id = \"${id}\", .name = \"${name}\", .skins = {${skins}}, .architecture = ${architecture}, .link = ${linkExpr}, .readable = ${read}, .rawRestore = ${rawRestore}, .configWriteTested = ${configWriteTested}},\n")
 endforeach()
 file(WRITE "${PROJECT_BINARY_DIR}/core/generated/harmony/core/remoteCatalog.inc" "${entries}")

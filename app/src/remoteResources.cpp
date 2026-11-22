@@ -1,4 +1,5 @@
 #include "remoteResources.h"
+#include "harmony/core/remoteCatalog.h"
 #include "harmony/core/remoteProfile.h"
 
 #include <QCoreApplication>
@@ -184,19 +185,19 @@ bool migrateRemote(QJsonObject& remote, const QString& modelId) {
     if (QFile file(":/res/remotes/" + modelId + "/remote.json"); file.open(QIODevice::ReadOnly))
         builtin = QJsonDocument::fromJson(file.readAll()).object();
 
+    // W3: `connection.driver` — способ подключения модели, заданный пользователем; если поля
+    // нет, связь берётся из каталога. Поля format, configFormat и transport из прошлой схемы
+    // больше не участвуют: они убираются, имена драйвера переводятся на текущие.
     const auto connection = remote.value("connection").toObject();
     const QString driver = connection.value("driver").toString();
-    if (connection.contains("configFormat") || connection.contains("transport") || driver == "hid" ||
-        driver == "harmony900") {
-        const auto fresh = builtin.value("connection").toObject();
-        const QString newDriver = driver == "harmony900" ? QStringLiteral("usb-net")
-                                  : driver == "hid"      ? QStringLiteral("usb-hid")
-                                                         : QStringLiteral("none");
-        const QString newFormat = connection.value("configFormat").toString() == "harmony900"
-                                      ? QStringLiteral("harmony-xml") : QStringLiteral("none");
-        remote.insert("connection", QJsonObject{
-            {"driver", fresh.contains("driver") ? fresh.value("driver") : QJsonValue(newDriver)},
-            {"format", fresh.contains("format") ? fresh.value("format") : QJsonValue(newFormat)}});
+    const QString normalized = driver == "harmony900" ? QStringLiteral("usb-net")
+                               : driver == "hid"      ? QStringLiteral("usb-hid")
+                                                      : driver;
+    const bool oldFields = connection.contains("format") || connection.contains("configFormat")
+                        || connection.contains("transport");
+    if (oldFields || driver != normalized) {
+        if (normalized.isEmpty()) remote.remove("connection");
+        else remote.insert("connection", QJsonObject{{"driver", normalized}});
         changed = true;
     }
 
@@ -293,8 +294,9 @@ QString reload(const QString& root) {
             sources.insert(key, file);
         }
     }
-    // remote.json прошлой версии программы (старые connection и style) переводится на новую схему
-    // в памяти; правки пользователя (зоны, цвета, экраны) сохраняются. Файл на диске не меняется,
+    // remote.json прошлой версии программы переводится на новую схему в памяти: лишний connection
+    // (связь теперь в каталоге модели) и старые style и compact экранов. Правки пользователя
+    // (зоны, цвета, экраны) сохраняются. Файл на диске не меняется,
     // редактор зон запишет его в новой схеме при следующем сохранении.
     QStringList migrated;
     for (auto it = candidate.begin(); it != candidate.end(); ++it) {
@@ -357,26 +359,15 @@ QString reload(const QString& root) {
         // Как и раньше, без зон корпуса пульт не загружается (пустой массив допустим).
         if (name.isEmpty() || !hardware.value("zones").isArray())
             return source + ": name and hardware.zones are required";
-        const harmony::RemoteProfile* bundled = nullptr;
-        for (const auto& item : harmony::bundledRemoteProfiles)
-            if (item.id == modelId.toStdString()) bundled = &item;
+
+        // W3: проверяется только driver: это значение пользователя, задающее способ связи.
+        // Пустое поле или поля нет — способ связи берётся из каталога модели.
         const auto connection = remote.value("connection").toObject();
-        for (const auto* field : {"driver", "format"})
-            if (connection.contains(field) && !connection.value(field).isString())
-                return source + ": invalid connection." + field;
-        const QString driver = connection.value("driver").toString(
-            bundled ? QString::fromStdString(bundled->driver)
-                    : QString::fromLatin1(harmony::driver::kNone.data(), harmony::driver::kNone.size()));
-        const QString format = connection.value("format").toString(
-            bundled ? QString::fromStdString(bundled->format)
-                    : QString::fromLatin1(harmony::configFormat::kNone.data(), harmony::configFormat::kNone.size()));
-        const auto known = [](const auto& list, const QString& value) {
-            return std::ranges::any_of(list, [&](std::string_view item) {
-                return value == QLatin1String(item.data(), static_cast<qsizetype>(item.size()));
-            });
-        };
-        if (!known(harmony::driver::kAll, driver) || !known(harmony::configFormat::kAll, format))
-            return source + ": unknown connection driver or format";
+        if (connection.contains("driver") && !connection.value("driver").isString())
+            return source + ": invalid connection.driver";
+        const QString driver = connection.value("driver").toString();
+        if (!driver.isEmpty() && !harmony::linkFromName(driver.toStdString()))
+            return source + ": unknown connection driver";
 
         const auto size = hardware.value("size").toArray();
         const auto image = QImage::fromData(candidate.value(dir + "/photo.png"));
@@ -436,9 +427,7 @@ QString reload(const QString& root) {
                 if (!rect(layer.value("rect")).isValid()) return source + ": invalid layer in screen " + id;
             }
         }
-        const bool writable = harmony::writableCombination(driver.toStdString(), format.toStdString());
-        models.push_back({modelId.toStdString(), name.toStdString(), (dir + "/photo.png").toStdString(), writable,
-                          driver.toStdString(), format.toStdString()});
+        models.push_back({modelId.toStdString(), name.toStdString(), (dir + "/photo.png").toStdString(), driver.toStdString()});
         return {};
     };
     QStringList ids = parsed.keys();
@@ -505,7 +494,6 @@ QString createStub(const QString& modelId, const QString& root) {
     const QJsonObject remote{
         {"schemaVersion", 1}, {"id", modelId}, {"name", modelId},
         {"capabilities", QJsonObject{{"touch", false}}},
-        {"connection", QJsonObject{{"driver", "none"}, {"format", "none"}}},
         {"hardware", QJsonObject{{"image", "photo.png"},
                                  {"size", QJsonArray{image.width(), image.height()}},
                                  {"zones", QJsonArray{}}}},

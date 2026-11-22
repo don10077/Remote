@@ -7,44 +7,13 @@
 
 namespace harmony {
 
-/// Драйвер подключения пульта (`connection.driver` в remote.json).
-namespace driver {
-inline constexpr std::string_view kNone = "none";       ///< Без подключения
-inline constexpr std::string_view kUsbNet = "usb-net";  ///< USB-сеть, адрес 169.254.1.2 (900, 1100)
-inline constexpr std::string_view kUsbHid = "usb-hid";  ///< USB HID (One, 600–700)
-inline constexpr std::string_view kHub = "hub";         ///< Через Harmony Hub по сети
-inline constexpr std::array kAll = {kNone, kUsbNet, kUsbHid, kHub};
-} // namespace driver
-
-/// Формат конфигурации пульта (`connection.format` в remote.json).
-namespace configFormat {
-inline constexpr std::string_view kNone = "none";                     ///< Неизвестен
-inline constexpr std::string_view kHarmonyXml = "harmony-xml";        ///< UserConfiguration.xml + IrProto.bin/SsIr.bin (900)
-inline constexpr std::string_view kDeviceSequence = "device-sequence"; ///< 1100
-inline constexpr std::string_view kGspm = "gspm";                     ///< One (architecture 12)
-inline constexpr std::string_view kArch14 = "arch14";                 ///< 600–700 (architecture 14)
-inline constexpr std::string_view kHubJson = "hub-json";              ///< Файлы ресурсов Harmony Hub
-inline constexpr std::array kAll = {kNone, kHarmonyXml, kDeviceSequence, kGspm, kArch14, kHubJson};
-} // namespace configFormat
-
-/// @return true, если запись на пульт реализована для пары «подключение + формат».
-[[nodiscard]] constexpr bool writableCombination(std::string_view driverName, std::string_view format) {
-    return driverName == driver::kUsbNet && format == configFormat::kHarmonyXml;
-}
-
-/// @return true, если программа умеет читать пульт с таким подключением.
-[[nodiscard]] constexpr bool readableConnection(std::string_view driverName) {
-    return driverName == driver::kUsbNet || driverName == driver::kUsbHid;
-}
-
-/// Целевая модель проекта: способ подключения и формат конфигурации.
+/// Целевая модель проекта: оформление модели — id, имя и картинка.
+/// Право записи решает `canWriteTo()` (W1/W2), профиль на запись не влияет.
 struct RemoteProfile {
     std::string id;
     std::string name;
     std::string image;
-    bool writable = false;   ///< Запись реализована (writableCombination)
-    std::string driver;      ///< connection.driver (driver::k…)
-    std::string format;      ///< connection.format
+    std::string driver;  ///< connection.driver: пусто — значение из каталога; задано — приоритет файла (W3)
 };
 
 inline const std::array bundledRemoteProfiles = {

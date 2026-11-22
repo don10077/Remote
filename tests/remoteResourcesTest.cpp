@@ -14,6 +14,7 @@
 #include "harmony/core/remoteProfile.h"
 #include "harmony/core/configDocument.h"
 #include "harmony/core/modelInfo.h"
+#include "harmony/core/writePolicy.h"
 #include <algorithm>
 
 namespace {
@@ -142,12 +143,19 @@ TEST_F(RemoteResourcesTest, OldSchemaIsMigratedKeepingUserEdits) {
     ASSERT_EQ(resources::migratedByReload().size(), 1);
     const auto* profile = harmony::remoteProfile("600");
     ASSERT_NE(profile, nullptr);
+    // W3: driver — значение пользователя, оно приоритетнее каталога; в старой схеме имена
+    // другие, поэтому `hid` нормализуется. Поля format, configFormat и transport убираются:
+    // формат определяется семейством каталога и данными файла, профилем он не задаётся.
     EXPECT_EQ(profile->driver, "usb-hid");
-    EXPECT_EQ(profile->format, "arch14");
 
     // Правка пользователя сохранилась, style стал данными.
     auto migrated = remote;
     ASSERT_TRUE(resources::migrateRemote(migrated, "600"));
+    const auto connection = migrated["connection"].toObject();
+    EXPECT_EQ(connection.value("driver").toString(), "usb-hid");
+    EXPECT_FALSE(connection.contains("format"));
+    EXPECT_FALSE(connection.contains("configFormat"));
+    EXPECT_FALSE(connection.contains("transport"));
     EXPECT_EQ(migrated["tiles"].toObject().value("color").toString(), "#aa0000");
     const auto first = migrated["screens"].toArray()[0].toObject();
     EXPECT_FALSE(first.contains("style"));
@@ -216,6 +224,8 @@ TEST_F(RemoteResourcesTest, ReadRemoteForEditingUsesDiskTextAndCurrentSchema) {
     EXPECT_EQ(builtinFile.remote.value("id").toString(), "900");
 
     // Файл старой схемы: текст как на диске, описание и current — в новой схеме.
+    // W3: driver остаётся данными пользователя (приоритет над каталогом), имена прошлой
+    // схемы нормализуются, поля format и transport больше нет.
     auto remote = remoteOf("900");
     remote["connection"] = QJsonObject{{"driver", "harmony900"}, {"configFormat", "harmony900"}};
     write("remotes/900/remote.json", toBytes(remote));
@@ -223,8 +233,7 @@ TEST_F(RemoteResourcesTest, ReadRemoteForEditingUsesDiskTextAndCurrentSchema) {
     EXPECT_EQ(file.path, "remotes/900/remote.json");
     EXPECT_EQ(file.text, toBytes(remote));
     EXPECT_EQ(file.remote["connection"].toObject().value("driver").toString(), "usb-net");
-    EXPECT_EQ(QJsonDocument::fromJson(file.current).object()["connection"].toObject().value("format").toString(),
-              "harmony-xml");
+    EXPECT_FALSE(QJsonDocument::fromJson(file.current).object()["connection"].toObject().contains("format"));
     EXPECT_EQ(resources::currentSchema(file.text, "900"), file.current);
 
     // Сломанный файл: ошибка с путём, описание пустое.
@@ -239,10 +248,7 @@ TEST_F(RemoteResourcesTest, DiscoverNewModelAndPersistProject) {
     auto remote = remoteOf("600");
     remote["id"] = "custom-600";
     remote["name"] = "Custom 600";
-    auto connection = remote["connection"].toObject();
-    connection["driver"] = "usb-hid";
-    connection["format"] = "arch14";
-    remote["connection"] = connection;
+    remote["connection"] = QJsonObject{{"driver", "usb-hid"}};
     write("remotes/custom-600/remote.json", toBytes(remote));
     write("remotes/custom-600/photo.png", resources::data(":/res/remotes/600/photo.png"));
     root = dir.path();
@@ -250,8 +256,6 @@ TEST_F(RemoteResourcesTest, DiscoverNewModelAndPersistProject) {
     const auto* added = harmony::remoteProfile("custom-600");
     ASSERT_NE(added, nullptr);
     EXPECT_EQ(added->driver, "usb-hid");
-    EXPECT_EQ(added->format, "arch14");
-    EXPECT_FALSE(added->writable);
     harmony::app::RemoteView view;
     view.setRemoteProfile("custom-600");
     EXPECT_FALSE(view.screenModes().isEmpty());
@@ -263,15 +267,15 @@ TEST_F(RemoteResourcesTest, DiscoverNewModelAndPersistProject) {
     EXPECT_TRUE(document.targetModel().hasProfile);
     EXPECT_FALSE(document.targetModel().known);
     EXPECT_EQ(document.targetModel().name, "Custom 600");
-    EXPECT_EQ(document.targetModel().link, harmony::LinkKind::None);
+    EXPECT_EQ(document.targetModel().link, harmony::LinkKind::UsbHid)
+        << "своей модели нет в каталоге: связь из remote.json";
     EXPECT_FALSE(document.toEzHex(true));
     const auto saved = document.toEzHex(false);
     ASSERT_TRUE(saved);
     auto reopened = harmony::ConfigDocument::fromEzHex(*saved, "Reopened");
     ASSERT_TRUE(reopened);
     EXPECT_EQ(reopened->targetRemote(), "custom-600");
-    connection["driver"] = "unknown-driver";
-    remote["connection"] = connection;
+    remote["connection"] = QJsonObject{{"driver", "unknown-driver"}};
     write("remotes/custom-600/remote.json", toBytes(remote));
     // Ошибка в пользовательской модели не блокирует загрузку: модель пропускается.
     EXPECT_TRUE(resources::reload(root).isEmpty());
@@ -286,6 +290,42 @@ TEST_F(RemoteResourcesTest, DiscoverNewModelAndPersistProject) {
     EXPECT_FALSE(reopened->targetModel().hasProfile);
     EXPECT_FALSE(reopened->targetModel().custom);
     EXPECT_EQ(reopened->targetModel().name, "custom-600");
+}
+
+// W3 (решено владельцем 22.11): способ подключения — значение из remote.json, если оно задано;
+// без поля — каталог. Право записи по-прежнему решает каталог (OD9).
+TEST_F(RemoteResourcesTest, ConnectionFieldDecidesTransportAndNotWriting) {
+    // Своя модель вне каталога: каталог её не знает, работает поле из файла.
+    ASSERT_TRUE(QDir().mkpath(dir.path() + "/remotes/my-650"));
+    auto custom = remoteOf("650");
+    custom["id"] = "my-650";
+    custom["name"] = "My 650";
+    custom["connection"] = QJsonObject{{"driver", "usb-net"}};
+    write("remotes/my-650/remote.json", toBytes(custom));
+    write("remotes/my-650/photo.png", resources::data(":/res/remotes/650/photo.png"));
+    root = dir.path();
+    ASSERT_TRUE(resources::reload(root).isEmpty());
+    ASSERT_NE(harmony::remoteProfile("my-650"), nullptr);
+    EXPECT_EQ(harmony::remoteProfile("my-650")->driver, "usb-net");
+    EXPECT_TRUE(harmony::usesUsbNet("my-650")) << "модели нет в каталоге: значение из файла";
+    EXPECT_EQ(harmony::canWriteTo(harmony::modelInfo("my-650")).verdict, harmony::WriteVerdict::UnknownModel)
+        << "файл не может разрешить запись модели, которой нет в каталоге";
+
+    // Модель каталога: заданное в файле значение важнее каталога, запись решает каталог.
+    auto catalog = remoteOf("650");
+    catalog["connection"] = QJsonObject{{"driver", "usb-net"}};
+    ASSERT_TRUE(QDir().mkpath(dir.path() + "/remotes/650"));
+    write("remotes/650/remote.json", toBytes(catalog));
+    write("remotes/650/photo.png", resources::data(":/res/remotes/650/photo.png"));
+    ASSERT_TRUE(resources::reload(root).isEmpty());
+    EXPECT_TRUE(harmony::usesUsbNet("650")) << "значение файла важнее каталога";
+    EXPECT_EQ(harmony::canWriteTo(harmony::modelInfo("650")).verdict, harmony::WriteVerdict::Experimental)
+        << "650 не подтверждена записью, профиль на запись не влияет";
+    // Значение штатного remote.json — тоже данные пользователя: 700 задаёт связь своим файлом.
+    EXPECT_EQ(harmony::remoteProfile("700")->driver, "usb-hid");
+    // Модель без своего remote.json: связь только из каталога.
+    EXPECT_EQ(harmony::remoteProfile("525"), nullptr);
+    EXPECT_FALSE(harmony::usesUsbNet("525")) << "525 — USB HID из каталога";
 }
 
 TEST_F(RemoteResourcesTest, ModelInfoUsesOnlyItsOwnProfileAfterReload) {

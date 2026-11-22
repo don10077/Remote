@@ -2,13 +2,18 @@
 
 Каждый пульт описан одним файлом `remotes/<id>/remote.json` рядом с `photo.png`.
 Общих именованных раскладок нет: все экраны пульта описаны в его собственном файле.
+Файл — оформление: справочник моделей (`core/resources/remoteCatalog.json`) решает, как
+программа связывается с моделью по умолчанию и можно ли на неё записать конфигурацию.
+Заданное в `remote.json` значение `connection.driver` важнее справочника. Полей `format`,
+`configFormat` и `transport` из прошлой версии больше нет: при загрузке они убираются, имена
+драйвера переводятся на текущие (`hid` → `usb-hid`, `harmony900` → `usb-net`).
 
 ```
 {
   "schemaVersion": 1,
   "id": "900", "name": "Harmony 900",
   "capabilities": { "touch": true },
-  "connection":   { "driver": "usb-net|usb-hid|hub|none", "format": "harmony-xml|device-sequence|gspm|arch14|hub-json|none" },
+  "connection":   { "driver": "usb-net|usb-hid|mh|hub|none" },
   "hardware":     { "image": "photo.png", "size": [w, h], "zones": [ Zone ] },
   "display":      { "rect": [x, y, w, h], "tint": "#rrggbb" },
   "tiles":        { "color": "#rrggbb", "border": "#rrggbb" },
@@ -23,8 +28,7 @@
 | `id` | Совпадает с именем папки: строчные латинские буквы, цифры, `_`, `-`; начинается с буквы или цифры |
 | `name` | Название в списке моделей |
 | `capabilities.touch` | `true`, если экран сенсорный: плитки нажимаются щелчком. Одно значение на пульт; поле `touch` у экранов из прошлой версии переносится сюда при загрузке |
-| `connection.driver` | Как программа связывается с пультом: `usb-net` — USB-сеть, адрес 169.254.1.2 (900, 1000, 1100, 1100i); `usb-hid` — USB HID (One, 600–700); `hub` — через Harmony Hub по сети; `none` — без подключения |
-| `connection.format` | Формат конфигурации: `harmony-xml` — UserConfiguration.xml + IrProto.bin/SsIr.bin (900); `device-sequence` (1000, 1100, 1100i); `gspm` (One); `arch14` (600–700); `hub-json` (хаб); `none` — неизвестен. Запись на пульт реализована только для `usb-net` + `harmony-xml` |
+| `connection.driver` | Как программа связывается с пультом: `usb-net` — USB-сеть, адрес 169.254.1.2 (900, 1000, 1100, 1100i); `usb-hid` — USB HID (One, 600–700); `mh` — MyHarmony по сети; `hub` — через Harmony Hub по сети; `none` — без подключения. Пустое поле или поля нет — значение справочника модели; заданное здесь значение важнее, и для модели, которой нет в справочнике, это единственный способ задать связь. Формат конфигурации тут не указывается: он определяется семейством из справочника и данными прочитанного файла. Неизвестное имя отклоняет модель |
 | `hardware.image` | Фото пульта с прозрачным фоном, обычно `photo.png` |
 | `hardware.size` | `[ширина, высота]` фото в пикселях. Должен совпадать с PNG, иначе модель отклоняется |
 | `hardware.zones` | Физические кнопки на фото |

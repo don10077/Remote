@@ -337,7 +337,7 @@ Result<TransferInfo> ConcordTransfer::connect(std::string_view modelId, const En
     }
     info.modelId = std::string(model->id);
     info.readable = model->readable;
-    info.writable = model->writable;
+    info.writable = model->rawRestore;
     impl_->connected = true;
     return info;
 }

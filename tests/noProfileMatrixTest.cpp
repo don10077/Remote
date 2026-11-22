@@ -14,6 +14,7 @@
 #include "harmony/core/configDocument.h"
 #include "harmony/core/remoteCatalog.h"
 #include "harmony/core/remoteProfile.h"
+#include "harmony/core/writePolicy.h"
 
 #include <gtest/gtest.h>
 
@@ -45,10 +46,10 @@ protected:
     /// Каталог без профилей: модель не найдена.
     void clearCatalog() { harmony::remoteProfiles.clear(); }
 
-    /// Модель в каталоге с указанным подключением; запись — по правилам ядра.
-    void addToCatalog(const std::string& id, const std::string& driver, const std::string& format) {
-        harmony::remoteProfiles.push_back({id, id, "photo.png",
-                                          harmony::writableCombination(driver, format), driver, format});
+    /// Модель в реестре профилей: оформление — id, имя и картинка; связь — значение из
+    /// remote.json, если оно задано (W3: пустое — берём каталог).
+    void addProfile(const std::string& id, const std::string& driver = {}) {
+        harmony::remoteProfiles.push_back({id, id, "photo.png", driver});
     }
 };
 
@@ -132,7 +133,7 @@ TEST_F(CatalogTest, SetTargetRemoteAcceptsRegisteredUserProfile) {
     clearCatalog();
     EXPECT_FALSE(document.setTargetRemote("my-remote")) << "без reload() своя модель неизвестна";
 
-    addToCatalog("my-remote", "none", "none"); // то, что делает reload() для папки remotes/my-remote
+    addProfile("my-remote"); // то, что делает reload() для папки remotes/my-remote
     const auto result = document.setTargetRemote("my-remote");
     ASSERT_TRUE(result) << result.error().message;
     EXPECT_EQ(document.targetRemote(), "my-remote");
@@ -160,26 +161,39 @@ TEST_F(CatalogTest, SetTargetRemoteRejectsUnknownId) {
     EXPECT_EQ(document.targetRemote(), "525") << "неудачная попытка ничего не изменила";
 }
 
-// Связь — свойство модели каталога, профиль на неё не влияет. 1000 — USB-сеть без профиля.
-TEST_F(CatalogTest, UsesUsbNetFollowsCatalog) {
+// Связь: значение из remote.json, если оно задано; иначе — каталог (W3, решено владельцем
+// 22.11). 1000 — USB-сеть без профиля.
+TEST_F(CatalogTest, ConnectionFollowsFileWhenTheFieldIsSet) {
     clearCatalog();
     EXPECT_TRUE(harmony::usesUsbNet("1000")) << "каталог знает 1000 без профиля";
     EXPECT_FALSE(harmony::usesUsbNet("650"));
     EXPECT_FALSE(harmony::usesUsbNet("no-such"));
 
-    addToCatalog("my-remote", "usb-net", "harmony-xml");
-    EXPECT_FALSE(harmony::usesUsbNet("my-remote")) << "профиль не влияет на связь";
+    addProfile("my-remote");
+    EXPECT_FALSE(harmony::usesUsbNet("my-remote")) << "без поля в файле: модели нет в каталоге — связи нет";
+    harmony::remoteProfiles.back().driver = "usb-net";
+    EXPECT_TRUE(harmony::usesUsbNet("my-remote")) << "своя модель: способ подключения из remote.json";
+
+    // Заданное поле важнее каталога (право записи при этом решает каталог — OD9).
+    addProfile("650", "usb-net");
+    EXPECT_TRUE(harmony::usesUsbNet("650"));
+    addProfile("1000", "none");
+    EXPECT_FALSE(harmony::usesUsbNet("1000")) << "`none` в файле — тоже решение пользователя";
 }
 
-// Запись на пульт запрещена, когда каталог говорит «модель не пишется» (driver none),
-// даже если документ выглядит как 900.
-TEST_F(CatalogTest, WritingForbiddenWhenCatalogModelCannotWrite) {
+// W2 (OD9, решено 20.11): право записи решает каталог, а не профиль оформления — даже когда
+// в файле задан способ подключения. Тест ожидался здесь до W2; после W2 `toEzHex(true)`
+// спрашивает `canWriteTo()`.
+TEST_F(CatalogTest, ProfileCannotForbidWriting) {
     const auto document = ConfigDocument::createNew("driver none");
     clearCatalog();
-    addToCatalog("900", "none", "harmony-xml");
+    addProfile("900", "none");
+    EXPECT_FALSE(harmony::usesUsbNet("900")) << "профиль задаёт связь (W3)";
+    EXPECT_EQ(harmony::canWriteTo(document).verdict, harmony::WriteVerdict::Allowed)
+        << "900 подтверждена записью в каталоге, профиль на запись не влияет";
+
     const auto result = document.toEzHex(true);
-    ASSERT_FALSE(result);
-    EXPECT_EQ(result.error().code, ErrorCode::Unsupported) << result.error().message; // изменится в W3 (OD9)
+    ASSERT_TRUE(result) << result.error().message;
 }
 
 // Настоящие байты: identity из дампа пульта 900 (архитектура 15, skin 61) без свойства называет

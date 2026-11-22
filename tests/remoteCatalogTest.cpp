@@ -67,8 +67,8 @@ TEST(RemoteCatalog, MissingArchitectureMeansUnknown) {
     EXPECT_EQ(unknown.architecture, 0);
     EXPECT_EQ(unknown.link, LinkKind::None);
     EXPECT_FALSE(unknown.readable);
-    EXPECT_FALSE(unknown.writable);
-    EXPECT_FALSE(unknown.writeTested);
+    EXPECT_FALSE(unknown.rawRestore);
+    EXPECT_FALSE(unknown.configWriteTested);
 }
 
 TEST(RemoteCatalog, DisplayNameComesFromCatalogThenProfile) {
@@ -80,14 +80,17 @@ TEST(RemoteCatalog, DisplayNameComesFromCatalogThenProfile) {
     const auto saved = remoteProfiles;
     remoteProfiles.clear();
     EXPECT_EQ(modelDisplayName("900"), "Harmony 900");
-    remoteProfiles.push_back({"900", "Profile name must not replace catalog name", "", false, "none", "none"});
+    remoteProfiles.push_back({"900", "Profile name must not replace catalog name", "", ""});
     EXPECT_EQ(modelDisplayName("900"), "Harmony 900");
-    remoteProfiles.push_back({"my-remote", "My remote", "", false, "none", "none"});
+    remoteProfiles.push_back({"my-remote", "My remote", "", ""});
     EXPECT_EQ(modelDisplayName("my-remote"), "My remote");
     remoteProfiles = saved;
 }
 
-TEST(RemoteCatalog, LinkComesFromCatalogNotFromProfile) {
+// Решено владельцем 22.11: способ подключения берётся из remote.json модели, если поле задано;
+// если поля нет — из каталога. Право записи при этом решает каталог (OD9, W2).
+TEST(RemoteCatalog, ConnectionFollowsFileWhenTheFieldIsSet) {
+    // Без поля в файле — каталог.
     EXPECT_EQ(modelLink("900"), LinkKind::UsbNet);
     EXPECT_EQ(modelLink("1000"), LinkKind::UsbNet);
     EXPECT_EQ(modelLink("xbox360"), LinkKind::UsbNet);
@@ -102,10 +105,31 @@ TEST(RemoteCatalog, LinkComesFromCatalogNotFromProfile) {
     EXPECT_FALSE(usesUsbNet("touch"));
     EXPECT_FALSE(usesUsbNet("no-such"));
 
-    // Пользовательская модель без записи в каталоге: профиль с usb-net на связь не влияет.
     const auto saved = remoteProfiles;
-    remoteProfiles.push_back({"my-remote", "My remote", "", false, "usb-net", "harmony-xml"});
-    EXPECT_EQ(modelLink("my-remote"), LinkKind::None);
-    EXPECT_FALSE(usesUsbNet("my-remote"));
+    // Значение профиля того же id: remoteProfile() берёт первую запись, поэтому менять нужно её.
+    const auto setDriver = [](const std::string& id, const std::string& value) {
+        for (auto& profile : remoteProfiles)
+            if (profile.id == id) profile.driver = value;
+    };
+
+    // Своя модель вне каталога: каталог её не знает, работает значение из remote.json.
+    remoteProfiles.push_back({"my-remote", "My remote", "", "usb-net"});
+    EXPECT_EQ(modelLink("my-remote"), LinkKind::UsbNet);
+    EXPECT_TRUE(usesUsbNet("my-remote"));
+
+    // Для модели каталога заданное значение важнее каталога.
+    setDriver("650", "usb-net");
+    EXPECT_EQ(modelLink("650"), LinkKind::UsbNet);
+    EXPECT_TRUE(usesUsbNet("650"));
+    // Неизвестное имя значения не даёт: остаётся каталог.
+    setDriver("650", "unknown-driver");
+    EXPECT_EQ(modelLink("650"), LinkKind::UsbHid);
+    // `none` в файле — тоже решение пользователя: связи нет.
+    setDriver("650", "none");
+    EXPECT_EQ(modelLink("650"), LinkKind::None);
+
+    // Значение «hub» из файла для модели, которой в каталоге нет.
+    remoteProfiles.push_back({"my-hub", "My hub", "", "hub"});
+    EXPECT_EQ(modelLink("my-hub"), LinkKind::Hub);
     remoteProfiles = saved;
 }

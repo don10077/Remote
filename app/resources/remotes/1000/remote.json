@@ -6,8 +6,7 @@
   "touch": true
  },
  "connection": {
-  "driver": "usb-net",
-  "format": "device-sequence"
+  "driver": "usb-net"
  },
  "hardware": {
   "image": "photo.png",

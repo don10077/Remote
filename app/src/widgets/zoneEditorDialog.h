@@ -336,8 +336,6 @@ private:
     std::optional<QJsonObject> liveTiles_;      ///< блок tiles с вводимым, ещё не записанным цветом
     QLineEdit* nameEdit_ = nullptr;             ///< name
     QComboBox* driverBox_ = nullptr;            ///< connection.driver
-    QComboBox* formatBox_ = nullptr;            ///< connection.format
-    QLabel* connectionHint_ = nullptr;          ///< что программа умеет с этой парой
     QCheckBox* touchCheck_ = nullptr;           ///< capabilities.touch
     QLineEdit* tileColorEdit_ = nullptr;        ///< tiles.color
     QLineEdit* tileBorderEdit_ = nullptr;       ///< tiles.border
