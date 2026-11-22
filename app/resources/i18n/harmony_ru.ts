@@ -2397,6 +2397,11 @@ Add a device?</source>
       <translation>связь с пультом потеряна (отправка)</translation>
     </message>
     <message>
+      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <source>Connection:</source>
+      <translation type="unfinished" />
+    </message>
+    <message>
       <location filename="../../../app/src/remoteSession.cpp" />
       <source>container checksum</source>
       <translation>сумма контейнера</translation>
@@ -3712,6 +3717,11 @@ Copy saved: %2</source>
       <translation>Конфигурация Harmony Hub (*.hub.json);;Все файлы (*)</translation>
     </message>
     <message>
+      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <source>Harmony Hub over the network</source>
+      <translation type="unfinished" />
+    </message>
+    <message>
       <location filename="../../../app/src/widgets/disclaimerDialog.cpp" />
       <source>Harmony is an unofficial program. It is not made, endorsed or supported by Logitech.</source>
       <translation>Harmony — неофициальная программа. Logitech её не создавала, не одобряла и не поддерживает.</translation>
@@ -3955,6 +3965,11 @@ Copy saved: %2</source>
       <location filename="../../../app/src/mainWindowMenus.cpp" />
       <source>How the open configuration differs from another one: a recent one or a file</source>
       <translation>Чем открытая конфигурация отличается от другой: из недавних или из файла</translation>
+    </message>
+    <message>
+      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <source>How the program talks to the remote.</source>
+      <translation type="unfinished" />
     </message>
     <message>
       <location filename="../../../app/src/widgets/configView.cpp" />
@@ -4773,6 +4788,11 @@ The file holds the Hub's answer as it is — device names, models and commands, 
       <translation>Моя конфигурация</translation>
     </message>
     <message>
+      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <source>MyHarmony over the network</source>
+      <translation type="unfinished" />
+    </message>
+    <message>
       <location filename="../../../app/src/widgets/activityDialog.cpp" />
       <location filename="../../../app/src/widgets/newConfigDialog.cpp" />
       <location filename="../../../app/src/widgets/newDeviceDialog.cpp" />
@@ -4920,6 +4940,11 @@ The file holds the Hub's answer as it is — device names, models and commands, 
       <location filename="../../../app/src/widgets/startDialog.cpp" />
       <source>No configurations yet</source>
       <translation>Пока нет ни одной конфигурации</translation>
+    </message>
+    <message>
+      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <source>No connection</source>
+      <translation type="unfinished" />
     </message>
     <message>
       <location filename="../../../app/src/mainWindow.cpp" />
@@ -9175,6 +9200,11 @@ They will not be sent to the remote either. When the device is made active again
       <translation>Настройка связи по USB убрана</translation>
     </message>
     <message>
+      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <source>USB HID (One, 600–700)</source>
+      <translation type="unfinished" />
+    </message>
+    <message>
       <location filename="../../../app/src/widgets/aboutDialog.cpp" />
       <source>USB HID remotes</source>
       <translation>пульты USB HID</translation>
@@ -9183,6 +9213,11 @@ They will not be sent to the remote either. When the device is made active again
       <location filename="../../../app/src/mainWindow.cpp" />
       <source>USB HID · connect and read</source>
       <translation>USB HID · подключите и прочитайте</translation>
+    </message>
+    <message>
+      <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
+      <source>USB network (900, 1000, 1100)</source>
+      <translation type="unfinished" />
     </message>
     <message>
       <location filename="../../../app/src/widgets/protocolCommandDialog.cpp" />

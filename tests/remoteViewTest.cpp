@@ -152,6 +152,9 @@ TEST(RemoteView, SwitchModelsClearsOldTargetsAndPreservesAspectRatio) {
     QObject::connect(&view, &harmony::app::RemoteView::keyClicked,
                      [&clicked](const QString& id) { clicked = id; });
     view.resize(400, 1500);
+    // Модель названа явно: модели по умолчанию нет (U1, Q11), поэтому щелчок проверяется
+    // именно на 900, а не на «первом пульте каталога».
+    view.setRemoteProfile("900");
     click(view, {85, 750});
     EXPECT_EQ(clicked, "VolumeUp");
     for (const auto* id : {"1000", "1100", "1100i", "600", "650", "665", "700", "one"}) {

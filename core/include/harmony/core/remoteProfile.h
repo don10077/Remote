@@ -1,6 +1,5 @@
 #pragma once
 
-#include <array>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -16,7 +15,14 @@ struct RemoteProfile {
     std::string driver;  ///< connection.driver: пусто — значение из каталога; задано — приоритет файла (W3)
 };
 
-inline const std::array bundledRemoteProfiles = {
+/**
+ * @brief Штатные модели сборки, в порядке списка моделей.
+ *
+ * Вектор, а не std::array: набор может быть пустым (U1) — пустую длину `std::array`
+ * вывести через CTAD нельзя. Порядок задаёт генератор (`cmake/RemoteProfiles.cmake` —
+ * сортировка по id), профиль 900 больше не ставится первым.
+ */
+inline const std::vector<RemoteProfile> bundledRemoteProfiles = {
 #include "harmony/core/remoteProfiles.inc"
 };
 
@@ -46,14 +52,15 @@ inline ProfileRef profileFor(std::string_view modelId) {
 }
 
 /**
- * @brief Пульт по умолчанию: первый в каталоге.
+ * @brief Модель по умолчанию: первая в каталоге (сортировка по id — cmake/RemoteProfiles.cmake).
  *
- * Порядок каталога задаёт сборка (cmake/RemoteProfiles.cmake ставит модель по умолчанию первой),
- * пользовательские пульты reload() добавляет после штатных.
+ * Пользовательские пульты reload() добавляет после штатных. Профиль 900 не обязателен и
+ * нигде не подставляется: пустой набор даёт пустую модель — модели по умолчанию нет (Q11),
+ * эти функции удаляются в U2.
  * @return Копия профиля: указатель в каталог устарел бы после его обновления.
  */
 inline RemoteProfile defaultRemoteProfile() {
-    return remoteProfiles.empty() ? bundledRemoteProfiles.front() : remoteProfiles.front();
+    return remoteProfiles.empty() ? RemoteProfile{} : remoteProfiles.front();
 }
 
 /// @return id пульта по умолчанию (см. defaultRemoteProfile()).

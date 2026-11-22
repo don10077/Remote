@@ -1,6 +1,7 @@
 #include "harmony/transport/harmonyHidReader.h"
 #include <gtest/gtest.h>
 #include <deque>
+#include <utility>
 
 using namespace harmony;
 using namespace harmony::transport;
@@ -117,6 +118,46 @@ TEST(HarmonyHidReader, RecognizesOtherSupportedSkins) {
         EXPECT_EQ(result->info.identity.skin, skin);
         EXPECT_EQ(result->config, channel.config);
     }
+}
+
+// U3: имя модели по skin берётся из справочника моделей, отдельной таблицы в transport нет.
+// Прежняя таблица называла эти skin моделью без индекса «i» — справочник знает конкретную модель.
+TEST(HarmonyHidReader, ModelNameComesFromCatalog) {
+    for (const auto& [skin, name] : {std::pair{69, "Harmony 700i"}, std::pair{73, "Harmony 600i"},
+                                     std::pair{74, "Harmony 650i"}}) {
+        FakeHid channel;
+        channel.identity[6] = static_cast<std::uint8_t>(skin);
+        HarmonyHidReader reader(channel);
+        const auto result = reader.read();
+        ASSERT_TRUE(result) << result.error().message;
+        EXPECT_EQ(result->info.model, name) << "skin " << skin;
+    }
+}
+
+// Пара architecture/skin проверяется и после U3: skin 74 принадлежит модели семейства 14,
+// поэтому пульт с другой архитектурой отвергается до чтения флеша.
+TEST(HarmonyHidReader, RejectsSkinOfAnotherFamily) {
+    FakeHid channel;
+    channel.identity[5] = 0xF0;  // архитектура 15, skin ниже
+    channel.identity[6] = 74;
+    HarmonyHidReader reader(channel);
+    const auto result = reader.read();
+    ASSERT_FALSE(result);
+    EXPECT_EQ(result.error().code, ErrorCode::Unsupported);
+    EXPECT_EQ(channel.requests.size(), 1) << "до чтения флеша";
+}
+
+// Справочник знает модель семейства 8 (skin 17 — Harmony 885), но карту памяти читатель знает
+// только для подтверждённых семейств 12 и 14: пульт отвергается, приёмка U3 не расширяет чтение.
+TEST(HarmonyHidReader, RejectsCatalogModelOfUnreadFamily) {
+    FakeHid channel;
+    channel.identity[5] = 0x80;  // архитектура 8
+    channel.identity[6] = 17;
+    HarmonyHidReader reader(channel);
+    const auto result = reader.read();
+    ASSERT_FALSE(result);
+    EXPECT_EQ(result.error().code, ErrorCode::Unsupported);
+    EXPECT_EQ(channel.requests.size(), 1) << "до чтения флеша";
 }
 
 TEST(HarmonyHidReader, RejectsUnknownFlashBeforeFlashRead) {

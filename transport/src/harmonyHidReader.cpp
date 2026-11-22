@@ -3,22 +3,35 @@
 // (Kevin Timmerman, Phil Dibowitz; GPL-3.0-or-later). См. docs/hid-models.md.
 #include "harmony/transport/harmonyHidReader.h"
 
+#include "harmony/core/remoteCatalog.h"
+
 #include <algorithm>
+#include <array>
 #include <cstdio>
+#include <optional>
+#include <utility>
 
 namespace harmony::transport {
 namespace {
-/// Проверяет пару architecture/skin, прежде чем выбирать карту памяти.
+/// Имя модели по skin — из справочника моделей (U3): model по skin, её семейство должно
+/// совпадать с названным пультом. Отдельной таблицы `skin → имя` в transport нет.
 std::string modelName(int architecture, int skin) {
-    if (architecture == 12 && skin == 54) return "Harmony One";
-    if (architecture != 14) return {};
-    switch (skin) {
-    case 66: case 69: return "Harmony 700";
-    case 71: case 73: return "Harmony 600";
-    case 72: case 74: return "Harmony 650";
-    case 75: return "Harmony 665";
-    default: return {};
-    }
+    const auto* model = harmony::catalogModelBySkin(skin);
+    if (!model || model->architecture != architecture) return {};
+    return std::string(model->name);
+}
+
+/// Карта памяти известна для семейств, подтверждённых данными. Справочник знает модели и других
+/// семейств, но этот читатель для них не работает — такие пульты отвергаются.
+constexpr std::array<std::pair<int, std::uint32_t>, 2> kConfigBases{{
+    {12, 0x040000},  ///< Harmony One
+    {14, 0x030000},  ///< 600…700
+}};
+
+std::optional<std::uint32_t> configBaseFor(int architecture) {
+    for (const auto& [family, base] : kConfigBases)
+        if (family == architecture) return base;
+    return std::nullopt;
 }
 
 /// Ёмкость известных микросхем в байтах; неизвестные не угадываем.
@@ -110,7 +123,11 @@ Result<HidBackup> HarmonyHidReader::read(const ProgressHandler& progress) {
     char flash[16]{};
     std::snprintf(flash, sizeof(flash), "0x%02X:0x%02X", static_cast<unsigned>(bytes[4]), static_cast<unsigned>(bytes[3]));
     info.identity.flash = flash;
-    const std::uint32_t configBase = info.identity.architecture == 12 ? 0x040000 : 0x030000;
+    const auto knownBase = configBaseFor(info.identity.architecture);
+    if (!knownBase)
+        return makeError(ErrorCode::Unsupported, "Unsupported HID remote: architecture %1, skin %2",
+                         {std::to_string(info.identity.architecture), std::to_string(info.identity.skin)});
+    const std::uint32_t configBase = *knownBase;
     backup.configBase = configBase;
     const auto capacity = flashSize(bytes[4], bytes[3]);
     if (capacity <= configBase)

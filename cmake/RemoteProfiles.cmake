@@ -1,12 +1,9 @@
 # Общий каталог моделей для core (без Qt) и ресурсов приложения.
 # Каждая модель описана одним файлом remotes/<id>/remote.json (схема — remotes/SCHEMA.md).
 file(GLOB remoteProfiles CONFIGURE_DEPENDS "${PROJECT_SOURCE_DIR}/app/resources/remotes/*/remote.json")
-set(defaultProfile "${PROJECT_SOURCE_DIR}/app/resources/remotes/900/remote.json")
-if(NOT EXISTS "${defaultProfile}")
-    message(FATAL_ERROR "Default remote profile 900 is missing")
-endif()
-list(REMOVE_ITEM remoteProfiles "${defaultProfile}")
-list(PREPEND remoteProfiles "${defaultProfile}")
+# U1: модель по умолчанию отсутствует, профиль 900 не обязателен. Порядок — по id (имена
+# папок); он же порядок списка моделей в программе.
+list(SORT remoteProfiles)
 set(remoteProfileEntries "")
 set(HARMONY_REMOTE_FILES "")
 # Картинки экранов (спрайты), общие для всех пультов.
@@ -42,8 +39,5 @@ foreach(profileFile IN LISTS remoteProfiles)
         "    RemoteProfile{\"${id}\", \"${name}\", \":/res/remotes/${id}/${image}\", \"${connectionDriver}\"},\n")
     list(APPEND HARMONY_REMOTE_FILES "${profileFile}" "${profileDir}/${image}")
 endforeach()
-if(NOT remoteProfiles)
-    message(FATAL_ERROR "No remote profiles found")
-endif()
 file(CONFIGURE OUTPUT "${PROJECT_BINARY_DIR}/core/generated/harmony/core/remoteProfiles.inc"
     CONTENT "@remoteProfileEntries@" @ONLY)

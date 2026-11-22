@@ -5,6 +5,7 @@
 
 #include "harmony/transport/harmony900Link.h"
 
+#include "harmony/core/remoteCatalog.h"
 #include "harmony/transport/usbnet.h"
 
 #include <cstdio>
@@ -42,16 +43,10 @@ bool report(const ProgressHandler& progress, Stage stage, std::size_t done, std:
 
 } // namespace
 
+// Имя модели по skin — из справочника моделей (U3): отдельной таблицы `skin → имя` в transport нет.
 std::string modelName(int skin) {
-    switch (skin) {
-    case 49: return "Harmony 1000";
-    case 52: return "Harmony 1000i";
-    case 54: return "Harmony One";
-    case 61: return "Harmony 900";
-    case 62: case 63: case 64: return "Harmony 1100";
-    case 66: return "Harmony 700";
-    default: return {};
-    }
+    const auto* model = catalogModelBySkin(skin);
+    return model ? std::string(model->name) : std::string();
 }
 
 /// Запрос — ответ по каналу с проверкой, что пульт ответил на эту команду успехом.

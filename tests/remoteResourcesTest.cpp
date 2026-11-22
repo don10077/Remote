@@ -16,6 +16,8 @@
 #include "harmony/core/modelInfo.h"
 #include "harmony/core/writePolicy.h"
 #include <algorithm>
+#include <functional>
+#include <ranges>
 
 namespace {
 namespace resources = harmony::app::remoteResources;
@@ -614,6 +616,16 @@ TEST_F(RemoteResourcesTest, CreateRestoreAndNeverRewriteExistingFiles) {
     ASSERT_TRUE(blocked.open(QIODevice::WriteOnly));
     blocked.close();
     EXPECT_FALSE(resources::prepareFolder(blocked.fileName()).isEmpty());
+}
+
+// U1: порядок списка моделей — по id. 900 больше не первый: он не модель по умолчанию,
+// и порядок списка задаёт сортировка по id.
+TEST_F(RemoteResourcesTest, ModelListIsOrderedById) {
+    const auto ids = resources::modelIds(root);
+    ASSERT_FALSE(ids.isEmpty());
+    EXPECT_TRUE(std::ranges::is_sorted(ids)) << "порядок списка моделей";
+    EXPECT_TRUE(ids.contains("900")) << "900 в списке моделей";
+    EXPECT_NE(ids.first(), "900") << "900 не первый: модели по умолчанию нет";
 }
 
 TEST(RemoteResources, WorkingFolderIsBesideExecutable) {

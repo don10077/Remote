@@ -12,6 +12,7 @@
 #include <algorithm>
 #include <deque>
 #include <memory>
+#include <utility>
 
 using namespace harmony::transport;
 using harmony::ErrorCode;
@@ -284,6 +285,51 @@ TEST(Harmony900Link, Reads1100VariantsWithoutChangingTheirIdentity) {
         EXPECT_TRUE(remote->written.empty());
         EXPECT_EQ(remote->resets, 0);
     }
+}
+
+// U3: имя модели по skin — из справочника моделей, отдельной таблицы в transport нет.
+// Skin 78 (модель 300) и skin 99 (Touch) в прежней таблице отсутствовали: пульты назывались
+// «Harmony (skin …)».
+TEST(Harmony900Link, ModelNameComesFromCatalog) {
+    for (const auto& [skin, name] : {std::pair{78, "Harmony 300"}, std::pair{99, "Harmony Touch"}}) {
+        auto remote = std::make_shared<FakeRemote>();
+        remote->skin = skin;
+        auto link = linkTo(remote);
+        auto info = link.connect({});
+        ASSERT_TRUE(info) << info.error().message;
+        EXPECT_EQ(info->model, name) << "skin " << skin;
+        EXPECT_EQ(link.info().model, name) << "skin " << skin;
+    }
+}
+
+// Skin, которого в справочнике нет, остаётся неизвестным: модель не угадывается, имя
+// называется skin.
+TEST(Harmony900Link, UnknownSkinIsNamedBySkin) {
+    auto remote = std::make_shared<FakeRemote>();
+    remote->skin = 111;
+    auto link = linkTo(remote);
+    auto info = link.connect({});
+    ASSERT_TRUE(info) << info.error().message;
+    EXPECT_EQ(info->model, "Harmony (skin 111)");
+}
+
+// Сверка модели перед записью тоже называет модель по справочнику: skin 74 — модель 650i,
+// раньше transport называл её «Harmony 650».
+TEST(Harmony900Link, RefusesForeignConfigByCatalogName) {
+    auto remote = std::make_shared<FakeRemote>();
+    auto link = linkTo(remote);
+    ASSERT_TRUE(link.connect({}));
+    auto container = harmony::formats::parseEzHex(sampleEzHex());
+    container->header.clear();
+    container->identity.skin = 74;
+
+    auto ezhex = harmony::formats::writeEzHex(*container);
+    ASSERT_TRUE(ezhex) << ezhex.error().message;
+    auto written = link.writeConfig(*ezhex, {});
+
+    ASSERT_FALSE(written);
+    EXPECT_EQ(written.error().code, ErrorCode::Unsupported);
+    EXPECT_NE(written.error().message.find("Harmony 650i"), std::string::npos) << written.error().message;
 }
 
 TEST(Harmony900Link, WritesConfigRestartsAndSetsTime) {
