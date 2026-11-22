@@ -21,6 +21,7 @@
 #include "harmony/core/buttonOwner.h"
 #include "harmony/core/configBackend.h"
 #include "harmony/core/configCheck.h"
+#include "harmony/core/modelInfo.h"
 #include "harmony/core/deviceComparison.h"
 #include "harmony/core/deviceReplacement.h"
 #include "harmony/core/deviceStates.h"
@@ -609,6 +610,9 @@ public:
 
     /// @return Целевая модель проекта; не изменяет идентичность исходного архива.
     [[nodiscard]] std::string targetRemote() const;
+
+    /// @return Сводка целевой модели по текущему каталогу и реестру оформлений.
+    [[nodiscard]] ModelInfo targetModel() const;
 
     /// Выбирает целевой пульт без потери устройств, активностей и исходных IR-таблиц.
     [[nodiscard]] Result<void> setTargetRemote(const std::string& id);

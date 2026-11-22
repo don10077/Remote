@@ -34,6 +34,7 @@ add_executable(harmony_tests
     errorTest.cpp
     fixturesTest.cpp
     remoteCatalogTest.cpp
+    modelInfoTest.cpp
     ir/broadlinkRecordingTest.cpp
     ir/irProtocolTest.cpp
     ir/nativeProtocolTest.cpp

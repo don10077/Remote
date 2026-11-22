@@ -71,6 +71,22 @@ TEST(RemoteCatalog, MissingArchitectureMeansUnknown) {
     EXPECT_FALSE(unknown.writeTested);
 }
 
+TEST(RemoteCatalog, DisplayNameComesFromCatalogThenProfile) {
+    EXPECT_EQ(modelDisplayName("525"), "Harmony 525");
+    EXPECT_EQ(modelDisplayName("900"), "Harmony 900");
+    EXPECT_EQ(modelDisplayName(""), "");
+    EXPECT_EQ(modelDisplayName("no-such"), "no-such");
+
+    const auto saved = remoteProfiles;
+    remoteProfiles.clear();
+    EXPECT_EQ(modelDisplayName("900"), "Harmony 900");
+    remoteProfiles.push_back({"900", "Profile name must not replace catalog name", "", false, "none", "none"});
+    EXPECT_EQ(modelDisplayName("900"), "Harmony 900");
+    remoteProfiles.push_back({"my-remote", "My remote", "", false, "none", "none"});
+    EXPECT_EQ(modelDisplayName("my-remote"), "My remote");
+    remoteProfiles = saved;
+}
+
 TEST(RemoteCatalog, LinkComesFromCatalogNotFromProfile) {
     EXPECT_EQ(modelLink("900"), LinkKind::UsbNet);
     EXPECT_EQ(modelLink("1000"), LinkKind::UsbNet);

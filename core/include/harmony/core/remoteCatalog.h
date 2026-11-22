@@ -41,5 +41,9 @@ LinkKind modelLink(std::string_view modelId);
 bool usesUsbNet(std::string_view modelId);
 /// @return Нормализованный id: нижний регистр; `1100I` → `1100i`. Только для сравнения.
 std::string normalizedModelId(std::string_view id);
+/// @brief Выбирает имя модели для показа независимо от наличия оформления.
+/// @param modelId Id модели; пустой id означает, что модель не выбрана.
+/// @return Каталог → загруженный профиль → id как есть; для пустого id — пусто (переводит UI).
+std::string modelDisplayName(std::string_view modelId);
 
 } // namespace harmony

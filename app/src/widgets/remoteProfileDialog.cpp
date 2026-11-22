@@ -80,14 +80,35 @@ RemoteProfileDialog::RemoteProfileDialog(const QString& current, QWidget* parent
     fields->addWidget(buttons);
     layout->addLayout(fields);
     auto refresh = [this, image, status, buttons] {
-        const auto* profile = remoteProfile(selectedRemote().toStdString());
-        buttons->button(QDialogButtonBox::Ok)->setEnabled(profile != nullptr);
-        if (const QString problem = remoteResources::modelError(selectedRemote()); !profile && !problem.isEmpty()) {
+        const auto id = selectedRemote();
+        const auto modelId = id.toStdString();
+        const auto* profile = remoteProfile(modelId);
+        const auto* model = catalogModel(modelId);
+        // W2: подпись про запись возьмёт canWriteTo() (W1); пока — профиль.
+        buttons->button(QDialogButtonBox::Ok)->setEnabled(id.isEmpty() || profile != nullptr || model != nullptr);
+        if (id.isEmpty()) {
+            image->clear();
+            status->setText(tr("Choose a remote model."));
+            return;
+        }
+        if (const QString problem = remoteResources::modelError(id); !profile && !problem.isEmpty()) {
             image->clear();
             status->setText(tr("This remote has a configuration error. Open the zone editor for this remote and fix it.\n\n%1").arg(problem));
             return;
         }
-        if (!profile) { image->clear(); status->setText(tr("Choose a remote model.")); return; }
+        if (!profile) {
+            if (!model) {
+                image->clear();
+                status->setText(tr("This remote model is unknown."));
+                return;
+            }
+            // Модель каталога без профиля: фото и зон нет, кнопки назначаются в таблице.
+            image->setText(tr("No remote image: buttons are assigned in the table. You can add an image in the zone editor."));
+            status->setText(RemoteView::hardKeyIds(id).isEmpty()
+                ? tr("No command zones yet: button editing is unavailable. Writing to this remote is disabled.")
+                : tr("Button assignment and project saving are available. Writing to this remote is disabled."));
+            return;
+        }
         QPixmap photo;
         photo.loadFromData(remoteResources::data(QString::fromUtf8(profile->image.data())));
         image->setPixmap(photo.scaled(image->size(), Qt::KeepAspectRatio, Qt::SmoothTransformation));

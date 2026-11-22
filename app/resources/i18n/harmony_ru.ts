@@ -92,8 +92,8 @@ The configuration from %1 will be copied into this archive.</source>
     </message>
     <message>
       <location filename="../../../app/src/mainWindow.cpp" />
-      <source>%1 [*] — Harmony</source>
-      <translation>%1 [*] — Harmony</translation>
+      <source>%1 [*] — %2 — Harmony</source>
+      <translation type="unfinished" />
     </message>
     <message>
       <location filename="../../../app/src/mainWindowRemote.cpp" />
@@ -3782,6 +3782,11 @@ Copy saved: %2</source>
       <translation>Harmony XML (900)</translation>
     </message>
     <message>
+      <location filename="../../../app/src/mainWindow.cpp" />
+      <source>Harmony — %1</source>
+      <translation type="unfinished" />
+    </message>
+    <message>
       <location filename="../../../core/src/propertyCatalog.cpp" />
       <source>Has a dimmer</source>
       <translation>Есть диммер</translation>
@@ -5042,6 +5047,11 @@ The file holds the Hub's answer as it is — device names, models and commands, 
       <translation>Без значка — показывать подпись</translation>
     </message>
     <message>
+      <location filename="../../../app/src/widgets/remoteProfileDialog.cpp" />
+      <source>no image</source>
+      <translation type="unfinished" />
+    </message>
+    <message>
       <location filename="../../../core/src/configDocumentStates.cpp" />
       <source>no inputs</source>
       <translation>нет входов</translation>
@@ -5057,6 +5067,11 @@ The file holds the Hub's answer as it is — device names, models and commands, 
       <translation>нет макроса %1</translation>
     </message>
     <message>
+      <location filename="../../../app/src/widgets/remoteProfileDialog.cpp" />
+      <source>No model</source>
+      <translation type="unfinished" />
+    </message>
+    <message>
       <location filename="../../../app/src/widgets/findByRemoteDialog.cpp" />
       <source>No model in the database sends these signals. Learn the commands instead: “New device…” → “Learn commands…”.</source>
       <translation>Ни одна модель базы не шлёт такие сигналы. Выучите команды: «Новое устройство…» → «Обучить команды…».</translation>
@@ -5065,6 +5080,12 @@ The file holds the Hub's answer as it is — device names, models and commands, 
       <location filename="../../../app/src/widgets/findByRemoteDialog.cpp" />
       <source>No model matches the filter.</source>
       <translation>Под фильтр не подходит ни одна модель.</translation>
+    </message>
+    <message>
+      <location filename="../../../app/src/mainWindow.cpp" />
+      <location filename="../../../app/src/widgets/configView.cpp" />
+      <source>No model selected</source>
+      <translation type="unfinished" />
     </message>
     <message>
       <location filename="../../../app/src/widgets/checkDialog.cpp" />
@@ -5076,6 +5097,11 @@ The file holds the Hub's answer as it is — device names, models and commands, 
       <location filename="../../../core/src/configDocumentMacros.cpp" />
       <source>no remote button specified</source>
       <translation>не указана кнопка пульта</translation>
+    </message>
+    <message>
+      <location filename="../../../app/src/widgets/remoteProfileDialog.cpp" />
+      <source>No remote image: buttons are assigned in the table. You can add an image in the zone editor.</source>
+      <translation type="unfinished" />
     </message>
     <message>
       <location filename="../../../core/src/configDocumentAdd.cpp" />
@@ -8812,6 +8838,11 @@ They will not be sent to the remote either. When the device is made active again
       <location filename="../../../app/src/widgets/zoneEditorProperties.cpp" />
       <source>This remote has no screen to open.</source>
       <translation>У этого пульта нет экрана для перехода.</translation>
+    </message>
+    <message>
+      <location filename="../../../app/src/widgets/remoteProfileDialog.cpp" />
+      <source>This remote model is unknown.</source>
+      <translation type="unfinished" />
     </message>
     <message>
       <location filename="../../../app/src/widgets/zoneEditorScreens.cpp" />

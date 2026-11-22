@@ -441,14 +441,17 @@ void MainWindow::updateTitle() {
     compareConfigsAction_->setEnabled(open);
     quickSearchAction_->setEnabled(open);
 
+    const auto displayName = modelDisplayName(selectedRemote_.toStdString());
+    const QString modelName = displayName.empty() ? tr("No model selected")
+                                                 : QString::fromStdString(displayName);
     if (!open) {
-        setWindowTitle(tr("Harmony"));
+        setWindowTitle(tr("Harmony — %1").arg(modelName));
         summary_->clear();
         return;
     }
 
     const QString name = QString::fromStdString(document_->name());
-    setWindowTitle(tr("%1 [*] — Harmony").arg(name));
+    setWindowTitle(tr("%1 [*] — %2 — Harmony").arg(name, modelName));
     configView_->setDocumentName(name); // после «Сохранить как» имя меняется
 
     const auto& model = document_->model();

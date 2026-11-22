@@ -4,6 +4,7 @@
  */
 
 #include "configView.h"
+#include "harmony/core/remoteCatalog.h"
 #include "harmony/core/remoteProfile.h"
 
 #include "../icons.h"
@@ -638,8 +639,9 @@ void ConfigView::fillSidebar() {
 
 void ConfigView::fillOverview() {
     const auto id = targetRemoteId();
-    const auto* profile = harmony::remoteProfile(id);
-    const QString modelName = profile ? QString::fromUtf8(profile->name.data()) : tr("Remote");
+    const auto name = harmony::modelDisplayName(id);
+    const QString modelName = name.empty() ? tr("No model selected")
+                                           : QString::fromUtf8(name.data(), static_cast<qsizetype>(name.size()));
     shell_->setRemoteName(modelName);
     if (config_ == nullptr) {
         overview_->clear();

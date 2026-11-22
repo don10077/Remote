@@ -26,6 +26,10 @@ std::string ConfigDocument::targetRemote() const {
     return model ? std::string(model->id) : std::string();
 }
 
+ModelInfo ConfigDocument::targetModel() const {
+    return modelInfo(targetRemote());
+}
+
 Result<void> ConfigDocument::setTargetRemote(const std::string& id) {
     if (id.empty()) {
         // «Без модели» — свойства нет; поведение такое же, как у модели без профиля.

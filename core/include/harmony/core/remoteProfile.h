@@ -62,6 +62,20 @@ inline const RemoteProfile* remoteProfile(std::string_view id) {
     return nullptr;
 }
 
+/// Ссылка на оформление модели; не хранит указатель, который может устареть после reload().
+struct ProfileRef {
+    std::string folder;  ///< remotes/<id>; пусто — модель не выбрана.
+    bool loaded = false; ///< Точный id есть в текущем реестре профилей.
+};
+
+/// @brief Разрешает оформление по точному id, без подстановки папок других моделей.
+/// @param modelId Id модели; пусто — модель не выбрана.
+/// @return Папка оформления и признак его наличия в текущем реестре.
+inline ProfileRef profileFor(std::string_view modelId) {
+    if (modelId.empty()) return {};
+    return {"remotes/" + std::string(modelId), remoteProfile(modelId) != nullptr};
+}
+
 /**
  * @brief Пульт по умолчанию: первый в каталоге.
  *

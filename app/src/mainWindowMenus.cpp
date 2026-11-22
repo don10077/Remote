@@ -447,6 +447,7 @@ void MainWindow::applyRemoteResources(bool interactive) {
 
 void MainWindow::exportRemoteResources() {
     const auto* profile = remoteProfile(selectedRemote_.toStdString());
+    const auto modelName = harmony::modelDisplayName(selectedRemote_.toStdString());
     QMessageBox ask(QMessageBox::Question, tr("Export remote resources"),
                     tr("Which resources to export?"), QMessageBox::Cancel, this);
     ask.setInformativeText(
@@ -454,7 +455,7 @@ void MainWindow::exportRemoteResources() {
            "only after confirmation."));
     QPushButton* modelButton = nullptr;
     if (profile) {
-        modelButton = ask.addButton(tr("Model %1").arg(QString::fromStdString(profile->name)),
+        modelButton = ask.addButton(tr("Model %1").arg(QString::fromStdString(modelName)),
                                     QMessageBox::AcceptRole);
     }
     QPushButton* allButton = ask.addButton(tr("All resources"), QMessageBox::AcceptRole);

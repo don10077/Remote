@@ -13,6 +13,7 @@
 #include <gtest/gtest.h>
 #include "harmony/core/remoteProfile.h"
 #include "harmony/core/configDocument.h"
+#include "harmony/core/modelInfo.h"
 #include <algorithm>
 
 namespace {
@@ -258,6 +259,11 @@ TEST_F(RemoteResourcesTest, DiscoverNewModelAndPersistProject) {
     auto document = harmony::ConfigDocument::createNew("Custom remote");
     ASSERT_TRUE(document.setTargetRemote("custom-600"));
     EXPECT_EQ(document.targetRemote(), "custom-600");
+    EXPECT_TRUE(document.targetModel().custom);
+    EXPECT_TRUE(document.targetModel().hasProfile);
+    EXPECT_FALSE(document.targetModel().known);
+    EXPECT_EQ(document.targetModel().name, "Custom 600");
+    EXPECT_EQ(document.targetModel().link, harmony::LinkKind::None);
     EXPECT_FALSE(document.toEzHex(true));
     const auto saved = document.toEzHex(false);
     ASSERT_TRUE(saved);
@@ -277,6 +283,30 @@ TEST_F(RemoteResourcesTest, DiscoverNewModelAndPersistProject) {
     EXPECT_EQ(harmony::remoteProfile("custom-600"), nullptr);
     EXPECT_EQ(reopened->targetRemote(), "custom-600");
     EXPECT_FALSE(reopened->toEzHex(true));
+    EXPECT_FALSE(reopened->targetModel().hasProfile);
+    EXPECT_FALSE(reopened->targetModel().custom);
+    EXPECT_EQ(reopened->targetModel().name, "custom-600");
+}
+
+TEST_F(RemoteResourcesTest, ModelInfoUsesOnlyItsOwnProfileAfterReload) {
+    EXPECT_TRUE(harmony::modelInfo("600").hasProfile);
+    EXPECT_FALSE(harmony::modelInfo("600i").hasProfile);
+    EXPECT_FALSE(harmony::modelInfo("525").hasProfile);
+    ASSERT_TRUE(QDir().mkpath(dir.path() + "/remotes/600i"));
+    auto remote = remoteOf("600");
+    remote["id"] = "600i";
+    remote["name"] = "Copied profile";
+    write("remotes/600i/remote.json", toBytes(remote));
+    write("remotes/600i/photo.png", resources::data(":/res/remotes/600/photo.png"));
+    ASSERT_TRUE(resources::reload(dir.path()).isEmpty());
+    const auto info = harmony::modelInfo("600i");
+    EXPECT_TRUE(info.hasProfile);
+    EXPECT_TRUE(info.known);
+    EXPECT_FALSE(info.custom);
+    EXPECT_EQ(info.name, "Harmony 600i");
+    EXPECT_EQ(harmony::profileFor("600i").folder, "remotes/600i");
+    ASSERT_TRUE(resources::reload(builtin.path()).isEmpty());
+    EXPECT_FALSE(harmony::modelInfo("600i").hasProfile);
 }
 
 TEST_F(RemoteResourcesTest, GridScreenCellsGetRectsFromColRowAndSpans) {

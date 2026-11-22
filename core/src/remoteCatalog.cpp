@@ -1,5 +1,7 @@
 #include "harmony/core/remoteCatalog.h"
 
+#include "harmony/core/remoteProfile.h"
+
 #include <algorithm>
 #include <array>
 #include <cctype>
@@ -46,6 +48,13 @@ std::string normalizedModelId(std::string_view id) {
     std::ranges::transform(result, result.begin(),
                            [](unsigned char symbol) { return static_cast<char>(std::tolower(symbol)); });
     return result;
+}
+
+std::string modelDisplayName(std::string_view modelId) {
+    if (modelId.empty()) return {};
+    if (const auto* model = catalogModel(modelId)) return std::string(model->name);
+    if (const auto* profile = remoteProfile(modelId)) return profile->name;
+    return std::string(modelId);
 }
 
 } // namespace harmony
