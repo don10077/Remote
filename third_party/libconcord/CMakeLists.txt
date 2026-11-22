@@ -12,7 +12,13 @@ if(APPLE)
         endforeach()
         FetchContent_Declare(harmony_libzip
             GIT_REPOSITORY https://github.com/nih-at/libzip.git
-            GIT_TAG v1.12.1 GIT_SHALLOW TRUE)
+            GIT_TAG v1.12.1 GIT_SHALLOW TRUE
+            # SYSTEM — как у nlohmann_json и zlib: чужие заголовки не должны давать
+            # диагностику в наших единицах перевода. Без этого Apple Clang с -Werror
+            # падает на `-Wnullability-extension` в zip.h (прогон CI 121923762634):
+            # `_Nullable` и `_Nonnull` — расширение Clang, а предупреждение приходит
+            # из чужого заголовка, который мы включаем.
+            SYSTEM)
         FetchContent_MakeAvailable(harmony_libzip)
         install(FILES "${harmony_libzip_SOURCE_DIR}/LICENSE"
             DESTINATION "${CMAKE_INSTALL_DATADIR}/licenses/harmony/libzip" COMPONENT harmony)
@@ -22,6 +28,10 @@ if(APPLE)
 else()
     find_package(PkgConfig REQUIRED)
     pkg_check_modules(CONCORD_ZIP REQUIRED IMPORTED_TARGET GLOBAL libzip)
+    # Тот же смысл, что и в ветке выше: чужие заголовки — системные, поэтому diagnostics
+    # из `zip.h` не становятся ошибками при HARMONY_WARNINGS_AS_ERRORS=ON.
+    set_target_properties(PkgConfig::CONCORD_ZIP PROPERTIES
+        INTERFACE_SYSTEM_INCLUDE_DIRECTORIES "${CONCORD_ZIP_INCLUDE_DIRS}")
     target_link_libraries(harmony_zip INTERFACE PkgConfig::CONCORD_ZIP)
 endif()
 add_library(harmony_concord STATIC

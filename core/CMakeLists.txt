@@ -54,6 +54,7 @@ add_library(harmony_core
     src/irdb/signalIndex.cpp
     src/irdb/protocolLibrary.cpp
     src/keyNames.cpp
+    src/keyVocabulary.cpp
     src/model/remoteConfig.cpp
     src/propertyCatalog.cpp
     src/remotePreferences.cpp

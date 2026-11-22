@@ -111,6 +111,11 @@ The configuration from %1 will be copied into this archive.</source>
       <translation>Для команд (%1) ИК-коды подобраны из базы по модели устройства и имени команды (выделены цветом в списке команд). Стоковый хаб не сообщает свои коды, поэтому настоящие могут отличаться.</translation>
     </message>
     <message>
+      <location filename="../../../app/src/remoteSession.cpp" />
+      <source>%1 connects by %2: reading and saving go through the transfer path, this operation is not available for it</source>
+      <translation type="unfinished" />
+    </message>
+    <message>
       <location filename="../../../app/src/zoneEditing.cpp" />
       <source>%1 covers the screen area</source>
       <translation>%1 перекрывает область экрана</translation>
@@ -2268,7 +2273,7 @@ Add a device?</source>
       <translation>Файлы конфигурации — все модели…</translation>
     </message>
     <message>
-      <location filename="../../../transport/src/harmony900Link.cpp" />
+      <location filename="../../../transport/src/usbNetLink.cpp" />
       <source>configuration for a different remote (%1), but %2 is connected</source>
       <translation>конфигурация для другого пульта (%1), а подключён %2</translation>
     </message>
@@ -2303,12 +2308,12 @@ Add a device?</source>
       <translation>Конфигурация записана на пульт</translation>
     </message>
     <message>
-      <location filename="../../../transport/src/harmony900Link.cpp" />
+      <location filename="../../../transport/src/usbNetLink.cpp" />
       <source>configuration written, but setting the clock failed</source>
       <translation>конфигурация записана, но часы выставить не удалось</translation>
     </message>
     <message>
-      <location filename="../../../transport/src/harmony900Link.cpp" />
+      <location filename="../../../transport/src/usbNetLink.cpp" />
       <source>configuration written, but the remote did not come back after restarting — reconnect it and check</source>
       <translation>конфигурация записана, но пульт не появился после перезапуска — переподключите его и проверьте</translation>
     </message>
@@ -2666,7 +2671,7 @@ Add a device?</source>
       <translation>Не удалось прочитать установочные файлы программы.</translation>
     </message>
     <message>
-      <location filename="../../../transport/src/harmony900Link.cpp" />
+      <location filename="../../../transport/src/usbNetLink.cpp" />
       <source>could not receive an IR signal chunk</source>
       <translation>не удалось получить часть ИК-сигнала</translation>
     </message>
@@ -2719,7 +2724,7 @@ Copy saved: %2</source>
       <translation>Не удалось отправить HID-запрос чтения</translation>
     </message>
     <message>
-      <location filename="../../../transport/src/harmony900Link.cpp" />
+      <location filename="../../../transport/src/usbNetLink.cpp" />
       <source>could not start IR learning</source>
       <translation>не удалось начать обучение ИК</translation>
     </message>
@@ -4458,7 +4463,7 @@ The file holds the Hub's answer as it is — device names, models and commands, 
       <translation>Обучение команды…</translation>
     </message>
     <message>
-      <location filename="../../../transport/src/harmony900Link.cpp" />
+      <location filename="../../../transport/src/usbNetLink.cpp" />
       <source>learning cancelled</source>
       <translation>обучение отменено</translation>
     </message>
@@ -4708,6 +4713,26 @@ The file holds the Hub's answer as it is — device names, models and commands, 
       <translation>Модель %1</translation>
     </message>
     <message>
+      <location filename="../../../transport/src/linkFactory.cpp" />
+      <source>Model %1 (%2): no connection is defined for this model</source>
+      <translation type="unfinished" />
+    </message>
+    <message>
+      <location filename="../../../transport/src/linkFactory.cpp" />
+      <source>Model %1 (%2): the hub configuration is read from its file, no connection is opened</source>
+      <translation type="unfinished" />
+    </message>
+    <message>
+      <location filename="../../../transport/src/linkFactory.cpp" />
+      <source>Model %1 is not in the catalog: the connection is chosen by the connected hardware (auto)</source>
+      <translation type="unfinished" />
+    </message>
+    <message>
+      <location filename="../../../transport/src/linkFactory.cpp" />
+      <source>Model %1: unknown connection</source>
+      <translation type="unfinished" />
+    </message>
+    <message>
       <location filename="../../../app/src/widgets/newDeviceDialog.cpp" />
       <source>Model:</source>
       <translation>Модель:</translation>
@@ -4952,7 +4977,7 @@ The file holds the Hub's answer as it is — device names, models and commands, 
       <translation>Драйвер подключения не задан</translation>
     </message>
     <message>
-      <location filename="../../../transport/src/harmony900Link.cpp" />
+      <location filename="../../../transport/src/usbNetLink.cpp" />
       <source>no connection to the remote — connect it via USB and wait a few seconds (on Windows the driver from Logitech Harmony Remote Software is required)</source>
       <translation>нет связи с пультом — подключите его по USB и подождите несколько секунд (на Windows нужен драйвер из Logitech Harmony Remote Software)</translation>
     </message>
@@ -5037,6 +5062,11 @@ The file holds the Hub's answer as it is — device names, models and commands, 
       <translation type="unfinished" />
     </message>
     <message>
+      <location filename="../../../transport/src/linkFactory.cpp" />
+      <source>No model chosen: the connection is chosen by the connected hardware (auto)</source>
+      <translation type="unfinished" />
+    </message>
+    <message>
       <location filename="../../../app/src/widgets/findByRemoteDialog.cpp" />
       <source>No model in the database sends these signals. Learn the commands instead: “New device…” → “Learn commands…”.</source>
       <translation>Ни одна модель базы не шлёт такие сигналы. Выучите команды: «Новое устройство…» → «Обучить команды…».</translation>
@@ -5079,7 +5109,7 @@ The file holds the Hub's answer as it is — device names, models and commands, 
       <translation>в IrProto.bin нет места для нового протокола</translation>
     </message>
     <message>
-      <location filename="../../../transport/src/harmony900Link.cpp" />
+      <location filename="../../../transport/src/usbNetLink.cpp" />
       <source>no signal — point the original remote at the Harmony and press a button</source>
       <translation>сигнала не было — направьте родной пульт на Harmony и нажмите кнопку</translation>
     </message>
@@ -6076,7 +6106,7 @@ The file holds the Hub's answer as it is — device names, models and commands, 
       <translation>Чтение отменено</translation>
     </message>
     <message>
-      <location filename="../../../transport/src/harmony900Link.cpp" />
+      <location filename="../../../transport/src/usbNetLink.cpp" />
       <source>reading cancelled</source>
       <translation>считывание отменено</translation>
     </message>
@@ -7465,7 +7495,7 @@ Translate the strings and restart the program — the language will appear in th
       <translation>Эту кнопку уже нажимали — нажмите другую.</translation>
     </message>
     <message>
-      <location filename="../../../transport/src/harmony900Link.cpp" />
+      <location filename="../../../transport/src/usbNetLink.cpp" />
       <source>the .EZHex contains no configuration archive</source>
       <translation>внутри .EZHex нет архива конфигурации</translation>
     </message>
@@ -8222,7 +8252,7 @@ They will not be sent to the remote either. When the device is made active again
       <translation>На пульте уже эта конфигурация</translation>
     </message>
     <message>
-      <location filename="../../../transport/src/harmony900Link.cpp" />
+      <location filename="../../../transport/src/usbNetLink.cpp" />
       <source>the remote answered a different command (expected %1)</source>
       <translation>пульт ответил не на ту команду (ждали %1)</translation>
     </message>
@@ -8317,7 +8347,7 @@ They will not be sent to the remote either. When the device is made active again
       <translation>пульт не подтвердил настройку %1</translation>
     </message>
     <message>
-      <location filename="../../../transport/src/harmony900Link.cpp" />
+      <location filename="../../../transport/src/usbNetLink.cpp" />
       <source>the remote did not report the configuration size</source>
       <translation>пульт не сообщил размер конфигурации</translation>
     </message>
@@ -8362,7 +8392,7 @@ They will not be sent to the remote either. When the device is made active again
       <translation>Пульт занят. Повторите после завершения текущей операции.</translation>
     </message>
     <message>
-      <location filename="../../../transport/src/harmony900Link.cpp" />
+      <location filename="../../../transport/src/usbNetLink.cpp" />
       <source>the remote is not connected</source>
       <translation>пульт не подключён</translation>
     </message>
@@ -8397,27 +8427,27 @@ They will not be sent to the remote either. When the device is made active again
       <translation>пульт отклонил настройку %1 (HTTP %2)</translation>
     </message>
     <message>
-      <location filename="../../../transport/src/harmony900Link.cpp" />
+      <location filename="../../../transport/src/usbNetLink.cpp" />
       <source>the remote rejected command %1 (status %2)</source>
       <translation>пульт отклонил команду %1 (статус %2)</translation>
     </message>
     <message>
-      <location filename="../../../transport/src/harmony900Link.cpp" />
+      <location filename="../../../transport/src/usbNetLink.cpp" />
       <source>the remote reported an empty configuration</source>
       <translation>пульт сообщил, что конфигурация пустая</translation>
     </message>
     <message>
-      <location filename="../../../transport/src/harmony900Link.cpp" />
+      <location filename="../../../transport/src/usbNetLink.cpp" />
       <source>the remote reported an implausible configuration size: %1 bytes</source>
       <translation>пульт сообщил неправдоподобный размер конфигурации: %1 байт</translation>
     </message>
     <message>
-      <location filename="../../../transport/src/harmony900Link.cpp" />
+      <location filename="../../../transport/src/usbNetLink.cpp" />
       <source>the remote sent an empty configuration chunk</source>
       <translation>пульт прислал пустую порцию конфигурации</translation>
     </message>
     <message>
-      <location filename="../../../transport/src/harmony900Link.cpp" />
+      <location filename="../../../transport/src/usbNetLink.cpp" />
       <source>the remote sent an incomplete configuration chunk</source>
       <translation>пульт прислал неполную порцию конфигурации</translation>
     </message>
@@ -8427,12 +8457,12 @@ They will not be sent to the remote either. When the device is made active again
       <translation>пульт прислал неполный ответ</translation>
     </message>
     <message>
-      <location filename="../../../transport/src/harmony900Link.cpp" />
+      <location filename="../../../transport/src/usbNetLink.cpp" />
       <source>the remote sent an unexpected signal chunk</source>
       <translation>пульт прислал неожиданную порцию сигнала</translation>
     </message>
     <message>
-      <location filename="../../../transport/src/harmony900Link.cpp" />
+      <location filename="../../../transport/src/usbNetLink.cpp" />
       <source>the remote sent incomplete information about itself</source>
       <translation>пульт прислал неполные сведения о себе</translation>
     </message>
@@ -8627,7 +8657,7 @@ They will not be sent to the remote either. When the device is made active again
       <translation>Мастер слушает команды по очереди: нажмите кнопку на родном пульте — и он сам перейдёт к следующей. Направьте родной пульт на верхний торец Harmony с 5–10 см; Harmony должен быть подключён по USB.</translation>
     </message>
     <message>
-      <location filename="../../../transport/src/harmony900Link.cpp" />
+      <location filename="../../../transport/src/usbNetLink.cpp" />
       <source>the write was interrupted before completion; the remote should keep its previous configuration</source>
       <translation>запись прервана до завершения; пульт должен остаться с прежней конфигурацией</translation>
     </message>
