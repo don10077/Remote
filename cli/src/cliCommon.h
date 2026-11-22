@@ -9,7 +9,7 @@
 #include "harmony/core/configDiff.h"
 #include "harmony/core/configDocument.h"
 #include "harmony/core/error.h"
-#include "harmony/transport/harmony900Link.h"
+#include "harmony/transport/usbNetLink.h"
 
 #include <cstddef>
 #include <filesystem>
@@ -23,7 +23,7 @@ namespace harmony::cli {
 [[nodiscard]] std::filesystem::path argumentPath(std::span<char*> args, std::size_t index);
 
 /// Подключается к пульту по адресу @p host и печатает модель, прошивку и серийный номер.
-harmony::Result<harmony::transport::RemoteInfo> connectRemote(harmony::transport::Harmony900Link& link,
+harmony::Result<harmony::transport::RemoteInfo> connectRemote(harmony::transport::UsbNetLink& link,
                                                               const std::string& host);
 
 /// Печатает проблемы проверки и итог; возвращает число ошибок.

@@ -1,5 +1,5 @@
 #include "harmony/transport/concordTransfer.h"
-#include "harmony/transport/harmony900Link.h"
+#include "harmony/transport/usbNetLink.h"
 #include "harmony/core/remoteCatalog.h"
 #include "harmony/core/formats/container.h"
 #include "harmony/core/formats/zipArchive.h"
@@ -256,7 +256,7 @@ formats::RemoteCapture makeCapture(const TransferInfo& info, formats::Bytes data
 
 struct ConcordTransfer::Impl {
     std::unique_lock<std::mutex> lock{sessionMutex, std::try_to_lock};
-    std::unique_ptr<Harmony900Link> network;
+    std::unique_ptr<UsbNetLink> network;
     TransferInfo info;
     bool initialized = false;
     bool connected = false;
@@ -298,7 +298,7 @@ Result<TransferInfo> ConcordTransfer::connect(std::string_view modelId, const En
         if (automatic && hidCount == 0) info.network = true;
     }
     if (info.network) {
-        impl_->network = std::make_unique<Harmony900Link>();
+        impl_->network = std::make_unique<UsbNetLink>();
         auto remote = impl_->network->connect(endpoint);
         if (!remote) return std::unexpected(remote.error());
         info.remote = *remote;

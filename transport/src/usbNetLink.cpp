@@ -1,9 +1,10 @@
 /**
- * @file harmony900Link.cpp
- * @brief Обмен с Harmony 900: опознание, чтение и запись конфигурации.
+ * @file usbNetLink.cpp
+ * @brief Обмен по USB-сети: опознание, чтение и запись конфигурации (модели каталога с
+ *        `link: usb-net`, протокол собран на Harmony 900).
  */
 
-#include "harmony/transport/harmony900Link.h"
+#include "harmony/transport/usbNetLink.h"
 
 #include "harmony/core/remoteCatalog.h"
 #include "harmony/transport/usbnet.h"
@@ -50,7 +51,7 @@ std::string modelName(int skin) {
 }
 
 /// Запрос — ответ по каналу с проверкой, что пульт ответил на эту команду успехом.
-struct Harmony900Link::Exchange {
+struct UsbNetLink::Exchange {
     static Result<Packet> request(Channel& channel, Command command, std::vector<Param> params,
                                   std::chrono::milliseconds timeout, std::vector<std::uint8_t> codes = {}) {
         Packet packet{.command = command, .request = true, .status = 0, .params = std::move(params),
@@ -77,12 +78,12 @@ struct Harmony900Link::Exchange {
     }
 };
 
-Harmony900Link::Harmony900Link(ChannelFactory factory, LinkTimings timings)
+UsbNetLink::UsbNetLink(ChannelFactory factory, LinkTimings timings)
     : factory_(std::move(factory)), timings_(timings) {}
 
-Harmony900Link::~Harmony900Link() = default;
+UsbNetLink::~UsbNetLink() = default;
 
-Result<void> Harmony900Link::openChannel() {
+Result<void> UsbNetLink::openChannel() {
     auto channel = factory_ ? factory_() : connectTcp(endpoint_.host, endpoint_.port, timings_.connect);
     if (!channel) {
         return wrapError(ErrorCode::Io, channel.error(),
@@ -94,7 +95,7 @@ Result<void> Harmony900Link::openChannel() {
     return {};
 }
 
-Result<RemoteInfo> Harmony900Link::identify() {
+Result<RemoteInfo> UsbNetLink::identify() {
     auto system = Exchange::request(*channel_, Command::GetSystemInfo, {}, timings_.reply);
     if (!system) {
         return std::unexpected(std::move(system.error()));
@@ -127,7 +128,7 @@ Result<RemoteInfo> Harmony900Link::identify() {
     return info;
 }
 
-Result<RemoteInfo> Harmony900Link::connect(const Endpoint& endpoint) {
+Result<RemoteInfo> UsbNetLink::connect(const Endpoint& endpoint) {
     disconnect();
     endpoint_ = endpoint;
     if (auto opened = openChannel(); !opened) {
@@ -142,11 +143,11 @@ Result<RemoteInfo> Harmony900Link::connect(const Endpoint& endpoint) {
     return info;
 }
 
-void Harmony900Link::disconnect() {
+void UsbNetLink::disconnect() {
     channel_.reset();
 }
 
-Result<std::vector<std::uint8_t>> Harmony900Link::readConfig(const ProgressHandler& progress) {
+Result<std::vector<std::uint8_t>> UsbNetLink::readConfig(const ProgressHandler& progress) {
     if (!channel_) {
         return makeError(ErrorCode::Io, "the remote is not connected");
     }
@@ -158,7 +159,7 @@ Result<std::vector<std::uint8_t>> Harmony900Link::readConfig(const ProgressHandl
     // иначе следующие команды он отвергает до перезапуска. Ответ на ReadRegionDone при ошибке
     // не проверяется — важнее вернуть исходную причину.
     struct DoneGuard {
-        Harmony900Link& link;
+        UsbNetLink& link;
         bool sent = false;
         Result<Packet> send() {
             sent = true;
@@ -217,7 +218,7 @@ Result<std::vector<std::uint8_t>> Harmony900Link::readConfig(const ProgressHandl
     return formats::writeEzHex(container);
 }
 
-Result<void> Harmony900Link::writeConfig(const std::vector<std::uint8_t>& ezhex, const ProgressHandler& progress) {
+Result<void> UsbNetLink::writeConfig(const std::vector<std::uint8_t>& ezhex, const ProgressHandler& progress) {
     if (!channel_) {
         return makeError(ErrorCode::Io, "the remote is not connected");
     }
@@ -326,7 +327,7 @@ Result<void> Harmony900Link::writeConfig(const std::vector<std::uint8_t>& ezhex,
     return {};
 }
 
-Result<ir::IrSignal> Harmony900Link::learnIr(const ProgressHandler& progress, std::chrono::seconds timeout) {
+Result<ir::IrSignal> UsbNetLink::learnIr(const ProgressHandler& progress, std::chrono::seconds timeout) {
     if (!channel_) {
         return makeError(ErrorCode::Io, "the remote is not connected");
     }

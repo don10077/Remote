@@ -9,7 +9,7 @@
 #include "harmony/core/ir/irSignal.h"
 #include "harmony/core/irdb/irDatabase.h"
 #include "harmony/core/irdb/modelFinder.h"
-#include "harmony/transport/harmony900Link.h"
+#include "harmony/transport/usbNetLink.h"
 
 #include <algorithm>
 #include <charconv>
@@ -38,7 +38,7 @@ int runIdentify(const std::filesystem::path& file, const std::string& host) {
         std::cerr << "Error: " << index.error().message << "\n";
         return 2;
     }
-    harmony::transport::Harmony900Link link;
+    harmony::transport::UsbNetLink link;
     if (!connectRemote(link, host)) {
         return 2;
     }

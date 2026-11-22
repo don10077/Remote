@@ -4,7 +4,7 @@
  */
 
 #include "harmony/core/formats/ezhex.h"
-#include "harmony/transport/harmony900Link.h"
+#include "harmony/transport/usbNetLink.h"
 #include "harmony/transport/usbnet.h"
 
 #include <gtest/gtest.h>
@@ -196,7 +196,7 @@ private:
 };
 
 /// Связь с поддельным пультом и короткими таймингами.
-Harmony900Link linkTo(const std::shared_ptr<FakeRemote>& remote) {
+UsbNetLink linkTo(const std::shared_ptr<FakeRemote>& remote) {
     ChannelFactory factory = [remote]() -> Result<std::unique_ptr<Channel>> {
         if (remote->resets > 0 && remote->refused < remote->refuseAfterReset) {
             ++remote->refused;
@@ -207,7 +207,7 @@ Harmony900Link linkTo(const std::shared_ptr<FakeRemote>& remote) {
     LinkTimings timings;
     timings.restartPoll = std::chrono::milliseconds(1);
     timings.restartAttempts = 5;
-    return Harmony900Link(factory, timings);
+    return UsbNetLink(factory, timings);
 }
 
 std::shared_ptr<FakeRemote> remoteWithSample() {
@@ -450,7 +450,7 @@ TEST(Harmony900Link, CancelStopsBeforeFinish) {
 }
 
 TEST(Harmony900Link, ExplainsMissingRemote) {
-    Harmony900Link link([]() -> Result<std::unique_ptr<Channel>> {
+    UsbNetLink link([]() -> Result<std::unique_ptr<Channel>> {
         return harmony::makeError(ErrorCode::Io, "пульт не найден по адресу 169.254.1.2:3074");
     });
 

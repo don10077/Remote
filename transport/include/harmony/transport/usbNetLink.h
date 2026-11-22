@@ -1,8 +1,9 @@
 #pragma once
 
 /**
- * @file harmony900Link.h
- * @brief Связь с Harmony 900 (и пультами того же семейства) по USB-сети.
+ * @file usbNetLink.h
+ * @brief Связь по USB-сети (RNDIS, 169.254.1.2) — модели каталога с `link: usb-net`:
+ *        900, 1000, 1000i, 1100, 1100i, xbox360. Протокол собран на Harmony 900.
  *
  * Чтение конфигурации: READ_REGION (размер) → READ_REGION_DATA порциями → READ_REGION_DONE.
  * Запись: START_UPDATE → WRITE_UPDATE_HEADER (размер) → WRITE_UPDATE_DATA порциями по 1 КБ
@@ -28,16 +29,16 @@ struct LinkTimings {
     int restartAttempts = 30;                     ///< Сколько попыток (≈ полторы минуты)
 };
 
-/// Связь с Harmony 900.
-class Harmony900Link final : public RemoteLink {
+/// Связь по USB-сети для моделей каталога с `link: usb-net` (протокол собран на Harmony 900).
+class UsbNetLink final : public RemoteLink {
 public:
     /**
      * @brief Создаёт связь.
      * @param factory Как подключаться; пусто — TCP к адресу из connect().
      * @param timings Тайминги.
      */
-    explicit Harmony900Link(ChannelFactory factory = {}, LinkTimings timings = {});
-    ~Harmony900Link() override;
+    explicit UsbNetLink(ChannelFactory factory = {}, LinkTimings timings = {});
+    ~UsbNetLink() override;
 
     [[nodiscard]] Result<RemoteInfo> connect(const Endpoint& endpoint) override;
     void disconnect() override;
@@ -74,8 +75,9 @@ private:
 };
 
 /**
- * @brief Название модели по skin.
- * @return «Harmony 900», «Harmony 1000», … или пусто, если модель неизвестна.
+ * @brief Название модели по skin — из справочника моделей (U3).
+ * @return Имя модели каталога («Harmony 900», «Harmony 1000», …) или пусто, если skin
+ *         в справочнике нет.
  */
 [[nodiscard]] std::string modelName(int skin);
 

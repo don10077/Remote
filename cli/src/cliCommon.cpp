@@ -25,7 +25,7 @@ std::filesystem::path argumentPath(std::span<char*> args, std::size_t index) {
 }
 
 /// Подключается к пульту и печатает, что за пульт.
-harmony::Result<harmony::transport::RemoteInfo> connectRemote(harmony::transport::Harmony900Link& link,
+harmony::Result<harmony::transport::RemoteInfo> connectRemote(harmony::transport::UsbNetLink& link,
                                                               const std::string& host) {
     auto info = link.connect({.host = host, .port = harmony::transport::Endpoint{}.port});
     if (info) {

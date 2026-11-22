@@ -428,13 +428,16 @@ void MainWindow::updateTitle() {
     closeAction_->setEnabled(open);
     recoverIrAction_->setEnabled(open);
     if (open) selectedRemote_ = QString::fromStdString(document_->targetRemote());
+    // Связь выбирается по модели документа (U4b): решение принимает фабрика связи.
+    const auto remoteModel = harmony::modelInfo(selectedRemote_.toStdString());
+    remote_->setModel(remoteModel);
     writeRemoteAction_->setEnabled(canWrite);
     writeRemoteAction_->setToolTip(writing);
     // Чтение — сбор сведений с любого подключённого пульта: профиль и целевая модель на него не влияют.
     readRemoteAction_->setEnabled(true);
     header_->setWriteEnabled(canWrite, writing);
     header_->setReadSavesFile(true);
-    const auto link = modelLink(selectedRemote_.toStdString());
+    const auto link = remoteModel.link;
     if (link == LinkKind::None)
         header_->setConnectionState(false, tr("No connection driver"));
     else if (link == LinkKind::UsbHid)

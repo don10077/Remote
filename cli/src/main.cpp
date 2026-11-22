@@ -18,7 +18,7 @@
 #include "remoteCommands.h"
 #include "transferCommands.h"
 #include "harmony/core/version.h"
-#include "harmony/transport/harmony900Link.h"
+#include "harmony/transport/usbNetLink.h"
 #include "harmony/transport/remoteLink.h"
 
 #include <cstddef>
@@ -275,7 +275,7 @@ int main(int argc, char* argv[]) {
         return runLearn(host);
     }
     if (command == "remote") {
-        harmony::transport::Harmony900Link link;
+        harmony::transport::UsbNetLink link;
         return connectRemote(link, host) ? 0 : 2;
     }
     if (command == "backup") {

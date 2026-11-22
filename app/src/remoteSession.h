@@ -9,14 +9,18 @@
  * итог сигналами. Одновременно выполняется только одна операция.
  */
 
+#include "harmony/core/modelInfo.h"
+#include "harmony/transport/linkFactory.h"
 #include "harmony/transport/remoteLink.h"
 
 #include <QObject>
 #include <QString>
 
 #include <atomic>
+#include <chrono>
 #include <cstdint>
 #include <functional>
+#include <memory>
 #include <vector>
 
 class QThread;
@@ -39,6 +43,13 @@ public:
 
     /// Тихо проверяет, подключён ли пульт (результат — stateChanged).
     void probe();
+
+    /**
+     * @brief Модель документа: по ней фабрика связи решает, чем подключаться (U4b).
+     * @param model Сводка модели (`modelInfo(id)`); модель не выбрана — связь выбирается
+     *        по подключённому железу (путь `connect("auto")`, решение владельца 23.11.2026).
+     */
+    void setModel(const harmony::ModelInfo& model) { model_ = model; }
 
     /// Читает конфигурацию с пульта (итог — readFinished или failed).
     void readConfig();
@@ -105,7 +116,20 @@ private:
     /// Подключается и сообщает окну состояние пульта.
     Result<transport::RemoteInfo> connectAndReport(transport::RemoteLink& link);
 
+    /// Связь для модели документа: решение принимает фабрика связи (U4b).
+    [[nodiscard]] Result<transport::LinkChoice> openLink(std::chrono::milliseconds connectTimeout = {});
+
+    /// Текст отказа для модели, которая подключается не по USB-сети.
+    [[nodiscard]] QString transferText() const;
+
+    /// Сообщает окну состояние пульта из фонового потока.
+    void reportState(bool connected, const QString& text);
+    /// Сообщает об ошибке из фонового потока.
+    void reportFailure(const QString& message, bool cancelled);
+    void reportFailure(const Error& error);
+
     QThread* thread_ = nullptr;
+    harmony::ModelInfo model_;             ///< модель документа (setModel)
     std::atomic<bool> cancelled_{false};
     bool probing_ = false;       ///< Идёт проверка подключения (probe())
     bool lastConnected_ = false; ///< Последнее известное состояние (для журнала)

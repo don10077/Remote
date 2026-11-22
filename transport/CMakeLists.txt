@@ -5,7 +5,8 @@
 
 add_library(harmony_transport
     src/concordTransfer.cpp
-    src/harmony900Link.cpp
+    src/usbNetLink.cpp
+    src/linkFactory.cpp
     src/remoteServices.cpp
     src/tcpChannel.cpp
     src/usbnet.cpp

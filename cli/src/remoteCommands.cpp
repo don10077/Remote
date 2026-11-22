@@ -11,7 +11,7 @@
 #include "harmony/core/configDocument.h"
 #include "harmony/core/ir/irSignal.h"
 #include "harmony/core/remotePreferences.h"
-#include "harmony/transport/harmony900Link.h"
+#include "harmony/transport/usbNetLink.h"
 #include "harmony/transport/remoteServices.h"
 
 #include <atomic>
@@ -143,7 +143,7 @@ std::string preferenceRange(const harmony::RemotePreference& preference) {
 
 /// Команда backup: конфигурация с пульта → файл .EZHex.
 int runBackup(const std::filesystem::path& file, const std::string& host) {
-    harmony::transport::Harmony900Link link;
+    harmony::transport::UsbNetLink link;
     if (!connectRemote(link, host)) {
         return 2;
     }
@@ -190,7 +190,7 @@ int runWrite(const std::filesystem::path& path, const std::string& host, bool fo
             return 3;
         }
     }
-    harmony::transport::Harmony900Link link;
+    harmony::transport::UsbNetLink link;
     if (!connectRemote(link, host)) {
         return 2;
     }
@@ -248,7 +248,7 @@ int runWrite(const std::filesystem::path& path, const std::string& host, bool fo
 
 /// Команда learn: выучить сигнал и напечатать протокол и длительности.
 int runLearn(const std::string& host) {
-    harmony::transport::Harmony900Link link;
+    harmony::transport::UsbNetLink link;
     if (!connectRemote(link, host)) {
         return 2;
     }

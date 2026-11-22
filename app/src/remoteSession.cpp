@@ -9,7 +9,8 @@
 #include "appSettings.h"
 #include "journal.h"
 
-#include "harmony/transport/harmony900Link.h"
+#include "harmony/transport/linkFactory.h"
+#include "harmony/transport/usbNetLink.h"
 #include "harmony/transport/concordTransfer.h"
 
 #include <QByteArray>
@@ -88,15 +89,41 @@ transport::ProgressHandler RemoteSession::progressHandler() {
     };
 }
 
+Result<transport::LinkChoice> RemoteSession::openLink(std::chrono::milliseconds connectTimeout) {
+    transport::LinkTimings timings;
+    if (connectTimeout.count() > 0) timings.connect = connectTimeout;
+    return transport::makeLink(model_, timings);
+}
+
+QString RemoteSession::transferText() const {
+    // Модель подключается не по USB-сети: для неё остаётся путь передачи — чтение и сохранение
+    // файла (readCapture), а эта операция требует связи.
+    return tr("%1 connects by %2: reading and saving go through the transfer path, this operation is not available for it")
+        .arg(QString::fromStdString(model_.name),
+             QString::fromStdString(std::string(harmony::linkName(model_.link))));
+}
+
+void RemoteSession::reportState(bool connected, const QString& text) {
+    QMetaObject::invokeMethod(this, [this, connected, text] { emit stateChanged(connected, text); },
+                              Qt::QueuedConnection);
+}
+
+void RemoteSession::reportFailure(const QString& message, bool cancelled) {
+    QMetaObject::invokeMethod(this, [this, message, cancelled] { emit failed(message, cancelled); },
+                              Qt::QueuedConnection);
+}
+
+void RemoteSession::reportFailure(const Error& error) {
+    reportFailure(labels::errorText(error), error.code == ErrorCode::Cancelled);
+}
+
 Result<transport::RemoteInfo> RemoteSession::connectAndReport(transport::RemoteLink& link) {
     // Адрес и порт — из настроек (обычно 169.254.1.2:3074).
     const transport::Endpoint endpoint{.host = settings::remoteHost().toStdString(),
                                        .port = static_cast<std::uint16_t>(settings::remotePort())};
     auto info = link.connect(endpoint);
     const bool connected = info.has_value();
-    const QString text = connected ? describe(*info) : tr("Remote not connected");
-    QMetaObject::invokeMethod(this, [this, connected, text] { emit stateChanged(connected, text); },
-                              Qt::QueuedConnection);
+    reportState(connected, connected ? describe(*info) : tr("Remote not connected"));
     return info;
 }
 
@@ -106,8 +133,16 @@ void RemoteSession::probe() {
     }
     probing_ = true; // сбрасывается по окончании потока
     run([this] {
-        transport::Harmony900Link link({}, {.connect = std::chrono::milliseconds(1500)});
-        (void)connectAndReport(link);
+        const auto choice = openLink(std::chrono::milliseconds(1500));
+        if (!choice) {
+            reportState(false, labels::errorText(choice.error()));
+            return;
+        }
+        if (!choice->link) {
+            reportState(false, transferText());
+            return;
+        }
+        (void)connectAndReport(*choice->link);
     });
 }
 
@@ -117,20 +152,17 @@ void RemoteSession::readConfig() {
     }
     journal::info(tr("Reading the configuration from the remote…"));
     run([this] {
-        transport::Harmony900Link link;
-        auto fail = [this](const Error& error) {
-            const QString message = labels::errorText(error);
-            const bool cancelled = error.code == ErrorCode::Cancelled;
-            QMetaObject::invokeMethod(this, [this, message, cancelled] { emit failed(message, cancelled); },
-                                      Qt::QueuedConnection);
-        };
+        const auto choice = openLink();
+        if (!choice) { reportFailure(choice.error()); return; }
+        if (!choice->link) { reportFailure(transferText(), false); return; }
+        auto& link = *choice->link;
         if (auto info = connectAndReport(link); !info) {
-            fail(info.error());
+            reportFailure(info.error());
             return;
         }
         auto ezhex = link.readConfig(progressHandler());
         if (!ezhex) {
-            fail(ezhex.error());
+            reportFailure(ezhex.error());
             return;
         }
         const QByteArray bytes(reinterpret_cast<const char*>(ezhex->data()), static_cast<qsizetype>(ezhex->size()));
@@ -142,28 +174,25 @@ void RemoteSession::readCapture() {
     if (busy()) return;
     journal::info(tr("Reading the remote for analysis…"));
     run([this] {
-        auto fail = [this](const Error& error) {
-            const QString message = labels::errorText(error);
-            const bool cancelled = error.code == ErrorCode::Cancelled;
-            QMetaObject::invokeMethod(this, [this, message, cancelled] { emit failed(message, cancelled); }, Qt::QueuedConnection);
-        };
+        // Чтение — по подключённому железу: модель документа на него не влияет (mainWindowRemote.cpp),
+        // поэтому здесь остаётся путь auto, а не решение фабрики.
         transport::ConcordTransfer session;
         auto info = session.connect("auto");
-        if (!info) { fail(info.error()); return; }
+        if (!info) { reportFailure(info.error()); return; }
         journal::info(tr("Reading %1: model %2, architecture %3, protocol %4, skin %5, transport %6")
             .arg(QString::fromStdString(info->remote.model), QString::fromStdString(info->modelId))
             .arg(info->remote.identity.architecture).arg(info->protocol).arg(info->remote.identity.skin)
             .arg(info->network ? QStringLiteral("USB network") : QStringLiteral("USB HID")));
         auto data = session.read(progressHandler());
-        if (!data) { fail(data.error()); return; }
+        if (!data) { reportFailure(data.error()); return; }
         const auto capture = transport::makeCapture(*info, std::move(*data));
         const auto json = formats::writeRemoteCapture(capture);
-        if (!json) { fail(json.error()); return; }
+        if (!json) { reportFailure(json.error()); return; }
         // Проверка по тем байтам, что уйдут в файл: так же файл разберёт получатель.
         const auto parsed = formats::parseRemoteCapture(*json);
-        if (!parsed) { fail(parsed.error()); return; }
+        if (!parsed) { reportFailure(parsed.error()); return; }
         const auto check = transport::inspectCapture(*parsed);
-        if (!check) { fail(check.error()); return; }
+        if (!check) { reportFailure(check.error()); return; }
         QStringList passed{tr("SHA-256 of the data"), tr("container checksum")};
         if (check->frame) passed << tr("image frame");
         const QString text = passed.join(QStringLiteral(", "));
@@ -180,20 +209,17 @@ void RemoteSession::learn(int seconds) {
     }
     journal::info(tr("Learning: waiting for a signal (%1 s)…").arg(seconds));
     run([this, seconds] {
-        transport::Harmony900Link link;
-        auto fail = [this](const Error& error) {
-            const QString message = labels::errorText(error);
-            const bool cancelled = error.code == ErrorCode::Cancelled;
-            QMetaObject::invokeMethod(this, [this, message, cancelled] { emit failed(message, cancelled); },
-                                      Qt::QueuedConnection);
-        };
+        const auto choice = openLink();
+        if (!choice) { reportFailure(choice.error()); return; }
+        if (!choice->link) { reportFailure(transferText(), false); return; }
+        auto& link = *choice->link;
         if (auto info = connectAndReport(link); !info) {
-            fail(info.error());
+            reportFailure(info.error());
             return;
         }
         auto signal = link.learnIr(progressHandler(), std::chrono::seconds(seconds));
         if (!signal) {
-            fail(signal.error());
+            reportFailure(signal.error());
             return;
         }
         QMetaObject::invokeMethod(this, [this, value = *signal] { emit learnFinished(value); }, Qt::QueuedConnection);
@@ -219,23 +245,22 @@ void RemoteSession::prepareWrite(QString backupFile) {
     }
     journal::info(tr("Before writing: reading the remote's configuration for the backup…"));
     run([this, backupFile] {
-        transport::Harmony900Link link;
-        auto fail = [this](const QString& message, bool cancelled) {
-            QMetaObject::invokeMethod(this, [this, message, cancelled] { emit failed(message, cancelled); },
-                                      Qt::QueuedConnection);
-        };
+        const auto choice = openLink();
+        if (!choice) { reportFailure(choice.error()); return; }
+        if (!choice->link) { reportFailure(transferText(), false); return; }
+        auto& link = *choice->link;
         if (auto info = connectAndReport(link); !info) {
-            fail(labels::errorText(info.error()), false);
+            reportFailure(labels::errorText(info.error()), false);
             return;
         }
         auto current = link.readConfig(progressHandler());
         if (!current) {
-            fail(tr("Could not save the backup, writing cancelled: %1").arg(labels::errorText(current.error())),
+            reportFailure(tr("Could not save the backup, writing cancelled: %1").arg(labels::errorText(current.error())),
                  current.error().code == ErrorCode::Cancelled);
             return;
         }
         if (!saveBackup(backupFile, *current)) {
-            fail(tr("Could not save the backup to %1, writing cancelled").arg(backupFile), false);
+            reportFailure(tr("Could not save the backup to %1, writing cancelled").arg(backupFile), false);
             return;
         }
         const QByteArray bytes(reinterpret_cast<const char*>(current->data()),
@@ -251,13 +276,12 @@ void RemoteSession::writeConfig(std::vector<std::uint8_t> ezhex, QString backupF
     }
     journal::info(tr("Writing the configuration to the remote (%1 KB)…").arg((ezhex.size() + 1023) / 1024));
     run([this, ezhex = std::move(ezhex), backupFile] {
-        transport::Harmony900Link link;
-        auto fail = [this](const QString& message, bool cancelled) {
-            QMetaObject::invokeMethod(this, [this, message, cancelled] { emit failed(message, cancelled); },
-                                      Qt::QueuedConnection);
-        };
+        const auto choice = openLink();
+        if (!choice) { reportFailure(choice.error()); return; }
+        if (!choice->link) { reportFailure(transferText(), false); return; }
+        auto& link = *choice->link;
         if (auto info = connectAndReport(link); !info) {
-            fail(labels::errorText(info.error()), false);
+            reportFailure(labels::errorText(info.error()), false);
             return;
         }
 
@@ -266,26 +290,29 @@ void RemoteSession::writeConfig(std::vector<std::uint8_t> ezhex, QString backupF
         if (!backupFile.isEmpty()) {
             auto current = link.readConfig(progressHandler());
             if (!current) {
-                fail(tr("Could not save the backup, writing cancelled: %1")
+                reportFailure(tr("Could not save the backup, writing cancelled: %1")
                          .arg(labels::errorText(current.error())),
                      current.error().code == ErrorCode::Cancelled);
                 return;
             }
             if (!saveBackup(backupFile, *current)) {
-                fail(tr("Could not save the backup to %1, writing cancelled").arg(backupFile), false);
+                reportFailure(tr("Could not save the backup to %1, writing cancelled").arg(backupFile), false);
                 return;
             }
         }
 
         auto written = link.writeConfig(ezhex, progressHandler());
         if (!written) {
-            fail(labels::errorText(written.error()), written.error().code == ErrorCode::Cancelled);
+            reportFailure(labels::errorText(written.error()), written.error().code == ErrorCode::Cancelled);
             return;
         }
         QStringList checksum;
-        for (const auto& param : link.updateChecksum()) {
-            checksum << QString::fromLatin1(QByteArray(reinterpret_cast<const char*>(param.data()),
-                                                       static_cast<qsizetype>(param.size())).toHex());
+        // Сумма обновления отвечает только связь по USB-сети; фабрика для модели 900 даёт именно её.
+        if (const auto* net = dynamic_cast<transport::UsbNetLink*>(&link)) {
+            for (const auto& param : net->updateChecksum()) {
+                checksum << QString::fromLatin1(QByteArray(reinterpret_cast<const char*>(param.data()),
+                                                           static_cast<qsizetype>(param.size())).toHex());
+            }
         }
         const auto payloadSize = static_cast<qint64>(ezhex.size());
         (void)connectAndReport(link); // обновить подпись в шапке после перезапуска
