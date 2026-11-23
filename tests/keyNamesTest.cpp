@@ -1,11 +1,12 @@
 /**
  * @file keyNamesTest.cpp
- * @brief Имена физических клавиш: один общий список для всех архитектур, независимо от профиля.
+ * @brief Старый API имён и регрессия импорта по скан-таблицам семейства (до K6).
  */
 
 #include "dumpFiles.h"
 
 #include "harmony/core/keyNames.h"
+#include "harmony/core/keyScans.h"
 #include "harmony/core/configDocument.h"
 #include "harmony/core/model/remoteConfig.h"
 #include "harmony/core/remoteCatalog.h"
@@ -13,6 +14,7 @@
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <filesystem>
 #include <set>
 #include <string>
@@ -74,11 +76,13 @@ TEST(KeyNames, OneSharedListForEveryArchitecture) {
     EXPECT_EQ(unique.size(), harmony::keyNames().size());
 }
 
-TEST(KeyNames, ImportNamesKeysFromTheSharedListForEveryArchitecture) {
+TEST(KeyNames, ImportNamesKeysFromTheirFamilyTables) {
     // Настоящие дампы (dumps/, не в git): без них тест пропускается (правило 19).
     struct Sample { const char* folder; const char* mask; const char* catalogId; };
     std::size_t checked = 0;
-    for (const Sample sample : {Sample{"EZHex/harmony525", "*.EZHex", "525"},
+    for (const Sample sample : {Sample{"EZHex/harmony650", "*.EZHex", "650"},
+                                Sample{"EZHex/harmony525", "*.EZHex", "525"},
+                                Sample{"EZHex/arch8", "H885-LivingRoom*.EZHex", "885"},
                                 Sample{"EZHex/arch8", "H880-*.EZHex", "880"}}) {
         const auto path = harmony::test::dumpFile(sample.folder, sample.mask);
         if (path.empty()) continue;
@@ -87,28 +91,24 @@ TEST(KeyNames, ImportNamesKeysFromTheSharedListForEveryArchitecture) {
         auto document = harmony::ConfigDocument::open(path);
         ASSERT_TRUE(document) << document.error().message;
 
-        // Имена клавиш даёт общая таблица, а не профиль: в этих дампах имён клавиш нет.
-        // Каталог знает модель по skin, но папки профиля у неё нет.
+        // Имена клавиш даёт таблица семейства/модели. Профиль не участвует.
         const auto* model = harmony::catalogModel(sample.catalogId);
         ASSERT_TRUE(model) << sample.catalogId;
-        EXPECT_TRUE(harmony::remoteProfile(sample.catalogId) == nullptr);
         EXPECT_EQ(document->targetRemote(), sample.catalogId);
         const auto names = hardNames(document->model());
         ASSERT_FALSE(names.empty());
 
-        // Требовать, что в дампе назначена конкретная клавиша, нельзя: в конфиге может быть
-        // одна кнопка, и часть клавиатуры в нём не используется. Проверяем только то, что
-        // имена назначенных клавиш взяты из общего списка и не придуманы.
+        // Число и состав назначений файла владельца не фиксируем (правило 19).
+        const auto* table = harmony::keyScanTable(model->architecture, model->id);
         for (const auto& name : names) {
-            EXPECT_TRUE(harmony::isKnownKeyName(name)) << name;
-            if (harmony::isUnknownKeyName(name)) {
-                const unsigned code = std::stoul(name.substr(harmony::kUnknownKeyPrefix.size()), nullptr, 16);
-                EXPECT_FALSE(harmony::keyNameConfirmed(code)) << name;
-                continue;
-            }
             if (name.starts_with("Scan")) {
-                const unsigned code = static_cast<unsigned>(std::stoi(name.substr(4)));
-                EXPECT_FALSE(harmony::keyName(code)) << name;
+                const unsigned code = static_cast<unsigned>(std::stoul(name.substr(4), nullptr, 16));
+                EXPECT_FALSE(harmony::keyNameForScan(model->architecture, model->id, code)) << name;
+                EXPECT_EQ(name, harmony::scanPlaceholder(code));
+            } else {
+                ASSERT_NE(table, nullptr) << name;
+                EXPECT_NE(std::ranges::find(table->entries, name, &harmony::KeyScan::name),
+                          table->entries.end()) << name;
             }
         }
     }

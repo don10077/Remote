@@ -2,7 +2,7 @@
 #include "harmony/core/formats/binaryHid.h"
 #include "harmony/core/formats/container.h"
 #include "harmony/core/formats/gspmFonts.h"
-#include "harmony/core/keyNames.h"
+#include "harmony/core/keyScans.h"
 #include <algorithm>
 #include <cctype>
 #include <cstring>
@@ -63,12 +63,14 @@ std::string nameText(std::string text) {
 /** All byte access and pointer resolution share one checked image boundary. */
 class Reader {
 public:
-    Reader(std::span<const std::uint8_t> bytes, const Container& frame) : bytes_(bytes), frame_(frame) {}
+    Reader(std::span<const std::uint8_t> bytes, const Container& frame, std::string_view modelId)
+        : bytes_(bytes), frame_(frame), modelId_(modelId) {}
     model::RemoteConfig read();
 
 private:
     std::span<const std::uint8_t> bytes_;
     const Container& frame_;
+    std::string_view modelId_; ///< Id из заголовка EZHex; действует до завершения read().
     std::vector<std::vector<Atom>> actions_;
     std::map<unsigned, std::string> names_;
     std::optional<unsigned> activityVariable_;
@@ -463,13 +465,10 @@ private:
                 {"blocks", all},
                 {"offset", start}};
     }
-    /// Имя физической клавиши по скан-коду — из общего списка (harmony/core/keyNames.h),
-    /// одного для всех архитектур: коды клавиш между семействами общие. Имя не зависит от
-    /// профиля модели: в самом файле имён клавиш нет. Таблица плотная 0x01…0x3F, поэтому
-    /// коды без подтверждения получают UnknownKey<код>; «Scan<N>» остаётся только для
-    /// кода 0x00 и для кодов выше таблицы.
+    /// Имя по таблице модели/семейства; без подтверждения — пометка ScanNN.
     std::string hardKeyName(unsigned scan) const {
-        return harmony::keyLabel(scan);
+        const auto name = harmony::keyNameForScan(frame_.family->architecture, modelId_, scan);
+        return name ? std::string(*name) : harmony::scanPlaceholder(scan);
     }
     void addButtons(std::vector<model::ControlGroup>& groups, const std::vector<Key>& bindings,
                     const model::RemoteConfig& config, bool screen) const {
@@ -524,9 +523,9 @@ private:
                 if ((key.tag >> 6) != 2)
                     continue;
                 const auto codes = commands(key.action);
-                const auto key_name = hardKeyName(key.tag & 63);
-                if (codes.size() == 1 && harmony::keyNameConfirmed(key.tag & 63))
-                    hardNames.emplace(codes[0], key_name);
+                const auto key_name = harmony::keyNameForScan(frame_.family->architecture, modelId_, key.tag & 63);
+                if (codes.size() == 1 && key_name)
+                    hardNames.emplace(codes[0], *key_name);
             }
         for (std::size_t d = 0; d < result.devices.size(); ++d) {
             std::set<std::string> used;
@@ -559,8 +558,7 @@ private:
     }
     /// Команда с собственной подписью (например, «Return»), висящая на клавише с другим именем
     /// («Exit»), остаётся под своим именем. Расхождение — предупреждение: имена различаются, и
-    /// сверить их в файле не с чем. Профиль пульта здесь ни при чём: имя клавиши даёт общий
-    /// список, а не наличие модели в ресурсах.
+    /// сверить их в файле не с чем. Имя клавиши даёт таблица модели/семейства без профиля.
     void warnKeyMismatch(model::RemoteConfig& result, const std::vector<Mode>& modes) const {
         std::set<std::string> reported;
         for (const auto& mode : modes)
@@ -576,14 +574,15 @@ private:
                 const auto& command = device.commands[codes[0] & 255].name;
                 const unsigned scan = key.tag & 63;
                 const auto key_name = hardKeyName(scan);
-                const bool unknown = !harmony::keyNameConfirmed(scan);
+                const bool unknown = !harmony::keyNameForScan(frame_.family->architecture, modelId_, scan);
                 const bool generic = command.starts_with("Command");
                 if (!unknown && (generic || command == key_name))
                     continue;
                 const auto text = unknown ? "Клавиша " + key_name + " (скан-код " + std::to_string(scan) +
-                                                ") не имеет подтверждённого имени по данным (команда " + command + ")"
+                                                ", архитектура " + std::to_string(frame_.family->architecture) +
+                                                ") без имени в таблице семейства"
                                           : "Команда " + command + " назначена на клавишу " + key_name +
-                                                ": имя команды не совпадает с общим именем клавиши";
+                                                ": имя команды не совпадает с именем клавиши в таблице семейства";
                 if (reported.insert(text).second)
                     result.properties.emplace_back("ImportWarning", text);
             }
@@ -768,7 +767,7 @@ model::RemoteConfig Reader::read() {
     return result;
 }
 } // namespace
-Result<model::RemoteConfig> importBinaryHid(std::span<const std::uint8_t> payload) {
+Result<model::RemoteConfig> importBinaryHid(std::span<const std::uint8_t> payload, std::string_view modelId) {
     if (payload.size() > 10 && std::memcmp(payload.data(), "TPTP", 4) == 0 && payload[9] == 23)
         while (!payload.empty() && payload.back() == 0)
             payload = payload.first(payload.size() - 1);
@@ -776,7 +775,7 @@ Result<model::RemoteConfig> importBinaryHid(std::span<const std::uint8_t> payloa
     if (!frame)
         return std::unexpected(frame.error());
     try {
-        return Reader(payload, *frame).read();
+        return Reader(payload, *frame, modelId).read();
     } catch (const std::exception& error) {
         return makeError(ErrorCode::Format, "HID import: %1", {error.what()});
     }

@@ -21,6 +21,7 @@ add_executable(harmony_tests
     configEditTest.cpp
     configEzHexTest.cpp
     formats/containerTest.cpp
+    formats/binaryHidImportTest.cpp
     formats/digestTest.cpp
     formats/ezhexTest.cpp
     formats/gspmTest.cpp
