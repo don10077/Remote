@@ -25,6 +25,7 @@
 #include <QPushButton>
 #include <QRadioButton>
 #include <QSpinBox>
+#include <QStandardItemModel>
 #include <QVBoxLayout>
 
 #include <algorithm>
@@ -179,15 +180,26 @@ ButtonDialog::ButtonDialog(const model::RemoteConfig& config, std::string target
         key_ = new QComboBox(this);
         // K5: список клавиш модели решается с конфигурацией документа; словарь добавляет ядро,
         // когда модели отвечать нечем (ModelKeys::vocabularyFallback).
-        for (const QString& id : uiKeyIds(QString::fromStdString(targetRemote_), &config_)) {
+        QString previousCategory;
+        int firstKey = -1;
+        for (const QString& id : groupedUiKeyIds(QString::fromStdString(targetRemote_), &config_)) {
+            const QString category = labels::keyCategory(id.toStdString());
+            if (category != previousCategory) {
+                key_->addItem(category);
+                auto* items = qobject_cast<QStandardItemModel*>(key_->model());
+                items->item(key_->count() - 1)->setFlags(Qt::NoItemFlags);
+                previousCategory = category;
+            }
             const std::string action = currentAction(ButtonRef::hard(id));
             QString text = RemoteView::keyName(id);
             if (!action.empty()) {
                 text += "  —  " + labels::action(config_, action).section(" · ", 0, 1);
             }
             key_->addItem(text, id);
+            if (firstKey < 0) firstKey = key_->count() - 1;
         }
-        key_->setCurrentIndex(std::max(key_->findData(initial_.key), 0));
+        const int initialKey = key_->findData(initial_.key);
+        key_->setCurrentIndex(initialKey >= 0 ? initialKey : firstKey);
         form->addRow(tr("Button:"), key_);
     }
 

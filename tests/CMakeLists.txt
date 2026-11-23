@@ -105,6 +105,14 @@ if(HARMONY_BUILD_APP)
         remoteViewTest.cpp
         remoteResourcesTest.cpp
         noProfileWidgetsTest.cpp
+        screenButtonsWidgetsTest.cpp
+        hardButtonsWidgetsTest.cpp
+        ../app/src/widgets/buttonDialog.cpp
+        ../app/src/widgets/buttonDialog.h
+        ../app/src/widgets/configView.cpp
+        ../app/src/widgets/configView.h
+        ../app/src/widgets/toggleSwitch.cpp
+        ../app/src/widgets/toggleSwitch.h
         noDefaultModelTest.cpp
         assignmentGateTest.cpp
         zoneEditingDictionaryTest.cpp

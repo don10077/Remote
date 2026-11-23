@@ -10,8 +10,7 @@
  * 1. `hardKeyIds(id)` отвечает тем же списком, что `modelKeyIds(id)`: без профиля список не
  *    пуст — его даёт таблица семейства или имена конфигурации;
  * 2. пустой id — модель не выбрана: модель по умолчанию не подставляется (Q3, U1);
- * 3. `sharedKeyIds()` — словарь вида `Key` в порядке словаря; заполнители `UnknownKeyNN` в нём
- *    нет, и он не зависит от профиля модели;
+ * 3. Запасной список sharedKeyIds удалён в A3: выбор клавиш проверяется через диалог.
  * 4. размер фото и геометрия зоны в решении о списке не участвуют: для пульта, который
  *    `reload()` принял, они выполнены самой загрузкой (`checkModel()`), поэтому для пультов в
  *    снимке список не меняется;
@@ -24,7 +23,6 @@
 #include "../app/src/modern/remoteView.h"
 #include "../app/src/remoteResources.h"
 
-#include "harmony/core/keyVocabulary.h"
 #include "harmony/core/model/remoteConfig.h"
 #include "harmony/core/modelInfo.h"
 #include "harmony/core/remoteCatalog.h"
@@ -60,14 +58,6 @@ protected:
     }
     void TearDown() override { resources::reload(root.path()); }
 };
-
-/// Имена словаря, допустимые для вида `Key`, в порядке словаря.
-QStringList dictionaryOfKeyKind() {
-    QStringList names;
-    for (const auto& name : harmony::keyNamesForKind(harmony::PhysicalKind::Key))
-        names.append(QString::fromUtf8(name.data(), static_cast<int>(name.size())));
-    return names;
-}
 
 /// Записать remote.json в папку тестового снимка.
 void writeFixture(const QString& root, const QString& id, const QJsonObject& remote) {
@@ -108,17 +98,6 @@ TEST_F(HardKeyIdsTest, EmptyIdIsNotTheDefaultModel) {
     EXPECT_NE(RemoteView::hardKeyIds(""), RemoteView::hardKeyIds("900"))
         << "модель по умолчанию (900) здесь не участвует (U1)";
     EXPECT_TRUE(harmony::modelInfo("").id.empty()) << "модель не выбрана";
-}
-
-// 4. `sharedKeyIds()` — словарь вида `Key` в порядке словаря; заполнителей в нём нет.
-TEST_F(HardKeyIdsTest, SharedKeyIdsIsTheDictionaryOfKeyKind) {
-    const auto dictionary = dictionaryOfKeyKind();
-    ASSERT_FALSE(dictionary.isEmpty()) << "словарь пуст — проверять нечего";
-    EXPECT_EQ(RemoteView::sharedKeyIds(), dictionary);
-
-    for (const auto& name : RemoteView::sharedKeyIds()) {
-        ASSERT_TRUE(harmony::keyInfo(name.toStdString())) << name.toStdString() << ": имя словаря";
-    }
 }
 
 // 5. Факт: пульт с несовпавшим размером фото в снимок не попадает, поэтому имён из его профиля

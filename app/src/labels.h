@@ -49,6 +49,9 @@ QString action(const model::RemoteConfig& config, const std::string& actionId);
 /// @return Русское название группы кнопок («Misc» → «Экран», «HardButtons» → «Клавиши»).
 QString controlGroup(const std::string& name);
 
+/// @return Перевод категории клавиши словаря; для неизвестного имени — «Другие клавиши».
+QString keyCategory(const std::string& name);
+
 /**
  * @brief Подпись кнопки для таблицы.
  * @return Текст кнопки; если он пустой — имя значка в квадратных скобках;

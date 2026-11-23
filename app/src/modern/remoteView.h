@@ -151,8 +151,6 @@ public:
      * Не вызывать из функций отрисовки.
      */
     static QStringList hardKeyIds(const QString& remoteId = {});
-    /** Имена словаря, допустимые для вида `Key`, в порядке словаря; не зависит от профиля модели. */
-    static QStringList sharedKeyIds();
     /** Переведённое название режима экрана ("transport" → «Мультимедиа»); неизвестный — как есть. */
     static QString screenModeName(const QString& mode);
 

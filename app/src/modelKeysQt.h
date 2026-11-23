@@ -59,4 +59,13 @@ namespace harmony::app {
 [[nodiscard]] QStringList uiKeyIds(const QString& modelId,
                                    const harmony::model::RemoteConfig* config = nullptr);
 
+/**
+ * @brief Группирует список для таблицы и диалога по категориям словаря.
+ * @param modelId Id модели документа; пусто — модель неизвестна.
+ * @param config Конфигурация для дополнительных имён клавиш.
+ * @return Клавиши UI без повторов; порядок внутри категории сохранён, неизвестные имена в конце.
+ */
+[[nodiscard]] QStringList groupedUiKeyIds(const QString& modelId,
+                                          const harmony::model::RemoteConfig* config = nullptr);
+
 } // namespace harmony::app

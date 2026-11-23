@@ -7,12 +7,34 @@
 
 #include "i18n.h"
 #include "harmony/core/macro.h"
+#include "harmony/core/keyVocabulary.h"
 
 #include <QCoreApplication>
 #include <QHash>
 #include <QLocale>
 
 namespace harmony::app::labels {
+
+QString keyCategory(const std::string& name) {
+    const auto* info = harmony::keyInfo(name);
+    if (!info) return QCoreApplication::translate("labels", "Other keys");
+    switch (info->category) {
+    case KeyCategory::Service: return QCoreApplication::translate("labels", "Service");
+    case KeyCategory::Activity: return QCoreApplication::translate("labels", "Activities");
+    case KeyCategory::Device: return QCoreApplication::translate("labels", "Devices");
+    case KeyCategory::Favorite: return QCoreApplication::translate("labels", "Favorites");
+    case KeyCategory::Navigation: return QCoreApplication::translate("labels", "Navigation");
+    case KeyCategory::Dpad: return QCoreApplication::translate("labels", "D-pad");
+    case KeyCategory::Volume: return QCoreApplication::translate("labels", "Volume");
+    case KeyCategory::Channel: return QCoreApplication::translate("labels", "Channels");
+    case KeyCategory::Transport: return QCoreApplication::translate("labels", "Transport");
+    case KeyCategory::Digit: return QCoreApplication::translate("labels", "Digits");
+    case KeyCategory::Color: return QCoreApplication::translate("labels", "Colors");
+    case KeyCategory::Screen: return QCoreApplication::translate("labels", "Screen keys");
+    case KeyCategory::Page: return QCoreApplication::translate("labels", "Pages");
+    }
+    return QCoreApplication::translate("labels", "Other keys");
+}
 
 QString signalDetails(const ir::IrSignal& signal) {
     const auto decoded = ir::decode(signal);

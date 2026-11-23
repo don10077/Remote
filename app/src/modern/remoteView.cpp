@@ -311,12 +311,6 @@ QStringList RemoteView::hardKeyIds(const QString& remoteId) {
     return modelKeyIds(remoteId);
 }
 
-QStringList RemoteView::sharedKeyIds() {
-    // Имена словаря, допустимые для вида `Key`, в порядке словаря. Список не зависит ни от
-    // профиля модели, ни от скан-кода: это список имён, а не список клавиш какой-либо модели.
-    return dictionaryIdsForKind(harmony::PhysicalKind::Key);
-}
-
 QString RemoteView::keyName(const QString& id) {
     // Имя кнопки показывается как есть: id зоны — всегда английское имя из словаря
     // (harmony/core/keyVocabulary.h), и переводить его нельзя, иначе оно перестанет совпадать

@@ -19,6 +19,8 @@
 #include "toggleSwitch.h"
 
 #include <QDrag>
+#include <QDragEnterEvent>
+#include <QDropEvent>
 #include <QFontDatabase>
 #include <QKeyEvent>
 #include <QFrame>
@@ -49,6 +51,7 @@ constexpr const char* kDevices = "devices";
 /// Роли данных строки таблицы кнопок: что подсветить на пульте.
 constexpr int kHardKeyRole = Qt::UserRole + 1; ///< Имя аппаратной кнопки (QString)
 constexpr int kSoftRole = Qt::UserRole + 2;    ///< Позиция экранной кнопки (int)
+constexpr int kAssignedRole = Qt::UserRole + 3; ///< У строки есть сохранённая кнопка.
 
 /// Таблица только для чтения с заданными заголовками столбцов (@p table — своя, иначе новая).
 QTableWidget* makeTable(const QStringList& headers, QTableWidget* table = nullptr) {
@@ -890,6 +893,9 @@ QWidget* ConfigView::makeButtonsPage(const ButtonOwner& owner, const std::vector
 
     buttonsTable_ = makeTable({tr("Where"), tr("Button"), tr("Action")});
     buttonsTable_->installEventFilter(this);
+    buttonsTable_->setAcceptDrops(true);
+    buttonsTable_->setDragDropMode(QAbstractItemView::DropOnly);
+    buttonsTable_->viewport()->installEventFilter(this);
     fillButtons(buttonsTable_, groups);
     linkToRemote(buttonsTable_);
     layout->addWidget(buttonsTable_, 1);
@@ -939,10 +945,41 @@ std::optional<ButtonRef> ConfigView::selectedButton() const {
     if (!key.isEmpty()) {
         return ButtonRef::hard(key);
     }
-    return ButtonRef::screen(item->data(kSoftRole).toInt());
+    if (item->data(kSoftRole).isValid()) {
+        return ButtonRef::screen(item->data(kSoftRole).toInt());
+    }
+    return std::nullopt;
 }
 
 bool ConfigView::eventFilter(QObject* watched, QEvent* event) {
+    if (buttonsTable_ && watched == buttonsTable_->viewport() &&
+        (event->type() == QEvent::DragEnter || event->type() == QEvent::DragMove ||
+         event->type() == QEvent::Drop)) {
+        auto* drop = static_cast<QDropEvent*>(event);
+        QString deviceId;
+        QString command;
+        auto* item = buttonsTable_->itemAt(drop->position().toPoint());
+        bool allowed = false;
+        std::optional<ButtonRef> target;
+        if (item && canAssignButtons() && RemoteView::parseCommandPayload(
+                drop->mimeData()->data(RemoteView::MIME_COMMAND), deviceId, command)) {
+            const auto* where = buttonsTable_->item(item->row(), 0);
+            const QString key = where->data(kHardKeyRole).toString();
+            if (!key.isEmpty()) target = ButtonRef::hard(key);
+            else if (where->data(kSoftRole).isValid()) target = ButtonRef::screen(where->data(kSoftRole).toInt());
+            const auto keys = modelKeysFor(QString::fromStdString(targetRemoteId()), config_);
+            allowed = target && (drop->possibleActions() & Qt::CopyAction) &&
+                      buttonAllowed(*target, keys, ButtonAction::AssignTo, false);
+        }
+        if (allowed) {
+            drop->setDropAction(Qt::CopyAction);
+            drop->accept();
+            if (event->type() == QEvent::Drop) commandDropped(*target, deviceId, command);
+        } else {
+            drop->ignore();
+        }
+        return true;
+    }
     const bool table = watched == buttonsTable_ || watched == commandsTable_.data();
     if (table && (event->type() == QEvent::ShortcutOverride || event->type() == QEvent::KeyPress)) {
         const auto* key = static_cast<const QKeyEvent*>(event);
@@ -1030,7 +1067,9 @@ void ConfigView::updateButtonActions() {
                                             : harmony::ModelKeys{};
     editButtonAction_->setEnabled(selected.has_value() && canAssignButtons() &&
                                   buttonAllowed(*selected, keys, ButtonAction::TakeFrom, false));
-    removeButtonAction_->setEnabled(selected.has_value() && canAssignButtons());
+    const auto* item = selected ? buttonsTable_->item(buttonsTable_->currentRow(), 0) : nullptr;
+    removeButtonAction_->setEnabled(selected.has_value() && canAssignButtons() &&
+                                    item->data(kAssignedRole).toBool());
     // Экранная кнопка удаляется целиком, у аппаратной снимается только назначение.
     removeButtonAction_->setText(selected && selected->soft ? tr("Delete") : tr("Clear assignment"));
 }
@@ -1365,35 +1404,33 @@ void ConfigView::showDevice(int index) {
 
 void ConfigView::fillButtons(QTableWidget* table,
                              const std::vector<model::ControlGroup>& groups) const {
+    std::vector<const model::Button*> screenButtons;
+    std::map<std::string, std::vector<const model::Button*>> hardButtons;
     for (const auto& group : groups) {
-        // Экранные кнопки — в порядке места на экране, аппаратные — сверху вниз по пульту.
-        std::vector<const model::Button*> ordered;
         for (const auto& button : group.buttons) {
-            ordered.push_back(&button);
+            if (button.name.empty()) screenButtons.push_back(&button);
+            else hardButtons[button.name].push_back(&button);
         }
-        // K5: порядок строк таблицы — список модели с конфигурацией документа. Словарь добавляется
-        // только когда модели отвечать нечем (ModelKeys::vocabularyFallback), а не когда список пуст:
-        // иначе имена конфигурации пропадали бы из порядка.
-        QStringList keyOrder = uiKeyIds(QString::fromStdString(targetRemoteId()), config_);
-        std::ranges::stable_sort(ordered, {}, [&keyOrder](const model::Button* button) {
-            if (button->name.empty())
-                return button->position;
-            const int index = keyOrder.indexOf(QString::fromStdString(button->name));
-            // Имени нет в списке (модели нет в ресурсах) — в конец списка, а не в начало.
-            return index < 0 ? static_cast<int>(keyOrder.size()) + button->position : index;
-        });
-        for (const auto* button : ordered) {
-            const bool hard = !button->name.empty();
-            const QString where = hard ? tr("Remote button") : tr("Screen");
-            const QString text = hard ? RemoteView::keyName(QString::fromStdString(button->name))
-                                      : labels::button(*button);
-            const int row = addRow(table, {where, text, labels::action(*config_, button->actionId)});
-            if (hard) {
-                table->item(row, 0)->setData(kHardKeyRole, QString::fromStdString(button->name));
-            } else {
-                table->item(row, 0)->setData(kSoftRole, button->position);
-            }
-        }
+    }
+    std::ranges::stable_sort(screenButtons, {}, [](const model::Button* button) { return button->position; });
+    for (const auto* button : screenButtons) {
+        const int row = addRow(table, {tr("Screen"), labels::button(*button), labels::action(*config_, button->actionId)});
+        table->item(row, 0)->setData(kSoftRole, button->position);
+        table->item(row, 0)->setData(kAssignedRole, true);
+    }
+    // A3: полный список модели, включая неназначенные клавиши. Категории общие с диалогом;
+    // неизвестные имена конфигурации сохраняются в конце списка, без переименования.
+    for (const auto& name : groupedUiKeyIds(QString::fromStdString(targetRemoteId()), config_)) {
+        const auto found = hardButtons.find(name.toStdString());
+        const auto addKey = [&](const model::Button* button) {
+            const bool assigned = button && !button->actionId.empty();
+            const int row = addRow(table, {labels::keyCategory(name.toStdString()), RemoteView::keyName(name),
+                assigned ? labels::action(*config_, button->actionId) : tr("— unassigned —")});
+            table->item(row, 0)->setData(kHardKeyRole, name);
+            table->item(row, 0)->setData(kAssignedRole, assigned);
+        };
+        if (found == hardButtons.end()) addKey(nullptr);
+        else for (const auto* button : found->second) addKey(button);
     }
     finishTable(table);
 }

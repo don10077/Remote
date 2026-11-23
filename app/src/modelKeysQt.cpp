@@ -23,6 +23,7 @@
 #include <QJsonObject>
 
 #include <map>
+#include <algorithm>
 #include <string>
 #include <vector>
 
@@ -95,6 +96,16 @@ QStringList uiKeyIds(const QString& modelId, const harmony::model::RemoteConfig*
     // «список пуст», имена конфигурации пропадали бы из списка.
     if (keys.vocabularyFallback)
         names += dictionaryIdsForKind(harmony::PhysicalKind::Key);
+    return names;
+}
+
+QStringList groupedUiKeyIds(const QString& modelId, const harmony::model::RemoteConfig* config) {
+    auto names = uiKeyIds(modelId, config);
+    names.removeDuplicates();
+    std::ranges::stable_sort(names, {}, [](const QString& name) {
+        const auto* info = harmony::keyInfo(name.toStdString());
+        return info ? static_cast<int>(info->category) : static_cast<int>(harmony::KeyCategory::Page) + 1;
+    });
     return names;
 }
 
