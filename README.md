@@ -161,6 +161,11 @@ servers fail the check. It also requires bundled ICU when provided by Linux Qt.
 CI runs `moc`, `uic` and `rcc` immediately after installation to detect missing
 shared libraries. Native Linux/macOS builds and tests are still required.
 
+`build.cmd` also builds all targets with Clang and warnings as errors in
+`build/ucrt64/win-clang`, installing Clang through MSYS2 when needed. The first
+build takes longer; subsequent builds are incremental. This catches Clang
+warnings GCC may miss; Apple SDK and Apple Clang differences still require macOS CI.
+
 Windows builds use MSYS2 UCRT64, both locally and in GitHub Actions. Local build files are kept in `build/ucrt64/<preset>/` to separate them from previous MinGW64 builds.
 
 The script looks for MSYS2 in `D:\Install\MSYS2` by default. Set `MSYS2_ROOT` for another location.

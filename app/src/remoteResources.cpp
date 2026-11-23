@@ -469,11 +469,11 @@ QString reload(const QString& root) {
 QStringList modelIds(const QString& root) {
     QStringList result;
     for (const auto& profile : harmony::remoteProfiles) result.append(QString::fromStdString(profile.id));
-    const QDir remotes(QDir(root).filePath(QStringLiteral("remotes")));
-    for (const QString& id : remotes.entryList(QDir::Dirs | QDir::NoDotAndDotDot, QDir::Name)) {
+    const QDir remotesDir(QDir(root).filePath(QStringLiteral("remotes")));
+    for (const QString& id : remotesDir.entryList(QDir::Dirs | QDir::NoDotAndDotDot, QDir::Name)) {
         // Папка с одним photo.png тоже модель: для неё редактор создаст заготовку (createStub).
-        if (!result.contains(id) && (QFileInfo::exists(remotes.filePath(id + QStringLiteral("/remote.json"))) ||
-                                     QFileInfo::exists(remotes.filePath(id + QStringLiteral("/photo.png")))))
+        if (!result.contains(id) && (QFileInfo::exists(remotesDir.filePath(id + QStringLiteral("/remote.json"))) ||
+                                     QFileInfo::exists(remotesDir.filePath(id + QStringLiteral("/photo.png")))))
             result.append(id);
     }
     return result;

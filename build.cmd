@@ -25,7 +25,7 @@ set "PRESET=win-release"
 set "BUILD_DIR=build\ucrt64\%PRESET%"
 set "DIST=dist\win"
 set "NSIS_PACKAGE=mingw-w64-ucrt-x86_64-nsis"
-set "PACKAGES=mingw-w64-ucrt-x86_64-toolchain mingw-w64-ucrt-x86_64-cmake mingw-w64-ucrt-x86_64-ninja mingw-w64-ucrt-x86_64-qt6-base mingw-w64-ucrt-x86_64-qt6-svg mingw-w64-ucrt-x86_64-qt6-translations mingw-w64-ucrt-x86_64-gtest mingw-w64-ucrt-x86_64-pugixml mingw-w64-ucrt-x86_64-libzip mingw-w64-ucrt-x86_64-pkgconf"
+set "PACKAGES=mingw-w64-ucrt-x86_64-toolchain mingw-w64-ucrt-x86_64-clang mingw-w64-ucrt-x86_64-cmake mingw-w64-ucrt-x86_64-ninja mingw-w64-ucrt-x86_64-qt6-base mingw-w64-ucrt-x86_64-qt6-svg mingw-w64-ucrt-x86_64-qt6-translations mingw-w64-ucrt-x86_64-gtest mingw-w64-ucrt-x86_64-pugixml mingw-w64-ucrt-x86_64-libzip mingw-w64-ucrt-x86_64-pkgconf"
 
 set "UCRT=%MSYS2_ROOT%\ucrt64"
 set "PATH=%UCRT%\bin;%MSYS2_ROOT%\usr\bin;%PATH%"
@@ -44,6 +44,7 @@ set "MISSING="
 if not exist "%UCRT%\include\zip.h" set "MISSING=1"
 if not exist "%UCRT%\bin\pkg-config.exe" set "MISSING=1"
 if not exist "%UCRT%\bin\g++.exe"   set "MISSING=1"
+if not exist "%UCRT%\bin\clang++.exe" set "MISSING=1"
 if not exist "%UCRT%\bin\cmake.exe" set "MISSING=1"
 if not exist "%UCRT%\bin\ninja.exe" set "MISSING=1"
 if not exist "%UCRT%\lib\cmake\Qt6Widgets\Qt6WidgetsConfig.cmake" set "MISSING=1"
@@ -101,6 +102,14 @@ if errorlevel 1 echo [предупреждение] updateTranslations.py зав
 rem --- 5. Сборка и тесты ---------------------------------------------------
 echo --- Сборка ---
 "%UCRT%\bin\cmake.exe" --build "%BUILD_DIR%"
+if errorlevel 1 goto :fail
+
+rem GCC и Clang диагностируют разные предупреждения. Отдельный каталог сохраняет
+rem обе инкрементальные сборки; Clang проверяет приложение, CLI и тестовые цели.
+echo --- Дополнительная сборка Clang ---
+"%UCRT%\bin\cmake.exe" --preset release-clang -B "build\ucrt64\win-clang" -DCMAKE_C_COMPILER="%UCRT%/bin/clang.exe" -DCMAKE_CXX_COMPILER="%UCRT%/bin/clang++.exe" -DCMAKE_MAKE_PROGRAM="%UCRT%/bin/ninja.exe"
+if errorlevel 1 goto :fail
+"%UCRT%\bin\cmake.exe" --build "build\ucrt64\win-clang" -- -k 0
 if errorlevel 1 goto :fail
 
 echo --- Тесты ---

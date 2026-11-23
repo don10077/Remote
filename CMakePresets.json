@@ -36,6 +36,16 @@
       }
     },
     {
+      "name": "release-clang",
+      "displayName": "Release (Clang)",
+      "description": "Дополнительная локальная сборка Clang: предупреждения как ошибки",
+      "inherits": "release",
+      "cacheVariables": {
+        "CMAKE_C_COMPILER": "clang",
+        "CMAKE_CXX_COMPILER": "clang++"
+      }
+    },
+    {
       "name": "core-only",
       "displayName": "Core + tests (без Qt)",
       "description": "Ядро, CLI и тесты без графического приложения; предупреждения = ошибки (для CI)",
@@ -77,6 +87,10 @@
   ],
   "buildPresets": [
     {
+      "name": "release-clang",
+      "configurePreset": "release-clang"
+    },
+    {
       "name": "debug",
       "configurePreset": "debug"
     },
@@ -98,6 +112,12 @@
     }
   ],
   "testPresets": [
+    {
+      "name": "release-clang",
+      "configurePreset": "release-clang",
+      "output": {"outputOnFailure": true},
+      "execution": {"noTestsAction": "error"}
+    },
     {
       "name": "debug",
       "configurePreset": "debug",
