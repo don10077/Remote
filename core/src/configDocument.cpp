@@ -654,6 +654,10 @@ const model::RemoteConfig& ConfigDocument::model() const {
     return impl_->model;
 }
 
+const ImportReport& ConfigDocument::importReport() const {
+    return impl_->importReport;
+}
+
 const std::string& ConfigDocument::name() const {
     return impl_->name;
 }

@@ -20,6 +20,7 @@
 #include "../app/src/modern/modernShell.h"
 #include "../app/src/modern/remoteView.h"
 #include "../app/src/widgets/newConfigDialog.h"
+#include "../app/src/widgets/remoteProfileDialog.h"
 
 #include "harmony/core/configDocument.h"
 #include "harmony/core/remoteCatalog.h"
@@ -31,6 +32,7 @@
 
 using harmony::app::ModernShell;
 using harmony::app::NewConfigDialog;
+using harmony::app::RemoteProfileDialog;
 using harmony::app::RemoteView;
 
 // 1. Пустой id — модель не выбрана: подстановки модели по умолчанию нет (Q11).
@@ -82,4 +84,16 @@ TEST(NoDefaultModelTest, PropertyWinsOverSkinAndDefaultSkinMeansModel900) {
     const auto cleared = document->setTargetRemote("");
     ASSERT_TRUE(cleared) << cleared.error().message;
     EXPECT_EQ(document->targetRemote(), "900") << "свойства нет — снова по skin";
+}
+
+// 5. Выбор «Без модели» не должен оставлять предыдущую модель в диалоге.
+TEST(NoDefaultModelTest, ProfileDialogSelectionDoesNotKeepPreviousModel) {
+    RemoteProfileDialog dialog("650");
+    auto* combo = dialog.findChild<QComboBox*>();
+    ASSERT_NE(combo, nullptr);
+
+    EXPECT_EQ(dialog.selectedRemote(), "650");
+    combo->setCurrentIndex(combo->findData(QString()));
+    EXPECT_EQ(dialog.selectedRemote(), QString())
+        << "«Без модели» — пустой id, а не предыдущая модель";
 }

@@ -10,6 +10,7 @@ configure_file(
 
 add_library(harmony_core
     src/remoteCatalog.cpp
+    src/remoteFamily.cpp
     src/modelInfo.cpp
     src/writePolicy.cpp
     src/actionLists.cpp

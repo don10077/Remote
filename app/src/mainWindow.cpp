@@ -268,14 +268,13 @@ void MainWindow::createConfig() {
         return;
     }
 
-    // U2: модель нового проекта выбирает пользователь. Без выбора свойства нет, и модель
-    // решается по skin файла (M2); выбранная модель пишется свойством (M3).
-    if (!dialog.modelId().isEmpty()) {
-        const auto target = document->setTargetRemote(dialog.modelId().toStdString());
-        if (!target) {
-            QMessageBox::warning(this, tr("Could not create"), labels::errorText(target.error()));
-            return;
-        }
+    // U2: модель нового проекта выбирает пользователь. Выбор «Без модели» тоже решение
+    // пользователя: для копии он убирает явное свойство основы, иначе остаётся модель
+    // исходного файла. Если свойства нет, `targetRemote()` отвечает skin файла (M2).
+    const auto target = document->setTargetRemote(dialog.modelId().toStdString());
+    if (!target) {
+        QMessageBox::warning(this, tr("Could not create"), labels::errorText(target.error()));
+        return;
     }
 
     // Новая конфигурация сразу ложится на диск — дальше её можно просто сохранять.
@@ -414,6 +413,14 @@ void MainWindow::showDocument(ConfigDocument document) {
     screens_->setCurrentWidget(configView_);
     updateTitle();
     autosavedGeneration_ = editGeneration_;
+
+    const auto& report = document_->importReport();
+    for (const auto& warning : report.warnings) {
+        journal::warning(QString::fromStdString(warning));
+    }
+    if (!report.warnings.empty()) {
+        statusBar()->showMessage(QString::fromStdString(report.warnings.front()), 10000);
+    }
     // Программа закрылась, не сохранив правки (сбой, выключение)? Предложить автосохранение.
     QTimer::singleShot(0, this, &MainWindow::offerAutosave);
 }

@@ -28,6 +28,7 @@
 #include "harmony/core/error.h"
 #include "harmony/core/formats/ezhex.h"
 #include "harmony/core/formats/hubConfig.h"
+#include "harmony/core/importReport.h"
 #include "harmony/core/ir/irSignal.h"
 #include "harmony/core/macro.h"
 #include "harmony/core/model/remoteConfig.h"
@@ -151,6 +152,9 @@ public:
 
     /// @return Разобранная модель.
     [[nodiscard]] const model::RemoteConfig& model() const;
+
+    /// @return Предупреждения импорта; они не являются свойствами сохранённой конфигурации.
+    [[nodiscard]] const ImportReport& importReport() const;
 
     /**
      * @brief Нейтральный вид на документ (этап 2a отвязки от формата 900).

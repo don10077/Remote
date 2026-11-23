@@ -3,6 +3,7 @@
 #include "harmony/core/formats/container.h"
 #include "harmony/core/formats/gspmFonts.h"
 #include "harmony/core/keyScans.h"
+#include "harmony/core/remoteFamily.h"
 #include <algorithm>
 #include <cctype>
 #include <cstring>
@@ -60,16 +61,26 @@ std::string nameText(std::string text) {
     }
 }
 
+/// Описание семейства по архитектуре контейнера. Нет описания — импорт не продолжается.
+const RemoteFamily& familyFor(const Container& frame) {
+    const auto* family = harmony::remoteFamily(frame.family->architecture);
+    if (!family) {
+        throw std::runtime_error("HID family has no description");
+    }
+    return *family;
+}
+
 /** All byte access and pointer resolution share one checked image boundary. */
 class Reader {
 public:
     Reader(std::span<const std::uint8_t> bytes, const Container& frame, std::string_view modelId)
-        : bytes_(bytes), frame_(frame), modelId_(modelId) {}
-    model::RemoteConfig read();
+        : bytes_(bytes), frame_(frame), family_(familyFor(frame)), modelId_(modelId) {}
+    ImportedModel read();
 
 private:
     std::span<const std::uint8_t> bytes_;
     const Container& frame_;
+    const RemoteFamily& family_;
     std::string_view modelId_; ///< Id из заголовка EZHex; действует до завершения read().
     std::vector<std::vector<Atom>> actions_;
     std::map<unsigned, std::string> names_;
@@ -78,14 +89,22 @@ private:
     std::map<unsigned, std::string> alphabet_;
     std::set<unsigned> ambiguousIl_;                  ///< Коды, неотличимые между «I» и «l»
     std::map<unsigned, std::string> softLabels_;      ///< (устройство << 8 | команда) → подпись экранной кнопки
+    std::vector<std::string> warnings_;                ///< предупреждения импорта; не свойства проекта
 
     /// Подписи экранных кнопок страницы: текст, сгруппированный по четвертям экрана (ЛВ, ПВ, ЛН, ПН).
-    static std::vector<std::string> softLabels(const std::vector<Text>& texts) {
+    std::vector<std::string> softLabels(const ScreenGeometry& geometry, const std::vector<Text>& texts) const {
+        // Без геометрии семейства подписи по четвертям не группируются: решение шага — пустой список.
+        if (geometry.headerBottom <= 0 || geometry.footerTop <= 0 || geometry.softQuarterX <= 0 || geometry.softQuarterY <= 0)
+            return {};
+        const unsigned headerBottom = static_cast<unsigned>(geometry.headerBottom);
+        const unsigned footerTop = static_cast<unsigned>(geometry.footerTop);
+        const unsigned quarterX = static_cast<unsigned>(geometry.softQuarterX);
+        const unsigned quarterY = static_cast<unsigned>(geometry.softQuarterY);
         std::string quadrant[4];
         for (const auto& item : texts) {
-            if (item.y <= 16 || item.y >= 110 || item.value.empty())
+            if (item.y <= headerBottom || item.y >= footerTop || item.value.empty())
                 continue; // заголовок со счётчиком страниц и нижняя строка подсказки
-            auto& cell = quadrant[(item.y >= 60 ? 2 : 0) + (item.x >= 64 ? 1 : 0)];
+            auto& cell = quadrant[(item.y >= quarterY ? 2 : 0) + (item.x >= quarterX ? 1 : 0)];
             cell += (cell.empty() ? "" : " ") + item.value;
         }
         std::vector<std::string> out;
@@ -149,7 +168,7 @@ private:
                     continue;
                 const auto address = pointer(font + 3 + 3 * slot);
                 std::optional<GspmGlyph> glyph;
-                if (frame_.family->architecture == 9)
+                if (family_.monoGlyphs)
                     glyph = monoGlyph(address);
                 else {
                     auto decoded = decodeGspmGlyph(bytes_, address);
@@ -186,7 +205,7 @@ private:
             unsigned code = number(at++, 1);
             if (!code)
                 return result;
-            if ((code & 128) && frame_.family->architecture != 8)
+            if ((code & 128) && family_.wideTextCodes)
                 code = ((code & 127) << 8) | number(at++, 1);
             const auto letter = alphabet_.find(code);
             if (letter != alphabet_.end())
@@ -220,7 +239,7 @@ private:
                 } else
                     label = text(at);
                 out.push_back({x, y, std::move(label)});
-            } else if (opcode == 0x14 || (opcode == 0x16 && frame_.family->architecture != 9)) {
+            } else if (opcode == 0x14 || (opcode == 0x16 && family_.nestedDrawingFollows0x16)) {
                 const auto target = pointer(at);
                 at += 3;
                 auto nested = drawing(target, visited, depth + 1);
@@ -284,22 +303,11 @@ private:
         return offset;
     }
     std::optional<std::size_t> section(unsigned base) const {
-        unsigned raw = base;
-        const int arch = frame_.family->architecture;
-        if (arch == 8 && base >= 8)
-            ++raw;
-        else if (arch == 12)
-            raw += (base >= 8 ? 1U : 0U) + (base >= 17 ? 1U : 0U);
-        else if (arch == 10) {
-            static const std::map<unsigned, unsigned> slots{{1, 0},   {3, 4},   {4, 5},   {5, 6},   {6, 9},
-                                                            {7, 10},  {9, 11},  {10, 12}, {11, 14}, {12, 15},
-                                                            {15, 18}, {16, 19}, {17, 20}, {18, 21}, {19, 22}};
-            const auto it = slots.find(base);
-            if (it == slots.end())
-                return {};
-            raw = it->second;
+        const auto raw = family_.sectionSlot(base);
+        if (!raw) {
+            return {};
         }
-        return raw < frame_.sections.size() ? frame_.sections[raw] : std::nullopt;
+        return *raw < frame_.sections.size() ? frame_.sections[*raw] : std::nullopt;
     }
     std::vector<std::size_t> index(std::size_t at, unsigned width) const {
         const auto count = number(at, width);
@@ -467,7 +475,7 @@ private:
     }
     /// Имя по таблице модели/семейства; без подтверждения — пометка ScanNN.
     std::string hardKeyName(unsigned scan) const {
-        const auto name = harmony::keyNameForScan(frame_.family->architecture, modelId_, scan);
+        const auto name = harmony::keyNameForScan(family_.architecture, modelId_, scan);
         return name ? std::string(*name) : harmony::scanPlaceholder(scan);
     }
     void addButtons(std::vector<model::ControlGroup>& groups, const std::vector<Key>& bindings,
@@ -506,7 +514,7 @@ private:
                 for (const auto& key : page.keys)
                     if ((key.tag >> 6) == 2)
                         soft.push_back(&key);
-                const auto labels = softLabels(page.texts);
+                const auto labels = softLabels(family_.screen, page.texts);
                 if (soft.size() != labels.size())
                     continue; // пустые ячейки: соответствие неоднозначно
                 for (std::size_t i = 0; i < soft.size(); ++i) {
@@ -523,7 +531,7 @@ private:
                 if ((key.tag >> 6) != 2)
                     continue;
                 const auto codes = commands(key.action);
-                const auto key_name = harmony::keyNameForScan(frame_.family->architecture, modelId_, key.tag & 63);
+                const auto key_name = harmony::keyNameForScan(family_.architecture, modelId_, key.tag & 63);
                 if (codes.size() == 1 && key_name)
                     hardNames.emplace(codes[0], *key_name);
             }
@@ -559,7 +567,7 @@ private:
     /// Команда с собственной подписью (например, «Return»), висящая на клавише с другим именем
     /// («Exit»), остаётся под своим именем. Расхождение — предупреждение: имена различаются, и
     /// сверить их в файле не с чем. Имя клавиши даёт таблица модели/семейства без профиля.
-    void warnKeyMismatch(model::RemoteConfig& result, const std::vector<Mode>& modes) const {
+    void warnKeyMismatch(model::RemoteConfig& result, const std::vector<Mode>& modes) {
         std::set<std::string> reported;
         for (const auto& mode : modes)
             for (const auto& key : mode.keys) {
@@ -574,17 +582,17 @@ private:
                 const auto& command = device.commands[codes[0] & 255].name;
                 const unsigned scan = key.tag & 63;
                 const auto key_name = hardKeyName(scan);
-                const bool unknown = !harmony::keyNameForScan(frame_.family->architecture, modelId_, scan);
+                const bool unknown = !harmony::keyNameForScan(family_.architecture, modelId_, scan);
                 const bool generic = command.starts_with("Command");
                 if (!unknown && (generic || command == key_name))
                     continue;
                 const auto text = unknown ? "Клавиша " + key_name + " (скан-код " + std::to_string(scan) +
-                                                ", архитектура " + std::to_string(frame_.family->architecture) +
+                                                ", архитектура " + std::to_string(family_.architecture) +
                                                 ") без имени в таблице семейства"
                                           : "Команда " + command + " назначена на клавишу " + key_name +
                                                 ": имя команды не совпадает с именем клавиши в таблице семейства";
                 if (reported.insert(text).second)
-                    result.properties.emplace_back("ImportWarning", text);
+                    warnings_.push_back(text);
             }
     }
     void readStates(model::RemoteConfig& result) {
@@ -638,7 +646,7 @@ private:
             need(trailer + 6, pages * 3);
             for (unsigned i = 0; i < pages; ++i) {
                 const auto page = pointer(trailer + 6 + 3 * i);
-                const unsigned shift = frame_.family->architecture == 12 ? 1U : 0U;
+                const unsigned shift = family_.commandIndexShift;
                 Page content;
                 content.keys = keys(pointer(page + shift));
                 try {
@@ -699,7 +707,7 @@ private:
     }
 };
 
-model::RemoteConfig Reader::read() {
+ImportedModel Reader::read() {
     model::RemoteConfig result;
     result.properties = {{"SourceFormat", "BinaryHid"},
                          {"ImportNotes",
@@ -764,10 +772,10 @@ model::RemoteConfig Reader::read() {
         }
     }
     readActivities(result, modes);
-    return result;
+    return ImportedModel{std::move(result), harmony::ImportReport{warnings_}};
 }
 } // namespace
-Result<model::RemoteConfig> importBinaryHid(std::span<const std::uint8_t> payload, std::string_view modelId) {
+Result<ImportedModel> importBinaryHid(std::span<const std::uint8_t> payload, std::string_view modelId) {
     if (payload.size() > 10 && std::memcmp(payload.data(), "TPTP", 4) == 0 && payload[9] == 23)
         while (!payload.empty() && payload.back() == 0)
             payload = payload.first(payload.size() - 1);

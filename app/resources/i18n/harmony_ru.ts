@@ -840,6 +840,7 @@ The configuration from %1 will be copied into this archive.</source>
     </message>
     <message>
       <location filename="../../../app/src/helpContent.cpp" />
+      <location filename="../../../app/src/labels.cpp" />
       <location filename="../../../app/src/modern/remoteView.cpp" />
       <location filename="../../../app/src/widgets/configView.cpp" />
       <location filename="../../../app/src/widgets/writePreviewDialog.cpp" />
@@ -1310,6 +1311,11 @@ Add a device?</source>
       <translation>Назначение «%1» снято. Отменить — %2</translation>
     </message>
     <message>
+      <location filename="../../../app/src/widgets/remoteProfileDialog.cpp" />
+      <source>Assignments on keys not available on the selected model: %1. Assignments are kept and will appear as warnings. Press OK to change the target.</source>
+      <translation>Назначения на клавишах, которых нет у выбранной модели: %1. Назначения сохраняются и будут показаны предупреждениями. Нажмите OK, чтобы сменить целевой пульт.</translation>
+    </message>
+    <message>
       <location filename="../../../app/src/widgets/settingsDialog.cpp" />
       <source>At startup open:</source>
       <translation>При запуске открывать:</translation>
@@ -1527,21 +1533,6 @@ Add a device?</source>
       <location filename="../../../core/src/configDocumentButtons.cpp" />
       <source>button %1 has no assignment</source>
       <translation>у кнопки %1 нет назначения</translation>
-    </message>
-    <message>
-      <location filename="../../../app/src/widgets/remoteProfileDialog.cpp" />
-      <source>Button assignment and project saving are available in the table.</source>
-      <translation>Назначение кнопок и сохранение проекта доступны в таблице.</translation>
-    </message>
-    <message>
-      <location filename="../../../app/src/widgets/remoteProfileDialog.cpp" />
-      <source>Button assignment and project saving are available.</source>
-      <translation type="unfinished" />
-    </message>
-    <message>
-      <location filename="../../../app/src/widgets/configView.cpp" />
-      <source>Button editing is unavailable: this remote has no command zones yet.</source>
-      <translation>Редактирование кнопок недоступно: у этого пульта пока нет командных зон.</translation>
     </message>
     <message>
       <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
@@ -1878,11 +1869,6 @@ Add a device?</source>
       <translation>Выберите протокол.</translation>
     </message>
     <message>
-      <location filename="../../../app/src/widgets/remoteProfileDialog.cpp" />
-      <source>Choose a remote model.</source>
-      <translation>Выберите модель пульта.</translation>
-    </message>
-    <message>
       <location filename="../../../app/src/widgets/replaceDeviceDialog.cpp" />
       <source>Choose at least one activity.</source>
       <translation>Выберите хотя бы одну активность.</translation>
@@ -1995,6 +1981,11 @@ Add a device?</source>
       <location filename="../../../app/src/widgets/configView.cpp" />
       <source>Code</source>
       <translation>Код</translation>
+    </message>
+    <message>
+      <location filename="../../../app/src/labels.cpp" />
+      <source>Colors</source>
+      <translation>Цвета</translation>
     </message>
     <message>
       <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
@@ -2826,6 +2817,11 @@ Copy saved: %2</source>
       <translation>Вырезать, копировать, вставить</translation>
     </message>
     <message>
+      <location filename="../../../app/src/labels.cpp" />
+      <source>D-pad</source>
+      <translation>Крестовина</translation>
+    </message>
+    <message>
       <location filename="../../../app/src/widgets/settingsDialog.cpp" />
       <source>Dark</source>
       <translation>Тёмное</translation>
@@ -3057,6 +3053,7 @@ Copy saved: %2</source>
     </message>
     <message>
       <location filename="../../../app/src/helpContent.cpp" />
+      <location filename="../../../app/src/labels.cpp" />
       <location filename="../../../app/src/modern/remotePanel.cpp" />
       <location filename="../../../app/src/modern/remoteView.cpp" />
       <location filename="../../../app/src/modern/remoteViewPaint.cpp" />
@@ -3094,7 +3091,7 @@ Copy saved: %2</source>
     <message>
       <location filename="../../../app/src/widgets/remoteProfileDialog.cpp" />
       <source>Devices, activities and IR codes are kept. Changing the target does not convert the remote's binary format.</source>
-      <translation type="unfinished" />
+      <translation>Устройства, активности и ИК-коды сохраняются. Смена целевого пульта не преобразует его двоичный формат.</translation>
     </message>
     <message>
       <location filename="../../../app/src/widgets/configView.cpp" />
@@ -3123,6 +3120,11 @@ Copy saved: %2</source>
       <location filename="../../../app/src/widgets/compareDevicesDialog.cpp" />
       <source>different</source>
       <translation>разные</translation>
+    </message>
+    <message>
+      <location filename="../../../app/src/labels.cpp" />
+      <source>Digits</source>
+      <translation>Цифры</translation>
     </message>
     <message>
       <location filename="../../../app/src/widgets/remoteSettingsDialog.cpp" />
@@ -3164,6 +3166,11 @@ Copy saved: %2</source>
       <location filename="../../../app/src/widgets/configView.cpp" />
       <source>Double-click to edit. Buttons on the remote picture can be dragged: move the assignment, with Ctrl — copy. Commands are dragged from the Commands tab.</source>
       <translation>Двойной щелчок — изменить. На картинке пульта кнопки можно перетаскивать: перенос назначения, с Ctrl — копия. Команды перетаскиваются с вкладки «Команды».</translation>
+    </message>
+    <message>
+      <location filename="../../../app/src/widgets/configView.cpp" />
+      <source>Double-click to edit. Drag commands from the Commands tab onto a button row.</source>
+      <translation>Двойной щелчок — изменить. Перетаскивайте команды из вкладки «Команды» на строку кнопки.</translation>
     </message>
     <message>
       <location filename="../../../app/src/widgets/configView.cpp" />
@@ -3446,6 +3453,7 @@ Copy saved: %2</source>
       <translation>EZHex должен явно содержать идентификатор целевого пульта</translation>
     </message>
     <message>
+      <location filename="../../../app/src/labels.cpp" />
       <location filename="../../../app/src/modern/remoteView.cpp" />
       <source>Favorites</source>
       <translation>Избранное</translation>
@@ -4788,9 +4796,24 @@ The file holds the Hub's answer as it is — device names, models and commands, 
       <translation>Перетащите элемент «%1» на экране туда, где он должен быть.</translation>
     </message>
     <message>
+      <location filename="../../../app/src/widgets/configView.cpp" />
+      <source>Move assignment</source>
+      <translation>Перенести назначение</translation>
+    </message>
+    <message>
       <location filename="../../../app/src/mainWindow.cpp" />
       <source>Move device</source>
       <translation>Переместить устройство</translation>
+    </message>
+    <message>
+      <location filename="../../../app/src/widgets/configView.cpp" />
+      <source>Move to:</source>
+      <translation>Перенести на:</translation>
+    </message>
+    <message>
+      <location filename="../../../app/src/widgets/configView.cpp" />
+      <source>Move to…</source>
+      <translation>Перенести на…</translation>
     </message>
     <message>
       <location filename="../../../app/src/widgets/zoneCanvas.cpp" />
@@ -4850,6 +4873,11 @@ The file holds the Hub's answer as it is — device names, models and commands, 
       <location filename="../../../core/src/configDiff.cpp" />
       <source>name: %1 → %2</source>
       <translation>имя: %1 → %2</translation>
+    </message>
+    <message>
+      <location filename="../../../app/src/labels.cpp" />
+      <source>Navigation</source>
+      <translation>Навигация</translation>
     </message>
     <message>
       <location filename="../../../app/src/labels.cpp" />
@@ -5055,7 +5083,12 @@ The file holds the Hub's answer as it is — device names, models and commands, 
       <location filename="../../../app/src/widgets/newConfigDialog.cpp" />
       <location filename="../../../app/src/widgets/remoteProfileDialog.cpp" />
       <source>no image</source>
-      <translation type="unfinished" />
+      <translation>нет изображения</translation>
+    </message>
+    <message>
+      <location filename="../../../app/src/widgets/configView.cpp" />
+      <source>No image is available for this remote: buttons are assigned in the table. Add an image via Remote → Edit remote zones…</source>
+      <translation>Изображения этого пульта нет: кнопки назначаются в таблице. Добавить изображение — «Пульт» → «Редактор зон»…</translation>
     </message>
     <message>
       <location filename="../../../core/src/configDocumentStates.cpp" />
@@ -5113,7 +5146,7 @@ The file holds the Hub's answer as it is — device names, models and commands, 
     <message>
       <location filename="../../../app/src/widgets/remoteProfileDialog.cpp" />
       <source>No remote image: buttons are assigned in the table. You can add an image in the zone editor.</source>
-      <translation type="unfinished" />
+      <translation>Нет изображения пульта: кнопки назначаются в таблице. Изображение можно добавить в редакторе зон.</translation>
     </message>
     <message>
       <location filename="../../../core/src/configDocumentAdd.cpp" />
@@ -5195,6 +5228,11 @@ The file holds the Hub's answer as it is — device names, models and commands, 
       <location filename="../../../app/src/widgets/irDatabasePanel.cpp" />
       <source>not indexed yet</source>
       <translation>ещё не проиндексирована</translation>
+    </message>
+    <message>
+      <location filename="../../../app/src/widgets/configView.cpp" />
+      <source>Not on this model</source>
+      <translation>Нет у этой модели</translation>
     </message>
     <message>
       <location filename="../../../app/src/widgets/learnWizardDialog.cpp" />
@@ -5523,6 +5561,11 @@ The file holds the Hub's answer as it is — device names, models and commands, 
       <translation>Другая конфигурация</translation>
     </message>
     <message>
+      <location filename="../../../app/src/labels.cpp" />
+      <source>Other keys</source>
+      <translation>Другие клавиши</translation>
+    </message>
+    <message>
       <location filename="../../../core/src/configDiff.cpp" />
       <source>other signal: %1</source>
       <translation>другой сигнал: %1</translation>
@@ -5593,6 +5636,11 @@ The file holds the Hub's answer as it is — device names, models and commands, 
       <location filename="../../../core/src/propertyCatalog.cpp" />
       <source>Page through shows instead of one at a time.</source>
       <translation>Листать передачи страницами, а не по одной.</translation>
+    </message>
+    <message>
+      <location filename="../../../app/src/labels.cpp" />
+      <source>Pages</source>
+      <translation>Страницы</translation>
     </message>
     <message>
       <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
@@ -6314,7 +6362,6 @@ The file holds the Hub's answer as it is — device names, models and commands, 
     </message>
     <message>
       <location filename="../../../app/src/widgets/buttonDialog.cpp" />
-      <location filename="../../../app/src/widgets/configView.cpp" />
       <source>Remote button</source>
       <translation>Кнопка пульта</translation>
     </message>
@@ -6970,6 +7017,11 @@ The remote was not changed. You can send this file to the developers.</source>
       <translation type="unfinished" />
     </message>
     <message>
+      <location filename="../../../app/src/labels.cpp" />
+      <source>Screen keys</source>
+      <translation>Экранные клавиши</translation>
+    </message>
+    <message>
       <location filename="../../../app/src/widgets/zoneEditorProperties.cpp" />
       <source>Screen label</source>
       <translation>Подпись экрана</translation>
@@ -7100,6 +7152,11 @@ The remote was not changed. You can send this file to the developers.</source>
       <location filename="../../../app/src/widgets/deviceStatesDialog.cpp" />
       <source>Separate commands for on and off</source>
       <translation>Отдельные команды включения и выключения</translation>
+    </message>
+    <message>
+      <location filename="../../../app/src/labels.cpp" />
+      <source>Service</source>
+      <translation>Служебные</translation>
     </message>
     <message>
       <location filename="../../../app/src/mainWindowMenus.cpp" />
@@ -8139,6 +8196,11 @@ They will not be sent to the remote either. When the device is made active again
       <translation>База ИК-кодов ещё не проиндексирована. Скачайте файлы архива Logitech (или укажите папку с ними) и один раз проиндексируйте их в «Настройки → База ИК-кодов».</translation>
     </message>
     <message>
+      <location filename="../../../app/src/widgets/remoteProfileDialog.cpp" />
+      <source>The key list for the selected model is not complete; unavailable keys cannot be determined. Assignments are kept. Press OK to change the target.</source>
+      <translation>Список клавиш выбранной модели неполный; недоступные клавиши определить нельзя. Назначения сохраняются. Нажмите OK, чтобы сменить целевой пульт.</translation>
+    </message>
+    <message>
       <location filename="../../../core/src/configDocumentCheck.cpp" />
       <source>the key sends a command to another device — device keys work only for the device itself</source>
       <translation>кнопка шлёт команду другому устройству — кнопки устройства работают только для него самого</translation>
@@ -8814,6 +8876,11 @@ They will not be sent to the remote either. When the device is made active again
       <translation>это не UserConfiguration.xml: нет элемента &lt;Root&gt;</translation>
     </message>
     <message>
+      <location filename="../../../app/src/widgets/configView.cpp" />
+      <source>This key is not on the target model. Clear the assignment or move it to another key.</source>
+      <translation>Этой клавиши нет у целевой модели. Снимите назначение или перенесите его на другую клавишу.</translation>
+    </message>
+    <message>
       <location filename="../../../transport/src/concordTransfer.cpp" />
       <source>This model cannot be backed up; explicit write-without-backup consent is required</source>
       <translation>Нельзя считать резервную копию этой модели; требуется явное подтверждение записи без копии</translation>
@@ -8855,7 +8922,7 @@ They will not be sent to the remote either. When the device is made active again
     <message>
       <location filename="../../../app/src/widgets/remoteProfileDialog.cpp" />
       <source>This remote model is unknown.</source>
-      <translation type="unfinished" />
+      <translation>Модель этого пульта неизвестна.</translation>
     </message>
     <message>
       <location filename="../../../app/src/widgets/zoneEditorScreens.cpp" />
@@ -9009,6 +9076,11 @@ They will not be sent to the remote either. When the device is made active again
       <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
       <source>transparent</source>
       <translation>прозрачный</translation>
+    </message>
+    <message>
+      <location filename="../../../app/src/labels.cpp" />
+      <source>Transport</source>
+      <translation>Транспорт</translation>
     </message>
     <message>
       <location filename="../../../app/src/widgets/remoteSettingsDialog.cpp" />
@@ -9728,6 +9800,11 @@ They will not be sent to the remote either. When the device is made active again
       <location filename="../../../app/src/mainWindowImport.cpp" />
       <source>— skip this device —</source>
       <translation>— пропустить это устройство —</translation>
+    </message>
+    <message>
+      <location filename="../../../app/src/widgets/configView.cpp" />
+      <source>— unassigned —</source>
+      <translation>— не назначено —</translation>
     </message>
     <message>
       <location filename="../../../app/src/widgets/compareDevicesDialog.cpp" />

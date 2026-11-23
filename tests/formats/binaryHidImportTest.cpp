@@ -6,6 +6,7 @@
 #include "harmony/core/keyScans.h"
 #include "harmony/core/model/remoteConfig.h"
 #include "harmony/core/remoteCatalog.h"
+#include "harmony/core/remoteFamily.h"
 
 #include <gtest/gtest.h>
 
@@ -13,6 +14,7 @@
 #include <filesystem>
 #include <set>
 #include <string>
+#include <utility>
 
 namespace {
 
@@ -84,6 +86,84 @@ void expectKeys(int architecture, int skin, std::initializer_list<unsigned> scan
     EXPECT_EQ(device.commands.front().name, command);
 }
 
+struct TextPoint {
+    unsigned x, y;
+};
+
+/**
+ * @brief Образ с одной экранной кнопкой и подписями на странице.
+ * @param texts Подписи рисуются знакомым кодом `?`; если словарь глифов не подтверждён,
+ *        именно этот код должен стать строкой подписи.
+ * @return Фикстура без настоящего алфавита: проверяется группировка, а не распознавание букв.
+ */
+harmony::formats::Bytes softLabelFixture(int architecture, int skin, unsigned scan,
+                                         std::initializer_list<TextPoint> texts) {
+    auto file = *harmony::formats::parseEzHex(harmony::test::minimalEzHex(architecture, skin));
+    auto& data = file.payload;
+    data.resize(300, 0);
+    const auto put = [&](std::size_t at, std::uint32_t value, unsigned width) {
+        for (unsigned i = 0; i < width; ++i)
+            data[at + i] = static_cast<std::uint8_t>(value >> (8 * i));
+    };
+    const auto& families = harmony::formats::containerFamilies();
+    const auto family = std::ranges::find(families, architecture,
+                                          &harmony::formats::ContainerFamilyInfo::architecture);
+    if (family == families.end())
+        throw std::runtime_error("the fixture family is missing from the container table");
+    std::fill(data.begin(), data.begin() + 128, 0);
+    std::ranges::copy(family->cookie, data.begin());
+    data[9] = static_cast<std::uint8_t>(family->slots);
+    std::ranges::copy(family->marker, data.begin() + family->markerOffset());
+    put(4, 0x30000 + 296, 4);
+    put(12 + 4 * 5, 0x30000 + 128, 3); // устройства: секция 5
+    put(12 + 4 * 6, 0x30000 + 200, 3); // режимы: секция 6
+    std::fill(data.begin() + 184, data.end(), 0);
+    put(200, 1, 3);
+    put(203, 0x30000 + 208, 3);
+    put(209, 0x30000 + 220, 3); // trailer + 1 -> table of one key
+    data[220] = 1;
+    data[221] = static_cast<std::uint8_t>(0x80 | scan);
+    data[224] = 0x7d; // action: command 0 of device 0
+    // Страница: тот же ключ (для `Misc`) и программа рисования с подписями.
+    const auto* desc = harmony::remoteFamily(architecture);
+    if (!desc)
+        throw std::runtime_error("the fixture family has no description");
+    const unsigned shift = desc->commandIndexShift;
+    const std::size_t pageStart = 250;
+    put(212, 1, 2);
+    put(214, 0x30000 + pageStart, 3);
+    put(pageStart + shift, 0x30000 + 220, 3);
+    put(pageStart + shift + 3, 0x30000 + 240, 3);
+    std::size_t at = 240;
+    for (const auto point : texts) {
+        data[at++] = 5; // x, y, строка
+        data[at++] = static_cast<std::uint8_t>(point.x);
+        data[at++] = static_cast<std::uint8_t>(point.y);
+        data[at++] = '?';
+        data[at++] = 0;
+    }
+    data[at] = 0; // конец программы рисования
+    std::ranges::copy(family->endMarker, data.begin() + 296);
+    put(294, harmony::formats::containerChecksum(data, 294), 2);
+    return *harmony::formats::writeEzHex(file);
+}
+
+/// Подпись экранной кнопки после импорта; `pageLabel` — ожидаемый результат S3.
+std::string importedPageLabel(int architecture, int skin, unsigned scan,
+                              std::initializer_list<TextPoint> texts) {
+    auto document = harmony::ConfigDocument::fromEzHex(softLabelFixture(architecture, skin, scan, texts),
+                                                        "labels");
+    if (!document)
+        return "import error: " + document.error().message;
+    const auto& groups = document->model().devices.front().controlGroups;
+    const auto page = std::ranges::find(groups, "Misc", &harmony::model::ControlGroup::name);
+    if (page == groups.end())
+        return "no screen-button group";
+    if (page->buttons.size() != 1U)
+        return "unexpected button count " + std::to_string(page->buttons.size());
+    return page->buttons.front().label;
+}
+
 } // namespace
 
 TEST(BinaryHidImport, ScreenSideKeysUseFamilyNames) {
@@ -107,22 +187,44 @@ TEST(BinaryHidImport, UnknownModelStillUsesFamilyTable) {
     expectKeys(8, 999, {0x2c, 0x37}, {"Scan2C", "Pause"}, "Pause");
 }
 
-TEST(BinaryHidImport, MissingFamilyTableKeepsCommandNumberAndWarns) {
+TEST(BinaryHidImport, MissingFamilyTableWarnsThroughImportReportNotProperties) {
     expectKeys(9, 22, {0x2c}, {"Scan2C"}, "Command1");
+    const auto warning = "Клавиша Scan2C (скан-код 44, архитектура 9) без имени в таблице семейства";
+    const auto imported = harmony::formats::importBinaryHid(
+        harmony::formats::parseEzHex(keyFixture(9, 22, {0x2c}))->payload);
+    ASSERT_TRUE(imported) << imported.error().message;
+    EXPECT_EQ(imported->report.warnings, (std::vector<std::string>{warning}))
+        << "предупреждение импорта — отчёт, а не свойство конфигурации";
+    EXPECT_TRUE(std::ranges::find(imported->model.properties,
+                  std::pair<std::string, std::string>{"ImportWarning", warning}) ==
+              imported->model.properties.end());
+
     auto doc = harmony::ConfigDocument::fromEzHex(keyFixture(9, 22, {0x2c}), "keys");
     ASSERT_TRUE(doc);
-    EXPECT_NE(std::ranges::find(doc->model().properties,
-                  std::pair<std::string, std::string>{"ImportWarning",
-                      "Клавиша Scan2C (скан-код 44, архитектура 9) без имени в таблице семейства"}),
+    EXPECT_EQ(doc->importReport().warnings, (std::vector<std::string>{warning}))
+        << "документ показывает отчёт импорта после открытия";
+    EXPECT_TRUE(std::ranges::find(doc->model().properties,
+                  std::pair<std::string, std::string>{"ImportWarning", warning}) ==
               doc->model().properties.end());
 }
 
 TEST(BinaryHidImport, RawPayloadWithoutModelUsesFamilyOnly) {
     const auto file = harmony::formats::parseEzHex(keyFixture(8, 999, {0x2c}));
     ASSERT_TRUE(file);
-    const auto model = harmony::formats::importBinaryHid(file->payload);
-    ASSERT_TRUE(model) << model.error().message;
-    EXPECT_EQ(model->devices.front().controlGroups.front().buttons.front().name, "Scan2C");
+    const auto imported = harmony::formats::importBinaryHid(file->payload);
+    ASSERT_TRUE(imported) << imported.error().message;
+    EXPECT_EQ(imported->model.devices.front().controlGroups.front().buttons.front().name, "Scan2C");
+}
+
+// S3: arch 14 остаётся прежним; без геометрии семейства подписи по четвертям не группируются.
+TEST(BinaryHidImport, Arch14SoftLabelsUseTheirFamilyGeometry) {
+    EXPECT_EQ(importedPageLabel(14, 75, 0x2c, {{100, 80}}), "?")
+        << "поведение 600-серии не меняется";
+}
+
+TEST(BinaryHidImport, FamilyWithoutScreenGeometryDoesNotGroupSoftLabels) {
+    EXPECT_EQ(importedPageLabel(12, 54, 0x2c, {{100, 80}}), "Command1")
+        << "геометрия arch 12 — нули: функция подписей возвращает пустой список";
 }
 
 // Регрессия K3 на настоящих дампах (перенесена из `tests/keyNamesTest.cpp` в K6, потому что

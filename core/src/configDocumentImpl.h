@@ -58,6 +58,7 @@ struct Package {
 struct ConfigDocument::Impl {
     std::string xml;              ///< Текст UserConfiguration.xml (сохраняется как есть)
     model::RemoteConfig model;    ///< Разобранная модель
+    ImportReport importReport;    ///< Предупреждения импорта; не свойства проекта
     std::string name;             ///< Имя для показа
     std::filesystem::path folder; ///< Папка на диске; пусто — не папка
     std::filesystem::path ezhexFile; ///< Файл .EZHex на диске; пусто — не файл

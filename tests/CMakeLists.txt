@@ -35,6 +35,7 @@ add_executable(harmony_tests
     errorTest.cpp
     fixturesTest.cpp
     remoteCatalogTest.cpp
+    remoteFamilyTest.cpp
     modelInfoTest.cpp
     writePolicyTest.cpp
     writePolicyGateTest.cpp

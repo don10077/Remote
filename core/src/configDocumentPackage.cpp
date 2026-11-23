@@ -147,13 +147,14 @@ Result<ConfigDocument> ConfigDocument::fromEzHex(std::span<const std::uint8_t> e
                                      std::min<std::size_t>(container->payload.size(), 4));
     if (signature == "GSPM" || signature == "AHCM" || signature == "TPTP") {
         const auto* remote = catalogModelBySkin(container->identity.skin);
-        auto model = formats::importBinaryHid(container->payload, remote ? remote->id : std::string_view{});
-        if (!model) return std::unexpected(model.error());
+        auto imported = formats::importBinaryHid(container->payload, remote ? remote->id : std::string_view{});
+        if (!imported) return std::unexpected(imported.error());
         if (remote) {
-            model->properties.emplace_back("HarmonyTargetRemote", remote->id);
+            imported->model.properties.emplace_back("HarmonyTargetRemote", remote->id);
         }
-        auto document = fromXml(detail::importedModelXml(*model, detail::kBinaryHidSourceFormat), std::move(name));
+        auto document = fromXml(detail::importedModelXml(imported->model, detail::kBinaryHidSourceFormat), std::move(name));
         if (!document) return document;
+        document->impl_->importReport = std::move(imported->report);
         auto archive = skeleton(0);
         archive.entries.push_back(formats::makeEntry("source/Original.EZHex", 0100644, ezhex, 0));
         document->impl_->package = std::make_shared<const detail::Package>(detail::Package{

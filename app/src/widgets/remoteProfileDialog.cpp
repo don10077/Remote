@@ -1,13 +1,10 @@
 #include "remoteProfileDialog.h"
 #include "aboutDialog.h"
-#include "../labels.h"
 #include "../assignmentGate.h"
 #include "../modelKeysQt.h"
 #include "../remoteResources.h"
-#include "harmony/core/modelInfo.h"
 #include "harmony/core/remoteCatalog.h"
 #include "harmony/core/remoteProfile.h"
-#include "harmony/core/writePolicy.h"
 #include "../modern/remoteView.h"
 
 #include <QComboBox>
@@ -33,6 +30,9 @@ RemoteProfileDialog::RemoteProfileDialog(const QString& current, QWidget* parent
     image->setWordWrap(true);
     layout->addWidget(image);
     auto* fields = new QVBoxLayout;
+    // Строка статуса удалена по указанию владельца. Минимальный размер окна и QR-строки
+    // нужен, чтобы QR-код не обрезался.
+    setMinimumSize(720, 540);
     models_ = new QComboBox(this);
     // Модели каталога: у модели без профиля нет ни фото, ни зон, но выбрать её можно.
     models_->addItem(tr("No model"), QString());
@@ -52,16 +52,12 @@ RemoteProfileDialog::RemoteProfileDialog(const QString& current, QWidget* parent
         models_->addItem(tr("%1 (configuration error)").arg(id), id);
     models_->setCurrentIndex(models_->findData(current));
     if (models_->currentIndex() < 0) models_->setCurrentIndex(0);
-    auto* status = new QLabel(this);
-    status->setWordWrap(true);
-    status->setMinimumWidth(300);
-    // Про запись говорит статус по решению ядра (canWriteTo), поэтому общая фраза про
-    // «экспериментальные модели» здесь не нужна.
+    // Про запись говорит решение ядра (canWriteTo), но строка статуса в этом окне
+    // удалена по указанию владельца.
     auto* notice = new QLabel(tr("Devices, activities and IR codes are kept. Changing the target does not convert the remote's binary format."), this);
     notice->setWordWrap(true);
     fields->addWidget(new QLabel(tr("Remote model:"), this));
     fields->addWidget(models_);
-    fields->addWidget(status);
     fields->addSpacing(12);
     fields->addWidget(notice);
     auto* summary = new QLabel(this);
@@ -75,14 +71,17 @@ RemoteProfileDialog::RemoteProfileDialog(const QString& current, QWidget* parent
                                        tr("Support the further development of the project").toHtmlEscaped()),
                               this);
     donate->setWordWrap(true);
+    donate->setMinimumWidth(240);
     donate->setOpenExternalLinks(true);
     donate->setToolTip(QString::fromLatin1(AboutDialog::kDonateUrl));
     auto* donateRow = new QHBoxLayout;
     donateRow->setSpacing(12);
+    donateRow->setAlignment(Qt::AlignTop);
     if (QFile::exists(QString::fromLatin1(AboutDialog::kDonateQr))) {
         auto* qr = new QLabel(this);
         qr->setPixmap(QPixmap(QString::fromLatin1(AboutDialog::kDonateQr))
                           .scaled(96, 96, Qt::KeepAspectRatio, Qt::SmoothTransformation));
+        qr->setMinimumSize(96, 96);
         donateRow->addWidget(qr);
     }
     donateRow->addWidget(donate, 1);
@@ -91,7 +90,7 @@ RemoteProfileDialog::RemoteProfileDialog(const QString& current, QWidget* parent
     auto* buttons = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, this);
     fields->addWidget(buttons);
     layout->addLayout(fields);
-    auto refresh = [this, image, status, buttons, summary, config, current] {
+    auto refresh = [this, image, buttons, summary, config, current] {
         const auto id = selectedRemote();
         summary->setVisible(config && id != current);
         if (config && id != current) {
@@ -109,38 +108,24 @@ RemoteProfileDialog::RemoteProfileDialog(const QString& current, QWidget* parent
         buttons->button(QDialogButtonBox::Ok)->setEnabled(id.isEmpty() || profile != nullptr || model != nullptr);
         if (id.isEmpty()) {
             image->clear();
-            status->setText(tr("Choose a remote model."));
             return;
         }
         if (const QString problem = remoteResources::modelError(id); !profile && !problem.isEmpty()) {
-            image->clear();
-            status->setText(tr("This remote has a configuration error. Open the zone editor for this remote and fix it.\n\n%1").arg(problem));
+            image->setText(tr("This remote has a configuration error. Open the zone editor for this remote and fix it.\n\n%1").arg(problem));
             return;
         }
-        // W2: решение о записи берётся из ядра (canWriteTo); текст произносится один раз —
-        // по verdict, как и подсказка кнопки в главном окне.
-        const auto decision = harmony::canWriteTo(harmony::modelInfo(modelId));
-        // K5: решение о назначании решает модель, а не непустой список клавиш: без профиля кнопки
-        // назначаются в таблице, поэтому текст выбирается по наличию оформления.
-        const QString zones = profile != nullptr
-            ? tr("Button assignment and project saving are available.")
-            : tr("Button assignment and project saving are available in the table.");
-        const QString writing = labels::writeVerdict(decision.verdict);
         if (!profile) {
             if (!model) {
-                image->clear();
-                status->setText(tr("This remote model is unknown.") + QStringLiteral(" ") + writing);
+                image->setText(tr("This remote model is unknown."));
                 return;
             }
             // Модель каталога без профиля: фото и зон нет, кнопки назначаются в таблице.
             image->setText(tr("No remote image: buttons are assigned in the table. You can add an image in the zone editor."));
-            status->setText(zones + QStringLiteral(" ") + writing);
             return;
         }
         QPixmap photo;
         photo.loadFromData(remoteResources::data(QString::fromUtf8(profile->image.data())));
         image->setPixmap(photo.scaled(image->size(), Qt::KeepAspectRatio, Qt::SmoothTransformation));
-        status->setText(zones + QStringLiteral(" ") + writing);
     };
     connect(models_, &QComboBox::currentIndexChanged, this, refresh);
     connect(buttons, &QDialogButtonBox::accepted, this, &QDialog::accept);
