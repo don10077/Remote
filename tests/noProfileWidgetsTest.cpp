@@ -1,31 +1,52 @@
 /**
  * @file noProfileWidgetsTest.cpp
- * @brief T1, часть с Qt: решения, которые программа принимает по списку клавиш модели.
+ * @brief T1, часть с Qt: решения, которые программа принимает по документу и списку клавиш модели.
  *
- * `ConfigView::remoteHasKeys()` (`app/src/widgets/configView.cpp:811–813`) — это «у документа есть
- * целевая модель, и у неё есть клавиши»: он спрашивает `ConfigDocument::targetRemote()` и
- * `RemoteView::hardKeyIds()`. Сам `ConfigView` в тестовые цели не входит (как и `MainWindow`
- * в T4), поэтому проверяется та же цепочка от документа из файла до гейта назначения.
+ * `ConfigView::canAssignButtons()` (`app/src/widgets/configView.cpp`) — было `remoteHasKeys()`:
+ * «у документа есть целевая модель, и у неё есть клавиши». После A1 это «есть документ»
+ * (правило блока A, п. 4): список клавиш больше ничего не запрещает.
  *
- * Ожидания — текущее поведение; где запланированный шаг его изменит, помечено в тексте теста.
+ * Сам `ConfigView` в тестовые цели не входит (как и `MainWindow` в T4), поэтому проверяется та
+ * же цепочка от документа до гейта: целевая модель → `modelKeysQt` → решение гейта.
+ *
+ * Ожидания — поведение после A1. Прежние фиксаторы T1 («525: список пуст, страница кнопок
+ * выключена») перевёрнуты этим шагом: без профиля список даёт то, чем модель может ответить,
+ * а страница открыта, потому что есть документ.
  */
 
 #include "../app/src/assignmentGate.h"
-#include "../app/src/modern/remoteView.h"
+#include "../app/src/modelKeysQt.h"
+#include "../app/src/remoteResources.h"
 
 #include "harmony/core/configDocument.h"
+#include "harmony/core/modelKeys.h"
 
 #include <QString>
-#include <QStringList>
+#include <QTemporaryDir>
 #include <gtest/gtest.h>
 
 #include <string>
 
 using harmony::ConfigDocument;
-using harmony::app::RemoteView;
-using harmony::app::assignmentAllowed;
+using harmony::app::ButtonAction;
+using harmony::app::ButtonRef;
+using harmony::app::buttonAllowed;
+using harmony::app::gateOpen;
+using harmony::app::modelKeysFor;
 
 namespace {
+namespace resources = harmony::app::remoteResources;
+
+/// Профили как данные, в git: каждый тест работает со своим снимком ресурсов.
+class NoProfileWidgetsTest : public testing::Test {
+protected:
+    QTemporaryDir root;
+    void SetUp() override {
+        ASSERT_TRUE(root.isValid());
+        ASSERT_TRUE(resources::reload(root.path()).isEmpty());
+    }
+    void TearDown() override { resources::reload(root.path()); }
+};
 
 /// Документ с целевой моделью в свойстве (XML в памяти, без файлов).
 harmony::Result<ConfigDocument> documentWithTarget(const std::string& target) {
@@ -34,28 +55,36 @@ harmony::Result<ConfigDocument> documentWithTarget(const std::string& target) {
     return ConfigDocument::fromXml(xml, "widgets");
 }
 
-/// Список клавиш так, как его строит `ConfigView::remoteHasKeys()`.
-QStringList keysOfDocument(const ConfigDocument& document) {
-    return RemoteView::hardKeyIds(QString::fromStdString(document.targetRemote()));
-}
-
 } // namespace
 
-// 525 — модель без профиля: список клавиш пуст, поэтому страница кнопок выключена (N6/N7).
-TEST(NoProfileWidgets, ConfigViewFindsNoKeysForModelWithoutProfile) {
+// 525 — модель без профиля и без таблицы кодов: прежде страница кнопок была выключена.
+// После A1 она открыта, потому что есть документ; по модели отвечают словарь и имена документа.
+TEST_F(NoProfileWidgetsTest, DocumentWithoutProfileOpensAssignment) {
     const auto document = documentWithTarget("525");
     ASSERT_TRUE(document) << document.error().message;
-    const QStringList keys = keysOfDocument(*document);
-    EXPECT_TRUE(keys.isEmpty()) << "N7: изменится в A1 (K4) — список даст скан-таблица arch 9";
-    EXPECT_FALSE(assignmentAllowed(keys)) << "N6: изменится в A1";
+    ASSERT_FALSE(document->targetRemote().empty()) << "целевая модель потерялась";
+
+    EXPECT_TRUE(gateOpen(true)) << "A1: гейт — есть документ, а не «есть клавиши»";
+
+    const auto keys = modelKeysFor(QString::fromStdString(document->targetRemote()), &document->model());
+    EXPECT_TRUE(keys.keys.empty()) << "в документе кнопок нет — имён из него тоже нет";
+    EXPECT_FALSE(keys.complete);
+    EXPECT_TRUE(keys.vocabularyFallback);
+    EXPECT_TRUE(buttonAllowed(ButtonRef::hard("Teletext"), keys, ButtonAction::AssignTo, false))
+        << "без исчерпывающего списка назначить можно любую клавишу словаря";
 }
 
-// Профиль есть — та же цепочка открывает назначение. Контроль, что предыдущий тест зелёный
-// не из-за сломанного пути «документ → модель → клавиши».
-TEST(NoProfileWidgets, ConfigViewFindsKeysForModelWithProfile) {
+// Контроль: модель с профилем решается так же — по документу. Список при этом тот же, что
+// прежде, потому что фото корректно.
+TEST_F(NoProfileWidgetsTest, DocumentWithProfileOpensAssignmentTheSameWay) {
     const auto document = documentWithTarget("650");
     ASSERT_TRUE(document) << document.error().message;
-    const QStringList keys = keysOfDocument(*document);
-    EXPECT_FALSE(keys.isEmpty());
-    EXPECT_TRUE(assignmentAllowed(keys));
+
+    EXPECT_TRUE(gateOpen(true));
+    const auto keys = modelKeysFor(QString::fromStdString(document->targetRemote()), &document->model());
+    ASSERT_FALSE(keys.keys.empty());
+    EXPECT_TRUE(keys.complete);
+    const std::string name = keys.keys.front().name;
+    EXPECT_TRUE(buttonAllowed(ButtonRef::hard(QString::fromStdString(name)), keys,
+                              ButtonAction::AssignTo, false)) << name;
 }

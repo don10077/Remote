@@ -8,6 +8,7 @@
 
 #include "../icons.h"
 #include "../labels.h"
+#include "../modelKeysQt.h"
 #include "../modern/remoteView.h"
 #include "../remoteResources.h"
 #include "../zoneEditing.h"
@@ -993,7 +994,9 @@ bool ZoneEditorDialog::loadModel(const QString& model) {
         l.current = l.original;
     }
 
-    auto* completer = new QCompleter(RemoteView::hardKeyIds(model), idEdit_);
+    // K5: подсказка `id` зоны — словарь вида `Key` в порядке словаря (вид зоны по имени
+    // станет подсказкой в zoneEditor:E1).
+    auto* completer = new QCompleter(dictionaryIdsForKind(harmony::PhysicalKind::Key), idEdit_);
     completer->setCaseSensitivity(Qt::CaseInsensitive);
     if (auto* old = idEdit_->completer()) old->deleteLater();
     idEdit_->setCompleter(completer);

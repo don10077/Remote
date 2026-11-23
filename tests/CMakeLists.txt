@@ -101,12 +101,17 @@ if(HARMONY_BUILD_APP)
         ../app/src/journal.cpp
         commandDialogTest.cpp
         modelKeysEquivalenceTest.cpp
+        modelKeysQtTest.cpp
+        hardKeyIdsTest.cpp
         remoteViewTest.cpp
         remoteResourcesTest.cpp
         noProfileWidgetsTest.cpp
         assignmentGateTest.cpp
+        zoneEditingDictionaryTest.cpp
         ../app/src/assignmentGate.cpp
         ../app/src/assignmentGate.h
+        ../app/src/modelKeysQt.cpp
+        ../app/src/modelKeysQt.h
         zoneEditingTest.cpp
         zoneEditorDialogTest.cpp
         ../app/src/widgets/zoneEditorDialog.cpp

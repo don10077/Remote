@@ -103,9 +103,11 @@ RemoteProfileDialog::RemoteProfileDialog(const QString& current, QWidget* parent
         // W2: решение о записи берётся из ядра (canWriteTo); текст произносится один раз —
         // по verdict, как и подсказка кнопки в главном окне.
         const auto decision = harmony::canWriteTo(harmony::modelInfo(modelId));
-        const QString zones = RemoteView::hardKeyIds(id).isEmpty()
-            ? tr("No command zones yet: button editing is unavailable.")
-            : tr("Button assignment and project saving are available.");
+        // K5: решение о назначании решает модель, а не непустой список клавиш: без профиля кнопки
+        // назначаются в таблице, поэтому текст выбирается по наличию оформления.
+        const QString zones = profile != nullptr
+            ? tr("Button assignment and project saving are available.")
+            : tr("Button assignment and project saving are available in the table.");
         const QString writing = labels::writeVerdict(decision.verdict);
         if (!profile) {
             if (!model) {

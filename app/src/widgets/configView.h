@@ -278,8 +278,8 @@ private:
     /// @return Владелец кнопок открытой страницы (активность или устройство).
     [[nodiscard]] ButtonOwner currentOwner() const;
 
-    /// @return У модели пульта есть зоны кнопок — кнопки можно назначать.
-    [[nodiscard]] bool remoteHasKeys() const;
+    /// @return Есть документ — кнопки можно назначать (правило блока A, п. 4; A1).
+    [[nodiscard]] bool canAssignButtons() const;
 
     /// Команду бросили на кнопку картинки пульта.
     void commandDropped(const ButtonRef& button, const QString& deviceId, const QString& command);

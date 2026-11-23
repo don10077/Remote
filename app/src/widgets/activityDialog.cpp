@@ -7,6 +7,7 @@
 
 #include "../icons.h"
 #include "../labels.h"
+#include "../modelKeysQt.h"
 #include "../theme.h"
 #include "../nameCheck.h"
 #include "../modern/activityIcon.h"
@@ -26,6 +27,7 @@
 #include <QVBoxLayout>
 
 #include <algorithm>
+#include <utility>
 
 namespace harmony::app {
 
@@ -63,9 +65,9 @@ QLabel* sectionLabel(const QString& text, QWidget* parent) {
 
 } // namespace
 
-ActivityDialog::ActivityDialog(const model::RemoteConfig& config, const model::Activity* existing,
-                               QWidget* parent)
-    : QDialog(parent), config_(config), existing_(existing) {
+ActivityDialog::ActivityDialog(const model::RemoteConfig& config, std::string targetRemote,
+                               const model::Activity* existing, QWidget* parent)
+    : QDialog(parent), config_(config), targetRemote_(std::move(targetRemote)), existing_(existing) {
     const QString caption = existing_ != nullptr ? tr("Edit activity") : tr("Add activity");
     setWindowTitle(caption);
     setMinimumSize(720, 560);
@@ -366,7 +368,8 @@ void ActivityDialog::updatePreview() {
         return;
     }
     const auto plan = planHardButtons(config_, current);
-    const auto total = static_cast<qsizetype>(RemoteView::hardKeyIds().size());
+    // K5: «всего клавиш» — по модели документа; без модели — по конфигурации (Q3).
+    const auto total = static_cast<qsizetype>(modelKeyIds(QString::fromStdString(targetRemote_), &config_).size());
     QStringList keys;
     for (const auto& assignment : plan) {
         keys << RemoteView::keyName(QString::fromStdString(assignment.key)) + " → " +

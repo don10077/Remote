@@ -362,6 +362,11 @@ The configuration from %1 will be copied into this archive.</source>
       <translation>%1: работает, но, скорее всего, не так, как задумано.</translation>
     </message>
     <message>
+      <location filename="../../../app/src/zoneEditing.cpp" />
+      <source>%1: name does not fit kind %2</source>
+      <translation>%1: имя не подходит для вида «%2»</translation>
+    </message>
+    <message>
       <location filename="../../../core/src/actionLists.cpp" />
       <source>%1: no root element &lt;Root&gt;</source>
       <translation>%1: нет корневого элемента &lt;Root&gt;</translation>
@@ -369,7 +374,7 @@ The configuration from %1 will be copied into this archive.</source>
     <message>
       <location filename="../../../app/src/zoneEditing.cpp" />
       <source>%1: not in the shared key-name list, use a name from it</source>
-      <translation type="unfinished" />
+      <translation>%1: имени нет в списке имён клавиш, возьмите имя из него</translation>
     </message>
     <message>
       <location filename="../../../core/src/formats/irTables.cpp" />
@@ -377,9 +382,19 @@ The configuration from %1 will be copied into this archive.</source>
       <translation>%1: таблица смещений обрезана</translation>
     </message>
     <message>
+      <location filename="../../../app/src/zoneEditing.cpp" />
+      <source>%1: outdated name, canonical is %2</source>
+      <translation>%1: устаревшее имя, правильное — %2</translation>
+    </message>
+    <message>
       <location filename="../../../core/src/formats/irTables.cpp" />
       <source>%1: protocol %2 is damaged</source>
       <translation>%1: протокол %2 повреждён</translation>
+    </message>
+    <message>
+      <location filename="../../../app/src/zoneEditing.cpp" />
+      <source>%1: temporary name, choose one from the list</source>
+      <translation>%1: имя временное, выберите одно из списка</translation>
     </message>
     <message>
       <location filename="../../../app/src/zoneEditing.cpp" />
@@ -1512,6 +1527,11 @@ Add a device?</source>
       <location filename="../../../core/src/configDocumentButtons.cpp" />
       <source>button %1 has no assignment</source>
       <translation>у кнопки %1 нет назначения</translation>
+    </message>
+    <message>
+      <location filename="../../../app/src/widgets/remoteProfileDialog.cpp" />
+      <source>Button assignment and project saving are available in the table.</source>
+      <translation>Назначение кнопок и сохранение проекта доступны в таблице.</translation>
     </message>
     <message>
       <location filename="../../../app/src/widgets/remoteProfileDialog.cpp" />
@@ -4944,11 +4964,6 @@ The file holds the Hub's answer as it is — device names, models and commands, 
       <location filename="../../../app/src/modern/remotePanel.cpp" />
       <source>no command</source>
       <translation>нет команды</translation>
-    </message>
-    <message>
-      <location filename="../../../app/src/widgets/remoteProfileDialog.cpp" />
-      <source>No command zones yet: button editing is unavailable.</source>
-      <translation type="unfinished" />
     </message>
     <message>
       <location filename="../../../core/src/configDocumentCommands.cpp" />

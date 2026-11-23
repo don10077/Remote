@@ -4,6 +4,8 @@
  */
 
 #include "configView.h"
+#include "../assignmentGate.h"
+#include "../modelKeysQt.h"
 #include "harmony/core/remoteCatalog.h"
 #include "harmony/core/remoteProfile.h"
 
@@ -815,9 +817,10 @@ ButtonOwner ConfigView::currentOwner() const {
                                            : ButtonOwner::device(selectedId_);
 }
 
-bool ConfigView::remoteHasKeys() const {
-    return config_ != nullptr &&
-           !RemoteView::hardKeyIds(QString::fromStdString(targetRemoteId())).isEmpty();
+bool ConfigView::canAssignButtons() const {
+    // A1: решение — есть документ. Список клавиш модели ничего не запрещает: он нужен только
+    // там, где решается, на какую клавишу можно назначить.
+    return gateOpen(config_ != nullptr);
 }
 
 void ConfigView::commandDropped(const ButtonRef& button, const QString& deviceId, const QString& command) {
@@ -835,7 +838,7 @@ void ConfigView::commandDropped(const ButtonRef& button, const QString& deviceId
 QWidget* ConfigView::makeButtonsPage(const ButtonOwner& owner, const std::vector<model::ControlGroup>& groups,
                                      bool canAssign) {
     auto* page = new QWidget;
-    const bool editable = remoteHasKeys();
+    const bool editable = canAssignButtons();
     page->setEnabled(editable);
     auto* layout = new QVBoxLayout(page);
     layout->setContentsMargins(0, 8, 0, 0);
@@ -1020,11 +1023,14 @@ ConfigView::ClipboardTarget ConfigView::clipboardTarget() const {
 
 void ConfigView::updateButtonActions() {
     const auto selected = selectedButton();
-    const auto keys = config_ ? RemoteView::hardKeyIds(
-        QString::fromStdString(targetRemoteId())) : QStringList();
-    editButtonAction_->setEnabled(selected && !keys.isEmpty() &&
-                                  (selected->soft || keys.contains(selected->key)));
-    removeButtonAction_->setEnabled(selected.has_value() && !keys.isEmpty());
+    // K5: список клавиш решается с конфигурацией документа. Включение решает гейт A1 — есть
+    // документ, — а конкретную кнопку решает `buttonAllowed`: снять назначение можно и с клавиши
+    // вне списка модели.
+    const harmony::ModelKeys keys = config_ ? modelKeysFor(QString::fromStdString(targetRemoteId()), config_)
+                                            : harmony::ModelKeys{};
+    editButtonAction_->setEnabled(selected.has_value() && canAssignButtons() &&
+                                  buttonAllowed(*selected, keys, ButtonAction::TakeFrom, false));
+    removeButtonAction_->setEnabled(selected.has_value() && canAssignButtons());
     // Экранная кнопка удаляется целиком, у аппаратной снимается только назначение.
     removeButtonAction_->setText(selected && selected->soft ? tr("Delete") : tr("Clear assignment"));
 }
@@ -1263,7 +1269,7 @@ void ConfigView::showDevice(int index) {
         commandsLayout->addWidget(summary);
     }
     commandsLayout->addWidget(commands, 1);
-    if (!device.commands.empty() && remoteHasKeys()) {
+    if (!device.commands.empty() && canAssignButtons()) {
         auto* dragHint = new QLabel(tr("Drag a command onto a button of the remote picture to assign it."));
         dragHint->setObjectName("pageMeta");
         dragHint->setWordWrap(true);
@@ -1365,8 +1371,10 @@ void ConfigView::fillButtons(QTableWidget* table,
         for (const auto& button : group.buttons) {
             ordered.push_back(&button);
         }
-        QStringList keyOrder = RemoteView::hardKeyIds(QString::fromStdString(targetRemoteId()));
-        if (keyOrder.isEmpty()) keyOrder = RemoteView::sharedKeyIds();
+        // K5: порядок строк таблицы — список модели с конфигурацией документа. Словарь добавляется
+        // только когда модели отвечать нечем (ModelKeys::vocabularyFallback), а не когда список пуст:
+        // иначе имена конфигурации пропадали бы из порядка.
+        QStringList keyOrder = uiKeyIds(QString::fromStdString(targetRemoteId()), config_);
         std::ranges::stable_sort(ordered, {}, [&keyOrder](const model::Button* button) {
             if (button->name.empty())
                 return button->position;

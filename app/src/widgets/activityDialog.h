@@ -34,11 +34,13 @@ public:
     /**
      * @brief Создаёт окно.
      * @param config Конфигурация (в ней должно быть хотя бы одно устройство).
+     * @param targetRemote Id целевой модели документа; пусто — модель не выбрана (K5: «всего
+     *        клавиш» считается по модели документа, без модели — по конфигурации).
      * @param existing Активность для правки; nullptr — новая.
      * @param parent Родительское окно.
      */
-    explicit ActivityDialog(const model::RemoteConfig& config, const model::Activity* existing = nullptr,
-                            QWidget* parent = nullptr);
+    explicit ActivityDialog(const model::RemoteConfig& config, std::string targetRemote,
+                            const model::Activity* existing = nullptr, QWidget* parent = nullptr);
 
     /// @return Черновик активности по введённым данным.
     [[nodiscard]] ActivityDraft draft() const;
@@ -76,6 +78,7 @@ private:
                   bool allowNone) const;
 
     const model::RemoteConfig& config_;
+    std::string targetRemote_; ///< Id целевой модели документа; пусто — модель не выбрана
     const model::Activity* existing_ = nullptr; ///< Правка; nullptr — новая активность
     bool nameEdited_ = false; ///< Имя ввёл пользователь — больше не подставляем по типу
 

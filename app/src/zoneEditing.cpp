@@ -1,6 +1,6 @@
 #include "zoneEditing.h"
 
-#include "harmony/core/keyNames.h"
+#include "harmony/core/keyVocabulary.h"
 
 #include <QCoreApplication>
 #include <QDir>
@@ -10,6 +10,7 @@
 #include <QTemporaryDir>
 #include <QLockFile>
 #include <memory>
+#include <string>
 #include <vector>
 #include <QHash>
 #include <QJsonDocument>
@@ -374,10 +375,25 @@ QList<Issue> checkBody(const QJsonArray& zones, const QSizeF& photo, const std::
                  r.isValid() && radius > std::min(r.width(), r.height()) / 2 + 0.5)
             warning(i, tr("%1: corner radius is larger than half the side").arg(name));
         if (!bodyKinds().contains(kind)) error(i, tr("%1: unknown kind \"%2\"").arg(name, kind));
-        // Имя зоны Key берётся из общего списка имён клавиш (harmony/core/keyNames.h), а не
-        // придумывается: иначе имя перестаёт совпадать с именами в конфигурации других пультов.
-        if (kind == "Key" && !id.isEmpty() && !harmony::isKnownKeyName(id.toStdString()))
-            warning(i, tr("%1: not in the shared key-name list, use a name from it").arg(name));
+        // Имя зоны берётся из словаря (harmony/core/keyVocabulary.h), а не придумывается:
+        // иначе имя перестаёт совпадать с именами в конфигурации других пультов. Правила
+        // одинаковы для всех видов зон (K5); уровнем остаётся предупреждение — ошибкой
+        // является только дубликат `id` (проверка выше). Ячейки экрана правилами словаря не
+        // проверяются: они не физические зоны (решение K4).
+        if (!id.isEmpty()) {
+            const std::string zoneName = id.toStdString();
+            const auto canonical = harmony::canonicalKeyName(zoneName);
+            if (harmony::isTemporaryZoneName(zoneName))
+                warning(i, tr("%1: temporary name, choose one from the list").arg(name));
+            else if (canonical && *canonical != zoneName)
+                warning(i, tr("%1: outdated name, canonical is %2")
+                            .arg(name, QString::fromUtf8(canonical->data(), static_cast<int>(canonical->size()))));
+            else if (!harmony::keyInfo(zoneName))
+                warning(i, tr("%1: not in the shared key-name list, use a name from it").arg(name));
+            else if (const auto physical = harmony::physicalKind(kind.toStdString());
+                     physical && !(harmony::keyInfo(zoneName)->kinds & static_cast<unsigned>(*physical)))
+                warning(i, tr("%1: name does not fit kind %2").arg(name, kind));
+        }
         hasKey = hasKey || kind == "Key";
         if (r.isValid() && screen && screen->isValid() && overlapShare(r, *screen) > OVERLAP_LIMIT)
             warning(i, tr("%1 covers the screen area").arg(name));

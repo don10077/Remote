@@ -344,10 +344,11 @@ void RemotePanel::updateScreenButtons() {
 
 void RemotePanel::refresh() {
     const auto id = targetRemote_;
-    const bool editable = !RemoteView::hardKeyIds(QString::fromStdString(id)).isEmpty();
     remote_->setRemoteProfile(QString::fromStdString(id));
+    // K5: подсказка про клик по кнопке пульта нужна пульту с профилем. Список клавиш её больше
+    // не решает: у модели без профиля кнопки назначаются в таблице, и по изображу нажать нельзя.
     const bool hasProfile = remote_->hasProfile();
-    remoteHint_->setVisible(editable);
+    remoteHint_->setVisible(hasProfile);
     interactiveRemote_->setVisible(hasProfile);
     remoteControls_->setVisible(hasProfile);
     missingProfile_->setVisible(!hasProfile);

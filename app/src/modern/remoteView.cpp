@@ -5,9 +5,10 @@
 
 #include "remoteView.h"
 #include "remoteViewShared.h"
+#include "../modelKeysQt.h"
 #include "../remoteResources.h"
 
-#include "harmony/core/keyNames.h"
+#include "harmony/core/keyVocabulary.h"
 #include "harmony/core/remoteProfile.h"
 
 #include <QJsonArray>
@@ -303,62 +304,21 @@ void RemoteView::showSoftPage(int position) {
 }
 
 QStringList RemoteView::hardKeyIds(const QString& remoteId) {
-    const QString id = remoteId.isEmpty() ? QString::fromStdString(harmony::defaultRemoteId()) : remoteId;
-    // Списки кнопок принадлежат текущему снимку ресурсов.
-    static QHash<QString, QStringList> cache;
-    static quint64 version = 0;
-    if (version != resources::revision()) { cache.clear(); version = resources::revision(); }
-    if (cache.contains(id)) return cache.value(id);
-    QStringList keys;
-    if (const auto* profile = harmony::remoteProfile(id.toStdString())) {
-        QPixmap image;
-        image.loadFromData(resources::data(QString::fromUtf8(profile->image.data())));
-        const QJsonObject remote = resources::remote(id);
-        const auto hardware = remote.value("hardware").toObject();
-        const auto size = hardware.value("size").toArray();
-        if (!image.isNull() && size.size() == 2 &&
-            QSize(size[0].toInt(), size[1].toInt()) == image.size()) {
-            const QRectF bounds(QPointF(0, 0), QSizeF(image.size()));
-            for (const auto& entry : hardware.value("zones").toArray()) {
-                const auto zone = entry.toObject();
-                const QString key = zone.value("id").toString();
-                const QRectF rect = readRect(zone.value("rect"));
-                if (zone.value("kind").toString() == "Key" && !key.isEmpty() &&
-                    rect.isValid() && bounds.contains(rect) && zone.value("radius").isDouble() &&
-                    !keys.contains(key)) {
-                    keys.append(key);
-                }
-            }
-            // Назначаемые кнопки экранов модели (поле "key" ячеек экранов remote.json):
-            // транспорт и цифры 1000/1100, Menu/Guide/Info/Exit на боковых панелях.
-            // Экраны — по алфавиту id (как раньше), ячейки — в порядке файла: от этого порядка
-            // зависит сортировка кнопок в списках программы.
-            QMap<QString, QJsonArray> cellsByScreen;
-            for (const auto& screen : remote.value("screens").toArray())
-                cellsByScreen.insert(screen.toObject().value("id").toString(),
-                                     screen.toObject().value("cells").toArray());
-            for (const auto& cells : std::as_const(cellsByScreen)) {
-                for (const auto& entry : cells) {
-                    const QString key = entry.toObject().value("key").toString();
-                    if (!key.isEmpty() && !keys.contains(key)) keys.append(key);
-                }
-            }
-        }
-    }
-    cache.insert(id, keys);
-    return keys;
+    // K5: решение о списке клавиш принимает `modelKeyIds()` — без фото и без модели по
+    // умолчанию: пустой id значит, что модель не выбрана (Q3). Прежний кеш по id модели и
+    // ревизии ресурсов снят: список зависит ещё и от конфигурации документа (вопрос 2 отчёта).
+    return modelKeyIds(remoteId);
 }
 
 QStringList RemoteView::sharedKeyIds() {
-    QStringList keys;
-    for (const auto& entry : harmony::keyNames())
-        keys.append(QString::fromUtf8(entry.name.data(), static_cast<int>(entry.name.size())));
-    return keys;
+    // Имена словаря, допустимые для вида `Key`, в порядке словаря. Список не зависит ни от
+    // профиля модели, ни от скан-кода: это список имён, а не список клавиш какой-либо модели.
+    return dictionaryIdsForKind(harmony::PhysicalKind::Key);
 }
 
 QString RemoteView::keyName(const QString& id) {
-    // Имя кнопки показывается как есть: id зоны — всегда английское имя из общего списка
-    // (harmony/core/keyNames.h), и переводить его нельзя, иначе оно перестанет совпадать
+    // Имя кнопки показывается как есть: id зоны — всегда английское имя из словаря
+    // (harmony/core/keyVocabulary.h), и переводить его нельзя, иначе оно перестанет совпадать
     // с именами в конфигурациях других пультов.
     return id;
 }

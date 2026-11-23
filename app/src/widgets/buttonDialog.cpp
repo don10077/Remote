@@ -7,6 +7,7 @@
 
 #include "../icons.h"
 #include "../labels.h"
+#include "../modelKeysQt.h"
 #include "../theme.h"
 #include "../modern/remotePanel.h"
 #include "../modern/remoteView.h"
@@ -176,7 +177,9 @@ ButtonDialog::ButtonDialog(const model::RemoteConfig& config, std::string target
         label_->setEnabled(icon().empty());
     } else {
         key_ = new QComboBox(this);
-        for (const QString& id : RemoteView::hardKeyIds(QString::fromStdString(targetRemote_))) {
+        // K5: список клавиш модели решается с конфигурацией документа; словарь добавляет ядро,
+        // когда модели отвечать нечем (ModelKeys::vocabularyFallback).
+        for (const QString& id : uiKeyIds(QString::fromStdString(targetRemote_), &config_)) {
             const std::string action = currentAction(ButtonRef::hard(id));
             QString text = RemoteView::keyName(id);
             if (!action.empty()) {

@@ -33,6 +33,8 @@ qt_add_executable(harmony_app
     src/mainWindowClipboard.cpp
     src/assignmentGate.cpp
     src/assignmentGate.h
+    src/modelKeysQt.cpp
+    src/modelKeysQt.h
     src/mainWindowVersions.cpp
     src/mainWindowButtons.cpp
     src/mainWindowCheck.cpp

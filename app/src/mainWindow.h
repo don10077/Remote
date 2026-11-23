@@ -10,6 +10,7 @@
 #include "harmony/core/undo/undoStack.h"
 #include "harmony/transport/remoteLink.h"
 
+#include "assignmentGate.h"
 #include "versionStore.h"
 #include "widgets/configView.h"
 
@@ -241,6 +242,14 @@ private:
     /// Назначает кнопке команду устройства (команду перетащили на картинку пульта).
     void assignCommand(const ButtonOwner& owner, const ButtonRef& button, const QString& deviceId,
                        const QString& command);
+
+    /**
+     * @brief Гейт назначения по правилу блока A: есть документ, и кнопка отвечает на действие.
+     *
+     * Тонкая обёртка над `gateOpen()` и `buttonAllowed()` — решение принимает `assignmentGate`,
+     * потому что `MainWindow` в тестовые цели не входит.
+     */
+    bool assignmentAllowed(const ButtonRef& button, ButtonAction action, bool emptyNameAllowed) const;
 
     /// Меняет состав активности: устройства, роли, входы (окно активности).
     void editActivity(const QString& activityId);

@@ -5,6 +5,7 @@
 
 #include "zoneEditorDialog.h"
 
+#include "../modelKeysQt.h"
 #include "../modern/remoteView.h"
 #include "../remoteResources.h"
 #include "../zoneEditing.h"
@@ -125,9 +126,10 @@ void ZoneEditorDialog::refreshProperties() {
         kindBox_->setCurrentIndex(kinds.indexOf(kind));
         radiusBox_->setValue(z.value("radius").toDouble());
         commandBox_->clear();
-        auto keys = RemoteView::hardKeyIds(model_);
-        if (keys.isEmpty()) keys = RemoteView::sharedKeyIds();
-        for (const auto& key : keys) commandBox_->addItem(key, key);
+        // K5: список команд зоны — клавиши модели; словарь добавляет ядро, когда модели отвечать
+        // нечем (ModelKeys::vocabularyFallback).
+        for (const auto& key : uiKeyIds(model_))
+            commandBox_->addItem(key, key);
         const QString key = z.value("key").toString();
         commandBox_->setCurrentIndex(commandBox_->findData(key));
         if (commandBox_->currentIndex() < 0) commandBox_->setEditText(key);
