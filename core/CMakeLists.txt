@@ -56,6 +56,7 @@ add_library(harmony_core
     src/keyNames.cpp
     src/keyScans.cpp
     src/keyVocabulary.cpp
+    src/modelKeys.cpp
     src/model/remoteConfig.cpp
     src/propertyCatalog.cpp
     src/remotePreferences.cpp

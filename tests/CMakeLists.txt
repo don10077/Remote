@@ -47,6 +47,7 @@ add_executable(harmony_tests
     keyNamesTest.cpp
     keyScansTest.cpp
     keyVocabularyTest.cpp
+    modelKeysTest.cpp
     model/remoteConfigTest.cpp
     macroTest.cpp
     propertiesTest.cpp
@@ -99,6 +100,7 @@ if(HARMONY_BUILD_APP)
         ../app/src/appSettings.cpp
         ../app/src/journal.cpp
         commandDialogTest.cpp
+        modelKeysEquivalenceTest.cpp
         remoteViewTest.cpp
         remoteResourcesTest.cpp
         noProfileWidgetsTest.cpp
