@@ -1,6 +1,8 @@
 #include "remoteProfileDialog.h"
 #include "aboutDialog.h"
 #include "../labels.h"
+#include "../assignmentGate.h"
+#include "../modelKeysQt.h"
 #include "../remoteResources.h"
 #include "harmony/core/modelInfo.h"
 #include "harmony/core/remoteCatalog.h"
@@ -19,7 +21,8 @@
 
 namespace harmony::app {
 
-RemoteProfileDialog::RemoteProfileDialog(const QString& current, QWidget* parent) : QDialog(parent) {
+RemoteProfileDialog::RemoteProfileDialog(const QString& current, QWidget* parent,
+                                         const model::RemoteConfig* config) : QDialog(parent) {
     setWindowTitle(tr("Target remote"));
     auto* layout = new QHBoxLayout(this);
     layout->setContentsMargins(20, 20, 20, 20);
@@ -61,6 +64,10 @@ RemoteProfileDialog::RemoteProfileDialog(const QString& current, QWidget* parent
     fields->addWidget(status);
     fields->addSpacing(12);
     fields->addWidget(notice);
+    auto* summary = new QLabel(this);
+    summary->setObjectName("modelChangeSummary");
+    summary->setWordWrap(true);
+    fields->addWidget(summary);
     fields->addStretch();
     // Поддержка проекта: ссылка и, если в ресурсах есть картинка, QR-код.
     auto* donate = new QLabel(QStringLiteral("<a href=\"%1\">%2</a>")
@@ -84,8 +91,18 @@ RemoteProfileDialog::RemoteProfileDialog(const QString& current, QWidget* parent
     auto* buttons = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, this);
     fields->addWidget(buttons);
     layout->addLayout(fields);
-    auto refresh = [this, image, status, buttons] {
+    auto refresh = [this, image, status, buttons, summary, config, current] {
         const auto id = selectedRemote();
+        summary->setVisible(config && id != current);
+        if (config && id != current) {
+            const auto keys = modelKeysFor(id, config);
+            summary->setText(keys.complete
+                ? tr("Assignments on keys not available on the selected model: %1. "
+                     "Assignments are kept and will appear as warnings. Press OK to change the target.")
+                    .arg(static_cast<qulonglong>(outsideModelAssignmentCount(keys, *config)))
+                : tr("The key list for the selected model is not complete; unavailable keys cannot be determined. "
+                     "Assignments are kept. Press OK to change the target."));
+        }
         const auto modelId = id.toStdString();
         const auto* profile = remoteProfile(modelId);
         const auto* model = catalogModel(modelId);

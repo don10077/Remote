@@ -107,6 +107,9 @@ if(HARMONY_BUILD_APP)
         noProfileWidgetsTest.cpp
         screenButtonsWidgetsTest.cpp
         hardButtonsWidgetsTest.cpp
+        remoteModelChangeTest.cpp
+        ../app/src/widgets/remoteProfileDialog.cpp
+        ../app/src/widgets/remoteProfileDialog.h
         ../app/src/widgets/buttonDialog.cpp
         ../app/src/widgets/buttonDialog.h
         ../app/src/widgets/configView.cpp

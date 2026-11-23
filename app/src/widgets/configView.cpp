@@ -21,6 +21,8 @@
 #include <QDrag>
 #include <QDragEnterEvent>
 #include <QDropEvent>
+#include <QInputDialog>
+#include <QStyle>
 #include <QFontDatabase>
 #include <QKeyEvent>
 #include <QFrame>
@@ -853,6 +855,8 @@ QWidget* ConfigView::makeButtonsPage(const ButtonOwner& owner, const std::vector
     addSoft->setToolTip(tr("Add a button to the remote's screen"));
     editButtonAction_ = new QPushButton(tr("Edit…"));
     removeButtonAction_ = new QPushButton(tr("Clear assignment"));
+    moveButtonAction_ = new QPushButton(tr("Move to…"));
+    moveButtonAction_->setObjectName("pageAction");
     for (QPushButton* button : {assign, addSoft, editButtonAction_}) {
         button->setObjectName("pageAction");
     }
@@ -879,6 +883,7 @@ QWidget* ConfigView::makeButtonsPage(const ButtonOwner& owner, const std::vector
         });
     }
     toolbar->addWidget(editButtonAction_);
+    toolbar->addWidget(moveButtonAction_);
     toolbar->addWidget(removeButtonAction_);
     layout->addLayout(toolbar);
 
@@ -891,6 +896,14 @@ QWidget* ConfigView::makeButtonsPage(const ButtonOwner& owner, const std::vector
         }
     }
 
+    const bool hasProfile = document_ && document_->targetModel().hasProfile;
+    auto* profileHint = new QLabel(tr("No image is available for this remote: buttons are assigned in the table. "
+                                      "Add an image via Remote → Edit remote zones…"));
+    profileHint->setObjectName("assignmentProfileHint");
+    profileHint->setWordWrap(true);
+    profileHint->setVisible(!hasProfile);
+    layout->addWidget(profileHint);
+
     buttonsTable_ = makeTable({tr("Where"), tr("Button"), tr("Action")});
     buttonsTable_->installEventFilter(this);
     buttonsTable_->setAcceptDrops(true);
@@ -900,10 +913,10 @@ QWidget* ConfigView::makeButtonsPage(const ButtonOwner& owner, const std::vector
     linkToRemote(buttonsTable_);
     layout->addWidget(buttonsTable_, 1);
 
-    auto* hint = new QLabel(editable
+    auto* hint = new QLabel(hasProfile
         ? tr("Double-click to edit. Buttons on the remote picture can be dragged: "
              "move the assignment, with Ctrl — copy. Commands are dragged from the Commands tab.")
-        : tr("Button editing is unavailable: this remote has no command zones yet."));
+        : tr("Double-click to edit. Drag commands from the Commands tab onto a button row."));
     hint->setObjectName("pageMeta");
     hint->setWordWrap(true);
     layout->addWidget(hint);
@@ -922,6 +935,21 @@ QWidget* ConfigView::makeButtonsPage(const ButtonOwner& owner, const std::vector
         if (const auto button = selectedButton()) {
             emit buttonRemoveRequested(owner, *button);
         }
+    });
+    connect(moveButtonAction_, &QPushButton::clicked, this, [this, owner] {
+        const auto from = selectedButton();
+        if (!from || from->soft) return;
+        const auto keys = modelKeysFor(QString::fromStdString(targetRemoteId()), config_);
+        QStringList targets;
+        for (const auto& name : groupedUiKeyIds(QString::fromStdString(targetRemoteId()), config_)) {
+            if (name != from->key && buttonAllowed(ButtonRef::hard(name), keys, ButtonAction::AssignTo, false))
+                targets.append(name);
+        }
+        if (targets.isEmpty()) return;
+        bool accepted = false;
+        const QString to = QInputDialog::getItem(this, tr("Move assignment"), tr("Move to:"),
+                                                 targets, 0, false, &accepted);
+        if (accepted) emit buttonMoveRequested(owner, *from, ButtonRef::hard(to), false);
     });
     connect(buttonsTable_, &QTableWidget::cellDoubleClicked, this, [this, owner] {
         if (const auto button = selectedButton()) {
@@ -1066,10 +1094,12 @@ void ConfigView::updateButtonActions() {
     const harmony::ModelKeys keys = config_ ? modelKeysFor(QString::fromStdString(targetRemoteId()), config_)
                                             : harmony::ModelKeys{};
     editButtonAction_->setEnabled(selected.has_value() && canAssignButtons() &&
-                                  buttonAllowed(*selected, keys, ButtonAction::TakeFrom, false));
+                                  buttonAllowed(*selected, keys, ButtonAction::AssignTo, false));
     const auto* item = selected ? buttonsTable_->item(buttonsTable_->currentRow(), 0) : nullptr;
     removeButtonAction_->setEnabled(selected.has_value() && canAssignButtons() &&
                                     item->data(kAssignedRole).toBool());
+    moveButtonAction_->setEnabled(selected && !selected->soft && canAssignButtons() &&
+                                  item->data(kAssignedRole).toBool());
     // Экранная кнопка удаляется целиком, у аппаратной снимается только назначение.
     removeButtonAction_->setText(selected && selected->soft ? tr("Delete") : tr("Clear assignment"));
 }
@@ -1420,14 +1450,29 @@ void ConfigView::fillButtons(QTableWidget* table,
     }
     // A3: полный список модели, включая неназначенные клавиши. Категории общие с диалогом;
     // неизвестные имена конфигурации сохраняются в конце списка, без переименования.
-    for (const auto& name : groupedUiKeyIds(QString::fromStdString(targetRemoteId()), config_)) {
+    const auto keys = modelKeysFor(QString::fromStdString(targetRemoteId()), config_);
+    auto ordered = groupedUiKeyIds(QString::fromStdString(targetRemoteId()), config_);
+    const auto available = [&](const QString& name) {
+        return buttonAllowed(ButtonRef::hard(name), keys, ButtonAction::AssignTo, false);
+    };
+    std::stable_sort(ordered.begin(), ordered.end(), [&](const QString& left, const QString& right) {
+        return available(left) && !available(right);
+    });
+    for (const auto& name : ordered) {
         const auto found = hardButtons.find(name.toStdString());
+        const bool outside = !available(name);
+        if (outside && found == hardButtons.end()) continue;
         const auto addKey = [&](const model::Button* button) {
             const bool assigned = button && !button->actionId.empty();
-            const int row = addRow(table, {labels::keyCategory(name.toStdString()), RemoteView::keyName(name),
+            if (outside && !assigned) return;
+            const int row = addRow(table, {outside ? tr("Not on this model") : labels::keyCategory(name.toStdString()), RemoteView::keyName(name),
                 assigned ? labels::action(*config_, button->actionId) : tr("— unassigned —")});
             table->item(row, 0)->setData(kHardKeyRole, name);
             table->item(row, 0)->setData(kAssignedRole, assigned);
+            if (outside) {
+                table->item(row, 0)->setIcon(table->style()->standardIcon(QStyle::SP_MessageBoxWarning));
+                table->item(row, 0)->setToolTip(tr("This key is not on the target model. Clear the assignment or move it to another key."));
+            }
         };
         if (found == hardButtons.end()) addKey(nullptr);
         else for (const auto* button : found->second) addKey(button);

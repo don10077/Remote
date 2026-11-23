@@ -8,6 +8,7 @@
 #include "../icons.h"
 #include "../labels.h"
 #include "../modelKeysQt.h"
+#include "../assignmentGate.h"
 #include "../theme.h"
 #include "../modern/remotePanel.h"
 #include "../modern/remoteView.h"
@@ -182,7 +183,9 @@ ButtonDialog::ButtonDialog(const model::RemoteConfig& config, std::string target
         // когда модели отвечать нечем (ModelKeys::vocabularyFallback).
         QString previousCategory;
         int firstKey = -1;
+        const auto modelKeys = modelKeysFor(QString::fromStdString(targetRemote_), &config_);
         for (const QString& id : groupedUiKeyIds(QString::fromStdString(targetRemote_), &config_)) {
+            if (!buttonAllowed(ButtonRef::hard(id), modelKeys, ButtonAction::AssignTo, false)) continue;
             const QString category = labels::keyCategory(id.toStdString());
             if (category != previousCategory) {
                 key_->addItem(category);

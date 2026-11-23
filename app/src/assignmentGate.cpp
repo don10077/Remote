@@ -36,7 +36,25 @@ bool buttonAllowed(const ButtonRef& button, const harmony::ModelKeys& keys,
     }
     const std::string name = button.key.toStdString();
     return std::any_of(keys.keys.begin(), keys.keys.end(),
-                       [&](const harmony::ModelKey& key) { return key.name == name; });
+                       [&](const harmony::ModelKey& key) {
+                           return key.name == name && key.source != harmony::KeySource::Config;
+                       });
+}
+
+std::size_t outsideModelAssignmentCount(const harmony::ModelKeys& keys,
+                                        const harmony::model::RemoteConfig& config) {
+    std::size_t count = 0;
+    const auto add = [&](const auto& owners) {
+        for (const auto& owner : owners)
+            for (const auto& group : owner.controlGroups)
+                for (const auto& button : group.buttons)
+                    if (!button.name.empty() && !button.actionId.empty() &&
+                        !buttonAllowed(ButtonRef::hard(QString::fromStdString(button.name)), keys,
+                                       ButtonAction::AssignTo, false)) ++count;
+    };
+    add(config.devices);
+    add(config.activities);
+    return count;
 }
 
 } // namespace harmony::app

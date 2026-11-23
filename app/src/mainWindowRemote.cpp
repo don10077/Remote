@@ -127,7 +127,8 @@ void MainWindow::readFromRemote() {
 void MainWindow::chooseRemote() {
     if (!remoteReady([this] { chooseRemote(); })) return;
     reloadRemoteResources();
-    RemoteProfileDialog dialog(selectedRemote_, this);
+    RemoteProfileDialog dialog(document_ ? QString::fromStdString(document_->targetRemote()) : selectedRemote_,
+                               this, document_ ? &document_->model() : nullptr);
     if (dialog.exec() != QDialog::Accepted) return;
     const auto selected = dialog.selectedRemote().toStdString();
     if (document_) {

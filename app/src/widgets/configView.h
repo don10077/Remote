@@ -323,6 +323,7 @@ private:
     QPointer<QTableWidget> commandsTable_; ///< Команды открытого устройства (пересоздаётся)
     QPushButton* editButtonAction_ = nullptr;
     QPushButton* removeButtonAction_ = nullptr;
+    QPushButton* moveButtonAction_ = nullptr; ///< Перенос существующего назначения на клавишу модели.
     ButtonRef pendingKey_ = ButtonRef::hard({});  ///< Свободная кнопка, щёлкнутая на пульте
     int pendingSoft_ = -1;                        ///< Свободное место экрана, щёлкнутое на пульте
 

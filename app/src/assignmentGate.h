@@ -53,4 +53,13 @@ enum class ButtonAction {
 [[nodiscard]] bool buttonAllowed(const ButtonRef& button, const harmony::ModelKeys& keys,
                                  ButtonAction action, bool emptyNameAllowed);
 
+/**
+ * @brief Считает сохранённые назначения физическим клавишам вне исчерпывающего списка.
+ * @param keys Клавиши предлагаемой целевой модели.
+ * @param config Конфигурация документа: устройства и активности.
+ * @return Число назначений; неполный список даёт 0 (не доказательство отсутствия проблем).
+ */
+[[nodiscard]] std::size_t outsideModelAssignmentCount(const harmony::ModelKeys& keys,
+                                                      const harmony::model::RemoteConfig& config);
+
 } // namespace harmony::app
