@@ -47,6 +47,15 @@ class QtPackagesTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "не найден"):
             check.validate_packages(xml, "6.12.0", "clang_64", ["qtsvg"])
 
+    def test_missing_bundled_icu_fails_before_install(self):
+        xml = self.metadata("linux_gcc_64", "qtbase-platform.7z, icu-linux.7z")
+        with self.assertRaisesRegex(ValueError, "требуется архив icu"):
+            check.validate_packages(xml, "6.12.0", "linux_gcc_64", ["qtbase"])
+
+    def test_bundled_icu_is_selected(self):
+        xml = self.metadata("linux_gcc_64", "qtbase-platform.7z, icu-linux.7z")
+        check.validate_packages(xml, "6.12.0", "linux_gcc_64", ["qtbase", "icu"])
+
 
 if __name__ == "__main__":
     unittest.main()

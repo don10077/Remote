@@ -183,6 +183,7 @@ jobs:
         id: qt-packages
         run: python3 tools/checkCiQt.py --host linux --github-output "$GITHUB_OUTPUT"
       - uses: jurplel/install-qt-action@b344308e4483fc892e0d27b3cd1b173ebdd95f06 # v4.5.0
+        id: qt
         with:
           version: ${{ steps.qt-packages.outputs.version }}
           cache: true
@@ -190,6 +191,11 @@ jobs:
           host: ${{ steps.qt-packages.outputs.host }}
           arch: ${{ steps.qt-packages.outputs.arch }}
           archives: ${{ steps.qt-packages.outputs.archives }}
+      - name: Проверка запуска утилит Qt
+        run: |
+          for tool in moc uic rcc; do
+            "${{ steps.qt.outputs.qt-root-dir }}/libexec/$tool" --version
+          done
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
@@ -312,6 +318,7 @@ jobs:
         id: qt-packages
         run: python3 tools/checkCiQt.py --host mac --github-output "$GITHUB_OUTPUT"
       - uses: jurplel/install-qt-action@b344308e4483fc892e0d27b3cd1b173ebdd95f06 # v4.5.0
+        id: qt
         with:
           version: ${{ steps.qt-packages.outputs.version }}
           cache: true
@@ -319,6 +326,11 @@ jobs:
           host: ${{ steps.qt-packages.outputs.host }}
           arch: ${{ steps.qt-packages.outputs.arch }}
           archives: ${{ steps.qt-packages.outputs.archives }}
+      - name: Проверка запуска утилит Qt
+        run: |
+          for tool in moc uic rcc; do
+            "${{ steps.qt.outputs.qt-root-dir }}/libexec/$tool" --version
+          done
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |

@@ -157,7 +157,9 @@ Before compiling, `build.cmd` checks Linux/macOS Qt packages using the shared
 `.github/qt-packages.json` configuration. Python 3 and internet access are required.
 Run `python tools/checkCiQt.py` separately to download only package metadata and
 check the version, architectures and archives. Missing packages or unreachable
-servers fail the check. Native Linux/macOS builds and tests are still required.
+servers fail the check. It also requires bundled ICU when provided by Linux Qt.
+CI runs `moc`, `uic` and `rcc` immediately after installation to detect missing
+shared libraries. Native Linux/macOS builds and tests are still required.
 
 Windows builds use MSYS2 UCRT64, both locally and in GitHub Actions. Local build files are kept in `build/ucrt64/<preset>/` to separate them from previous MinGW64 builds.
 

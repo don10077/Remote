@@ -24,6 +24,10 @@ def validate_packages(xml, version, arch, archives):
                 name.strip().split("-", 1)[0]
                 for name in item.findtext("DownloadableArchives", "").split(",")
             }
+            # Официальный Linux Qt собран с собственной версией ICU. Системная
+            # libicu Ubuntu может иметь другой ABI: rcc не запустится без этого архива.
+            if "icu" in available and "icu" not in archives:
+                raise ValueError(f"{package}: требуется архив icu для запуска утилит Qt")
             missing = set(archives) - available
             if missing:
                 raise ValueError(f"{package}: отсутствуют архивы {sorted(missing)}")
@@ -52,16 +56,17 @@ def main():
     args = parser.parse_args()
     config = json.loads((ROOT / ".github/qt-packages.json").read_text(encoding="utf-8"))
     version = config["version"]
-    archives = config["archives"]
+    base_archives = config["archives"]
     if not re.fullmatch(r"\d+\.\d+\.\d+", version):
         raise ValueError("Нужна точная версия Qt major.minor.patch")
-    if not archives or any(not re.fullmatch(r"qt[a-z0-9]+", a) for a in archives):
-        raise ValueError("Нужен непустой список имён архивов Qt")
     if args.github_output and not args.host:
         parser.error("--github-output требует --host")
     for host, platform in config["platforms"].items():
         if args.host and host != args.host:
             continue
+        archives = base_archives + platform.get("extra_archives", [])
+        if not archives or any(not re.fullmatch(r"(?:qt[a-z0-9]+|icu)", a) for a in archives):
+            raise ValueError("Нужен непустой список имён архивов Qt/ICU")
         compact = version.replace(".", "")
         path = f"{platform['repository']}/desktop/qt{version[0]}_{compact}/qt{version[0]}_{compact}"
         validate_packages(fetch_metadata(path), version, platform["arch"], archives)

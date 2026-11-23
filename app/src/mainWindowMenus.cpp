@@ -167,7 +167,7 @@ void MainWindow::createActions() {
 
     // --- Отмена и повтор: только горячие клавиши, кнопки — в шапке ---
     auto* undoAction = new QAction(tr("Undo"), this);
-    undoAction->setShortcuts({QKeySequence::Undo});
+    undoAction->setShortcuts(QKeySequence::Undo);
     connect(undoAction, &QAction::triggered, this, [this] { undo(); });
 
     auto* redoAction = new QAction(tr("Redo"), this);
