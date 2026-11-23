@@ -268,6 +268,16 @@ void MainWindow::createConfig() {
         return;
     }
 
+    // U2: модель нового проекта выбирает пользователь. Без выбора свойства нет, и модель
+    // решается по skin файла (M2); выбранная модель пишется свойством (M3).
+    if (!dialog.modelId().isEmpty()) {
+        const auto target = document->setTargetRemote(dialog.modelId().toStdString());
+        if (!target) {
+            QMessageBox::warning(this, tr("Could not create"), labels::errorText(target.error()));
+            return;
+        }
+    }
+
     // Новая конфигурация сразу ложится на диск — дальше её можно просто сохранять.
     // Для копии «Сохранить как» переносит и остальные файлы пульта из основы.
     if (QFileInfo::exists(dialog.filePath())) {

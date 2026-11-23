@@ -32,7 +32,8 @@ RemoteView::RemoteView(QWidget* parent)
 }
 
 void RemoteView::setRemoteProfile(const QString& id) {
-    const QString requested = id.isEmpty() ? QString::fromStdString(harmony::defaultRemoteId()) : id;
+    // U2: модели по умолчанию нет — пустой id значит, что модель не выбрана (Q11).
+    const QString requested = id;
     if (profileId == requested && resourceRevision == resources::revision()) return;
     resourceRevision = resources::revision();
     profileId = requested;

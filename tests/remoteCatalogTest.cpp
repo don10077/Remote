@@ -62,16 +62,10 @@ TEST(RemoteCatalog, BuiltinProfilesHaveCatalogModels) {
     }
 }
 
-// U1: модели по умолчанию нет. Пустой набор профилей — пустая модель, обращения к первому
-// элементу нет; 900 не подставляется (порядок списка моделей проверяет `modelIds()` —
-// RemoteResourcesTest.ModelListIsOrderedById).
-TEST(RemoteCatalog, NoDefaultModelWhenBuiltinCatalogIsEmpty) {
-    const auto saved = remoteProfiles;
-    remoteProfiles.clear();
-    EXPECT_EQ(defaultRemoteId(), "") << "модели по умолчанию нет";
-    EXPECT_EQ(defaultRemoteProfile().id, "");
-    remoteProfiles = saved;
-}
+// U1: модели по умолчанию нет — функции `defaultRemoteId()` и `defaultRemoteProfile()` удалены
+// в U2, поэтому тест проверял то, чего больше нет. Решения U2 проверяются в
+// `tests/noDefaultModelTest.cpp`; порядок списка моделей проверяет `modelIds()` —
+// RemoteResourcesTest.ModelListIsOrderedById.
 
 TEST(RemoteCatalog, MissingArchitectureMeansUnknown) {
     const RemoteModel unknown{};

@@ -106,8 +106,12 @@ if(HARMONY_BUILD_APP)
         remoteViewTest.cpp
         remoteResourcesTest.cpp
         noProfileWidgetsTest.cpp
+        noDefaultModelTest.cpp
         assignmentGateTest.cpp
         zoneEditingDictionaryTest.cpp
+        ../app/src/widgets/newConfigDialog.cpp
+        ../app/src/widgets/newConfigDialog.h
+        ../app/src/configLibrary.cpp
         ../app/src/assignmentGate.cpp
         ../app/src/assignmentGate.h
         ../app/src/modelKeysQt.cpp

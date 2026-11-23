@@ -5052,6 +5052,7 @@ The file holds the Hub's answer as it is — device names, models and commands, 
       <translation>Без значка — показывать подпись</translation>
     </message>
     <message>
+      <location filename="../../../app/src/widgets/newConfigDialog.cpp" />
       <location filename="../../../app/src/widgets/remoteProfileDialog.cpp" />
       <source>no image</source>
       <translation type="unfinished" />
@@ -5072,9 +5073,10 @@ The file holds the Hub's answer as it is — device names, models and commands, 
       <translation>нет макроса %1</translation>
     </message>
     <message>
+      <location filename="../../../app/src/widgets/newConfigDialog.cpp" />
       <location filename="../../../app/src/widgets/remoteProfileDialog.cpp" />
       <source>No model</source>
-      <translation type="unfinished" />
+      <translation>Без модели</translation>
     </message>
     <message>
       <location filename="../../../transport/src/linkFactory.cpp" />
@@ -6378,6 +6380,7 @@ The file holds the Hub's answer as it is — device names, models and commands, 
       <translation>Пульт не подключён</translation>
     </message>
     <message>
+      <location filename="../../../app/src/widgets/newConfigDialog.cpp" />
       <location filename="../../../app/src/widgets/remoteProfileDialog.cpp" />
       <source>Remote model:</source>
       <translation>Модель пульта:</translation>

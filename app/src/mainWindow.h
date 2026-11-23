@@ -427,7 +427,7 @@ private:
     QAction* readRemoteAction_ = nullptr;
     QAction* chooseRemoteAction_ = nullptr;
     QAction* transferAction_ = nullptr;
-    QString selectedRemote_ = QString::fromStdString(harmony::defaultRemoteId());
+    QString selectedRemote_;  ///< U2: модели по умолчанию нет; модель появляется с документом (Q2)
     QAction* writeRemoteAction_ = nullptr;
     QAction* checkConfigAction_ = nullptr;
     QAction* compareConfigsAction_ = nullptr; ///< «Сравнить с другой конфигурацией…»

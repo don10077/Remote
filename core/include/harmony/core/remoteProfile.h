@@ -51,19 +51,4 @@ inline ProfileRef profileFor(std::string_view modelId) {
     return {"remotes/" + std::string(modelId), remoteProfile(modelId) != nullptr};
 }
 
-/**
- * @brief Модель по умолчанию: первая в каталоге (сортировка по id — cmake/RemoteProfiles.cmake).
- *
- * Пользовательские пульты reload() добавляет после штатных. Профиль 900 не обязателен и
- * нигде не подставляется: пустой набор даёт пустую модель — модели по умолчанию нет (Q11),
- * эти функции удаляются в U2.
- * @return Копия профиля: указатель в каталог устарел бы после его обновления.
- */
-inline RemoteProfile defaultRemoteProfile() {
-    return remoteProfiles.empty() ? RemoteProfile{} : remoteProfiles.front();
-}
-
-/// @return id пульта по умолчанию (см. defaultRemoteProfile()).
-inline std::string defaultRemoteId() { return defaultRemoteProfile().id; }
-
 } // namespace harmony

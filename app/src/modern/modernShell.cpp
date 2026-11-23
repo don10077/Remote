@@ -197,8 +197,9 @@ ModernShell::ModernShell(QWidget* parent) : QWidget(parent) {
     cardLayout->addWidget(cardIcon);
     auto* cardText = new QVBoxLayout();
     cardText->setSpacing(1);
-    // Название пульта по умолчанию; ConfigView заменит его названием пульта конфигурации.
-    auto* appTitle = new QLabel(QString::fromStdString(harmony::defaultRemoteProfile().name), card);
+    // U2: модели по умолчанию нет — без документа карточка называет программу.
+    // ConfigView заменит это названием пульта конфигурации.
+    auto* appTitle = new QLabel(QStringLiteral("Harmony"), card);
     appTitle->setObjectName("appTitle");
     cardText->addWidget(appTitle);
     documentLabel = new QLabel(tr("no configuration"), card);

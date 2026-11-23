@@ -199,6 +199,8 @@ TEST(RemoteView, SwitchModelsClearsOldTargetsAndPreservesAspectRatio) {
 
 TEST(RemoteView, SwitchModelClearsLcdHitTargets) {
     harmony::app::RemoteView view;
+    // U2: пустой id — модель не выбрана, поэтому модель здесь названа явно.
+    view.setRemoteProfile("900");
     // размер холста берём из ресурсов, чтобы попасть в первую экранную ячейку
     view.resize(view.sizeHint());
     const QRectF screen = profileScreen("900");

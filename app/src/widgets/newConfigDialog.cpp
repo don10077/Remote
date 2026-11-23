@@ -7,6 +7,8 @@
 
 #include "../configLibrary.h"
 #include "harmony/core/configDocument.h"
+#include "harmony/core/remoteCatalog.h"
+#include "harmony/core/remoteProfile.h"
 
 #include <QComboBox>
 #include <QDir>
@@ -71,6 +73,18 @@ NewConfigDialog::NewConfigDialog(const QString& initialName, QWidget* parent)
         sourceRow->addWidget(pick);
         form->addRow(tr("Base:"), sourceRow);
 
+        // U2: модели по умолчанию нет — её выбирает пользователь. Список — весь каталог (M5),
+        // первый пункт «Без модели»: тогда свойство не пишется, и модель решается по skin файла.
+        model_ = new QComboBox(this);
+        model_->setObjectName(QStringLiteral("modelChoice"));
+        model_->addItem(tr("No model"), QString());
+        for (const auto& model : harmony::remoteCatalog()) {
+            QString text = QString::fromUtf8(model.name.data(), static_cast<qsizetype>(model.name.size()));
+            if (harmony::remoteProfile(model.id) == nullptr) text += " — " + tr("no image");
+            model_->addItem(text, QString::fromUtf8(model.id.data(), static_cast<qsizetype>(model.id.size())));
+        }
+        form->addRow(tr("Remote model:"), model_);
+
         connect(source_, &QComboBox::currentIndexChanged, this, [this] {
             suggestName();
             validate();
@@ -126,6 +140,10 @@ NewConfigDialog::NewConfigDialog(const QString& initialName, QWidget* parent)
 
 QString NewConfigDialog::source() const {
     return source_ != nullptr ? source_->currentData().toString() : QString();
+}
+
+QString NewConfigDialog::modelId() const {
+    return model_ != nullptr ? model_->currentData().toString() : QString();
 }
 
 void NewConfigDialog::addSource(const QString& folder) {

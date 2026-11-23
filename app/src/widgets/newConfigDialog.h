@@ -51,6 +51,10 @@ public:
      */
     [[nodiscard]] QString source() const;
 
+    /// @return Выбранная модель пульта; пусто — «Без модели» (U2: модели по умолчанию нет).
+    [[nodiscard]] QString modelId() const;
+
+
 private:
     /// Проверяет имя и показывает итоговый файл или причину, почему создать нельзя.
     void validate();
@@ -66,6 +70,7 @@ private:
     void suggestName();
 
     QComboBox* source_ = nullptr; ///< Основа: пустая, пример, недавние, выбранные файлы
+    QComboBox* model_ = nullptr;  ///< U2: модель нового проекта выбирает пользователь; пусто — «Без модели»
     QString base_;                ///< Место, в котором создаётся файл конфигурации
     bool nameEdited_ = false;     ///< Пользователь сам менял имя — больше не подсказываем
 };
