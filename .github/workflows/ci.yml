@@ -34,8 +34,6 @@ permissions:
 env:
   CCACHE_DIR: ${{ github.workspace }}/.ccache
   CCACHE_MAXSIZE: 500M
-  # Qt для Linux и macOS: последний LTS. Windows берёт Qt из MSYS2 — там всегда свежий.
-  QT_VERSION: "6.12.0"
 
 # Коммиты выпуска называются «Release Harmony <версия>» и отправляются вместе с тегом v*.
 # Для них пропускаем задания push по ветке: все проверки и пакеты выполняет запуск по тегу.
@@ -181,13 +179,17 @@ jobs:
             libxcb-cursor0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 \
             libxcb-shape0 libxcb-xinerama0 libxcb-xkb1
       # Qt 6.5+ нужен программе, а в Ubuntu 24.04 только 6.4 — берём официальную сборку Qt.
+      - name: Проверка пакетов Qt
+        id: qt-packages
+        run: python3 tools/checkCiQt.py --host linux --github-output "$GITHUB_OUTPUT"
       - uses: jurplel/install-qt-action@b344308e4483fc892e0d27b3cd1b173ebdd95f06 # v4.5.0
         with:
-          version: ${{ env.QT_VERSION }}
+          version: ${{ steps.qt-packages.outputs.version }}
           cache: true
-          # install-qt-action по умолчанию докидывает qtcharts, которого в Qt 6.12.0 нет —
-          # перечисляем явно: нужен только svg (core/gui/widgets/network — в базовой сборке).
-          modules: qtsvg
+          # Svg входит в базовый пакет: выбираем архив, а не addon-пакет.
+          host: ${{ steps.qt-packages.outputs.host }}
+          arch: ${{ steps.qt-packages.outputs.arch }}
+          archives: ${{ steps.qt-packages.outputs.archives }}
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
@@ -306,13 +308,17 @@ jobs:
       - name: Пакеты
         run: brew install ninja ccache
       # Официальная сборка Qt — универсальная (arm64 + x86_64), в отличие от Homebrew.
+      - name: Проверка пакетов Qt
+        id: qt-packages
+        run: python3 tools/checkCiQt.py --host mac --github-output "$GITHUB_OUTPUT"
       - uses: jurplel/install-qt-action@b344308e4483fc892e0d27b3cd1b173ebdd95f06 # v4.5.0
         with:
-          version: ${{ env.QT_VERSION }}
+          version: ${{ steps.qt-packages.outputs.version }}
           cache: true
-          # install-qt-action по умолчанию докидывает qtcharts, которого в Qt 6.12.0 нет —
-          # перечисляем явно: нужен только svg (core/gui/widgets/network — в базовой сборке).
-          modules: qtsvg
+          # Svg входит в базовый пакет: выбираем архив, а не addon-пакет.
+          host: ${{ steps.qt-packages.outputs.host }}
+          arch: ${{ steps.qt-packages.outputs.arch }}
+          archives: ${{ steps.qt-packages.outputs.archives }}
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |

@@ -10,7 +10,7 @@ rem    1. находит MSYS2 и добавляет его в PATH только
 rem    2. если чего-то не хватает (компилятор, CMake, Ninja, Qt 6, GoogleTest) -
 rem       обновляет MSYS2 (pacman -Syu) и ставит недостающие пакеты;
 rem    3. настраивает отдельную сборку UCRT64 (пресет release, как в CI);
-rem    4. обновляет переводы (tools\updateTranslations.py), если есть Python;
+rem    4. обновляет переводы (tools\updateTranslations.py);
 rem    5. собирает Release и прогоняет тесты;
 rem    6. кладёт harmony.exe со всеми DLL в dist\win - оттуда он запускается
 rem       без MSYS2 и его можно копировать на другой компьютер;
@@ -69,6 +69,20 @@ if not exist "CMakeUserPresets.json" (
     copy /Y "CMakeUserPresets.json.example" "CMakeUserPresets.json" >nul
 )
 
+rem --- Проверка зависимостей CI для Linux/macOS до долгой компиляции --------
+set "PYTHON="
+python --version >nul 2>&1 && set "PYTHON=python"
+if not defined PYTHON py -3 --version >nul 2>&1 && set "PYTHON=py -3"
+if not defined PYTHON (
+    echo [ошибка] Для проверки пакетов CI нужен Python 3. Установите Python и повторите сборку.
+    goto :fail
+)
+echo --- Проверка Qt для Linux и macOS ---
+%PYTHON% -m unittest discover -s tests -p test_check_ci_qt.py
+if errorlevel 1 goto :fail
+%PYTHON% tools\checkCiQt.py
+if errorlevel 1 goto :fail
+
 rem --- 3. Настройка UCRT64 ------------------------------------------------
 rem Отдельный каталог не смешивает новую сборку с прежней MinGW64.
 rem Явные пути также учитывают MSYS2_ROOT без правки локальных пресетов.
@@ -78,15 +92,8 @@ if errorlevel 1 goto :fail
 
 rem --- 4. Переводы ------------------------------------------------------------
 rem Новые строки tr() попадают в harmony_ru.ts пустыми (type="unfinished"),
-rem готовые переводы сохраняются. Без Python шаг пропускается: сборке он не нужен.
+rem готовые переводы сохраняются. Python уже найден для проверки пакетов CI.
 echo --- Переводы ---
-set "PYTHON="
-python --version >nul 2>&1 && set "PYTHON=python"
-if not defined PYTHON py -3 --version >nul 2>&1 && set "PYTHON=py -3"
-if not defined PYTHON (
-    echo [предупреждение] Python не найден, harmony_ru.ts не обновлён.
-    goto :build
-)
 %PYTHON% tools\updateTranslations.py
 if errorlevel 1 echo [предупреждение] updateTranslations.py завершился с ошибкой, harmony_ru.ts мог не обновиться.
 

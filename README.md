@@ -153,6 +153,12 @@ Install [MSYS2](https://www.msys2.org/) and run `build.cmd`. It installs missing
 builds Release, runs tests and deploys the application and DLLs to `dist/win`.
 Use `build.cmd installer` to also create the Windows installer.
 
+Before compiling, `build.cmd` checks Linux/macOS Qt packages using the shared
+`.github/qt-packages.json` configuration. Python 3 and internet access are required.
+Run `python tools/checkCiQt.py` separately to download only package metadata and
+check the version, architectures and archives. Missing packages or unreachable
+servers fail the check. Native Linux/macOS builds and tests are still required.
+
 Windows builds use MSYS2 UCRT64, both locally and in GitHub Actions. Local build files are kept in `build/ucrt64/<preset>/` to separate them from previous MinGW64 builds.
 
 The script looks for MSYS2 in `D:\Install\MSYS2` by default. Set `MSYS2_ROOT` for another location.
