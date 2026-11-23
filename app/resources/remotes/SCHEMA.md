@@ -45,9 +45,11 @@
 - `rect` — x, y, ширина, высота в пикселях фото от левого верхнего угла. Зона лежит внутри фото, `id` не повторяются.
 - `radius` — радиус углов в пикселях; отрицательный — доля короткой стороны (`-0.5` — круг).
 - `kind`: `Key` — кнопка, на которую назначаются команды, `id` — имя кнопки конфигурации (`Play`, `Number5`, `VolumeUp`); `System` — без команды (Off, Help); `ScreenActs` — открывает экран активностей; `ScreenSoft` — открывает экран команд (с `id` `Devices` или `Options` — одноимённый экран, с `id` `Soft…` — только физическая кнопка у экрана); `PagePrev`, `PageNext` — листание.
-- Имена одинаковы у всех пультов. Их общий список — скан-код → имя в
-  [harmony/core/keyNames.h](../../../core/include/harmony/core/keyNames.h); в редакторе зон `id`
-  вида `Key` выбирается из него ([../../../support/key-names.md](../../../support/key-names.md)).
+- Имена одинаковы у всех пультов. Их один общий словарь —
+  [harmony/core/keyVocabulary.h](../../../core/include/harmony/core/keyVocabulary.h); скан-коды и
+  имена по семействам — таблицы в [harmony/core/keyScans.h](../../../core/include/harmony/core/keyScans.h).
+  В редакторе зон `id` вида `Key` выбирается из словаря
+  ([../../../support/key-names.md](../../../support/key-names.md)).
   Имён, которых нет у 900, немного: `WatchTV`, `WatchMovie`, `ListenMusic`, `MoreActivities`
   (600-серия), `SoftLeft1..4`, `SoftRight1..4`.
 

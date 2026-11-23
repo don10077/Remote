@@ -53,7 +53,6 @@ add_library(harmony_core
     src/irdb/modelFinder.cpp
     src/irdb/signalIndex.cpp
     src/irdb/protocolLibrary.cpp
-    src/keyNames.cpp
     src/keyScans.cpp
     src/keyVocabulary.cpp
     src/modelKeys.cpp

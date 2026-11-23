@@ -44,7 +44,6 @@ add_executable(harmony_tests
     irdb/irDatabaseTest.cpp
     irdb/signalIndexTest.cpp
     ir/irSignalTest.cpp
-    keyNamesTest.cpp
     keyScansTest.cpp
     keyVocabularyTest.cpp
     modelKeysTest.cpp

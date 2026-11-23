@@ -1,9 +1,31 @@
 #include "formatFixtures.h"
+#include "dumpFiles.h"
+
+#include "harmony/core/configDocument.h"
 #include "harmony/core/formats/binaryHid.h"
+#include "harmony/core/keyScans.h"
+#include "harmony/core/model/remoteConfig.h"
 #include "harmony/core/remoteCatalog.h"
+
 #include <gtest/gtest.h>
 
+#include <algorithm>
+#include <filesystem>
+#include <set>
+#include <string>
+
 namespace {
+
+/// Имена аппаратных кнопок импорта (у экранных кнопки имени нет).
+std::set<std::string> hardNames(const harmony::model::RemoteConfig& config) {
+    std::set<std::string> names;
+    for (const auto& device : config.devices)
+        for (const auto& group : device.controlGroups)
+            for (const auto& button : group.buttons)
+                if (!button.name.empty())
+                    names.insert(button.name);
+    return names;
+}
 
 /**
  * @brief Образ с одной командой и назначениями на заданные скан-коды.
@@ -101,4 +123,45 @@ TEST(BinaryHidImport, RawPayloadWithoutModelUsesFamilyOnly) {
     const auto model = harmony::formats::importBinaryHid(file->payload);
     ASSERT_TRUE(model) << model.error().message;
     EXPECT_EQ(model->devices.front().controlGroups.front().buttons.front().name, "Scan2C");
+}
+
+// Регрессия K3 на настоящих дампах (перенесена из `tests/keyNamesTest.cpp` в K6, потому что
+// старый список имён удалён; имена проверяются таблицами семейств и словарём).
+TEST(BinaryHidImport, ImportedNamesComeFromTheirFamilyTables) {
+    // Настоящие дампы (dumps/, не в git): без них тест пропускается (правило 19).
+    struct Sample { const char* folder; const char* mask; const char* catalogId; };
+    std::size_t checked = 0;
+    for (const Sample sample : {Sample{"EZHex/harmony650", "*.EZHex", "650"},
+                                Sample{"EZHex/harmony525", "*.EZHex", "525"},
+                                Sample{"EZHex/arch8", "H885-LivingRoom*.EZHex", "885"},
+                                Sample{"EZHex/arch8", "H880-*.EZHex", "880"}}) {
+        const auto path = harmony::test::dumpFile(sample.folder, sample.mask);
+        if (path.empty()) continue;
+        ++checked;
+        SCOPED_TRACE(path.filename().string());
+        auto document = harmony::ConfigDocument::open(path);
+        ASSERT_TRUE(document) << document.error().message;
+
+        // Имена клавиш даёт таблица семейства/модели. Профиль не участвует.
+        const auto* model = harmony::catalogModel(sample.catalogId);
+        ASSERT_TRUE(model) << sample.catalogId;
+        EXPECT_EQ(document->targetRemote(), sample.catalogId);
+        const auto names = hardNames(document->model());
+        ASSERT_FALSE(names.empty());
+
+        // Число и состав назначений файла владельца не фиксируем (правило 19).
+        const auto* table = harmony::keyScanTable(model->architecture, model->id);
+        for (const auto& name : names) {
+            if (name.starts_with("Scan")) {
+                const unsigned code = static_cast<unsigned>(std::stoul(name.substr(4), nullptr, 16));
+                EXPECT_FALSE(harmony::keyNameForScan(model->architecture, model->id, code)) << name;
+                EXPECT_EQ(name, harmony::scanPlaceholder(code));
+            } else {
+                ASSERT_NE(table, nullptr) << name;
+                EXPECT_NE(std::ranges::find(table->entries, name, &harmony::KeyScan::name),
+                          table->entries.end()) << name;
+            }
+        }
+    }
+    if (checked == 0) GTEST_SKIP() << "dumps/ нет — дампы бинарных семейств только на машине владельца";
 }
