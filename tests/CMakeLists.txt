@@ -20,6 +20,8 @@ add_executable(harmony_tests
     irEncodeTest.cpp
     configEditTest.cpp
     configEzHexTest.cpp
+    sourceImageTest.cpp
+    importTargetRemoteTest.cpp
     formats/containerTest.cpp
     formats/binaryHidImportTest.cpp
     formats/digestTest.cpp
@@ -108,6 +110,7 @@ if(HARMONY_BUILD_APP)
         noProfileWidgetsTest.cpp
         screenButtonsWidgetsTest.cpp
         hardButtonsWidgetsTest.cpp
+        backendCapabilitiesWidgetsTest.cpp
         remoteModelChangeTest.cpp
         ../app/src/widgets/remoteProfileDialog.cpp
         ../app/src/widgets/remoteProfileDialog.h

@@ -7,6 +7,8 @@
 #include "harmony/core/formats/hubConfig.h"
 #include "harmony/core/ir/irSignal.h"
 
+#include "formatFixtures.h"
+
 #include <gtest/gtest.h>
 
 #include <filesystem>
@@ -354,6 +356,58 @@ TEST(ConfigBackend, Harmony900DocumentIsEditableAndSharesModel) {
     EXPECT_EQ(backend->name(), document->name());
     EXPECT_EQ(backend->location(), document->location());
     EXPECT_EQ(backend->location(), kSampleDir);
+}
+
+// B1: свойства формата — по существующему поведению, новых запретов нет.
+TEST(ConfigBackend, CapabilitiesDescribeXmlFormat) {
+    const auto document = ConfigDocument::open(kSampleDir);
+    ASSERT_TRUE(document) << document.error().message;
+
+    const harmony::BackendCapabilities caps = document->backend()->capabilities();
+    EXPECT_TRUE(caps.writeToRemote);
+    EXPECT_TRUE(caps.saveToSource);
+    EXPECT_FALSE(caps.importedApproximation);
+    EXPECT_TRUE(caps.powerStateKnown);
+    EXPECT_TRUE(caps.commandCodesEditable);
+    EXPECT_EQ(document->backend()->canWriteToRemote(), caps.writeToRemote);
+}
+
+TEST(ConfigBackend, CapabilitiesDescribeHubFormat) {
+    const auto document = hubDocument();
+
+    const harmony::BackendCapabilities caps = document.backend()->capabilities();
+    EXPECT_FALSE(caps.writeToRemote);
+    EXPECT_TRUE(caps.saveToSource); // папка хаба и .EZHex сохраняются
+    EXPECT_FALSE(caps.importedApproximation);
+    EXPECT_TRUE(caps.powerStateKnown);
+    EXPECT_TRUE(caps.commandCodesEditable);
+}
+
+TEST(ConfigBackend, CapabilitiesDescribeBinaryImport) {
+    auto document = ConfigDocument::fromEzHex(harmony::test::minimalEzHex(14, 72), "650");
+    ASSERT_TRUE(document) << document.error().message;
+
+    const harmony::BackendCapabilities caps = document->backend()->capabilities();
+    EXPECT_FALSE(caps.writeToRemote);
+    EXPECT_FALSE(caps.saveToSource); // исходный HID-образ только сохраняется рядом
+    EXPECT_TRUE(caps.importedApproximation);
+    EXPECT_FALSE(caps.powerStateKnown);
+    EXPECT_TRUE(caps.commandCodesEditable);
+}
+
+TEST(ConfigBackend, BinaryImportCapabilitiesSurviveSavedProject) {
+    auto document = ConfigDocument::fromEzHex(harmony::test::minimalEzHex(14, 72), "650");
+    ASSERT_TRUE(document) << document.error().message;
+    const auto saved = document->toEzHex(false);
+    ASSERT_TRUE(saved) << saved.error().message;
+
+    const auto reopened = ConfigDocument::fromEzHex(*saved, "project");
+    ASSERT_TRUE(reopened) << reopened.error().message;
+    const harmony::BackendCapabilities caps = reopened->backend()->capabilities();
+    EXPECT_FALSE(caps.writeToRemote);
+    EXPECT_FALSE(caps.saveToSource);
+    EXPECT_TRUE(caps.importedApproximation);
+    EXPECT_FALSE(caps.powerStateKnown);
 }
 
 TEST(ConfigBackend, NewDocumentHasNoLocation) {

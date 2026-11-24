@@ -31,6 +31,8 @@ using formats::Bytes;
 
 constexpr std::string_view kUserFolder = "userconfig/";
 constexpr std::string_view kPlatformFolder = "platformconfig/";
+/// Запись архива проекта с файлом, из которого сделали импорт (B3). Пишется без сжатия.
+constexpr std::string_view kSourceImageEntry = "source/Original.EZHex";
 
 /// Файлы конфигурации внутри архива.
 struct PackedFile {
@@ -149,14 +151,16 @@ Result<ConfigDocument> ConfigDocument::fromEzHex(std::span<const std::uint8_t> e
         const auto* remote = catalogModelBySkin(container->identity.skin);
         auto imported = formats::importBinaryHid(container->payload, remote ? remote->id : std::string_view{});
         if (!imported) return std::unexpected(imported.error());
-        if (remote) {
-            imported->model.properties.emplace_back("HarmonyTargetRemote", remote->id);
-        }
+        // Модель импорта не записывается свойством (B4): её решает targetRemote() по skin —
+        // тот же путь, что у файла без свойства. Свойство остаётся выбором пользователя (M5).
         auto document = fromXml(detail::importedModelXml(imported->model, detail::kBinaryHidSourceFormat), std::move(name));
         if (!document) return document;
         document->impl_->importReport = std::move(imported->report);
         auto archive = skeleton(0);
-        archive.entries.push_back(formats::makeEntry("source/Original.EZHex", 0100644, ezhex, 0));
+        // Образ пишется без сжатия (решение владельца по B3): данные записи — это и есть
+        // исходный файл, поэтому sourceImage() отдаёт их как есть, байт в байт.
+        archive.entries.push_back(
+            formats::makeEntry(std::string(kSourceImageEntry), 0100644, ezhex, 0, false));
         document->impl_->package = std::make_shared<const detail::Package>(detail::Package{
             .header = container->header, .identity = container->identity, .archive = std::move(archive)});
         document->impl_->importedFromBinary = true;
@@ -299,6 +303,23 @@ const std::filesystem::path& ConfigDocument::location() const {
 
 formats::RemoteIdentity ConfigDocument::identity() const {
     return impl_->package ? impl_->package->identity : formats::RemoteIdentity{};
+}
+
+/// Запись `source/Original.EZHex` архива проекта (B3).
+std::optional<std::span<const std::uint8_t>> ConfigDocument::sourceImage() const {
+    if (impl_->package == nullptr) {
+        return std::nullopt;
+    }
+    const formats::ZipEntry* entry = impl_->package->archive.find(std::string(kSourceImageEntry));
+    if (entry == nullptr) {
+        return std::nullopt;
+    }
+    // Образ пишется без сжатия, поэтому данные записи — это и есть содержимое.
+    // Запись с другим методом не разбирается здесь: распакованные данные жили бы недолго.
+    if (entry->method != 0) {
+        return std::nullopt;
+    }
+    return std::span<const std::uint8_t>(entry->data);
 }
 
 // --- RF-бластеры ---------------------------------------------------------------------

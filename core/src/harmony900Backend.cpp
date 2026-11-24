@@ -39,7 +39,26 @@ public:
     [[nodiscard]] formats::RemoteIdentity identity() const override {
         return impl_.package ? impl_.package->identity : formats::RemoteIdentity{};
     }
-    [[nodiscard]] bool canWriteToRemote() const override { return format() == ConfigFormat::Harmony900; }
+    [[nodiscard]] BackendCapabilities capabilities() const override {
+        BackendCapabilities caps;
+        switch (format()) {
+        case ConfigFormat::Harmony900:
+            // XML правится целиком и сохраняется в исходный .EZHex/ZIP.
+            caps.writeToRemote = true;
+            caps.saveToSource = true;
+            break;
+        case ConfigFormat::Hub:
+            // Хаб правится и сохраняется в папку или .EZHex, но на пульт не пишется.
+            caps.saveToSource = true;
+            break;
+        case ConfigFormat::BinaryHid:
+            // Исходный образ сохраняется рядом с проектом; правки в него не собираются.
+            caps.importedApproximation = true;
+            caps.powerStateKnown = false;
+            break;
+        }
+        return caps;
+    }
 
 private:
     const ConfigDocument::Impl& impl_;

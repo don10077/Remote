@@ -13,6 +13,7 @@
 #include "harmony/core/buttonOwner.h"
 #include "harmony/core/model/remoteConfig.h"
 
+#include "harmony/core/configBackend.h"
 #include "harmony/core/configDocument.h"
 
 #include <QPointer>
@@ -304,6 +305,15 @@ private:
 
     /// Id целевой модели документа; пусто — модель неизвестна.
     [[nodiscard]] std::string targetRemoteId() const;
+
+    /**
+     * @brief Что умеет формат открытого документа (B2).
+     *
+     * Экран решает по свойствам формата, а не сравнивает строку `SourceFormat`,
+     * поэтому новый формат не требует правок здесь.
+     * @return Свойства бэкенда; без документа — свойства нейтрального вида.
+     */
+    [[nodiscard]] BackendCapabilities capabilities() const;
 
     /// Обновляет кнопки действий под выбранный объект.
     void updateActions();

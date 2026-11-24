@@ -185,6 +185,16 @@ public:
     [[nodiscard]] formats::RemoteIdentity identity() const;
 
     /**
+     * @brief Исходный образ, из которого собран документ (B3).
+     *
+     * Двоичный импорт сохраняет файл пульта как запись `source/Original.EZHex`: правки живут
+     * в проекте, а образ остаётся байт в байт. О нём сообщает свойство формата
+     * `importedApproximation`; здесь тот образ доступен для чтения (сборка из правок — R4).
+     * @return Байты образа; nullopt — документа из образа нет (обычный XML или папка хаба).
+     */
+    [[nodiscard]] std::optional<std::span<const std::uint8_t>> sourceImage() const;
+
+    /**
      * @brief Сохраняет в папку документа.
      * @return Ошибка ErrorCode::Unsupported, если папки ещё нет (нужно saveAs), или ErrorCode::Io.
      */

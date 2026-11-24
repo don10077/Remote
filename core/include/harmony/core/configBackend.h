@@ -25,6 +25,15 @@ enum class ConfigFormat {
     BinaryHid,  ///< Импортированный бинарный HID: редактируемый проект с сохранённым исходным образом
 };
 
+/// Что умеет формат документа. UI спрашивает эти свойства, а не строку формата (B2).
+struct BackendCapabilities {
+    bool writeToRemote = false;         ///< Формат пишется на пульт; право конкретной модели решает canWriteTo().
+    bool saveToSource = false;          ///< Можно сохранить обратно в исходный формат (EZHex, ZIP, папка хаба).
+    bool importedApproximation = false; ///< Модель получена импортом с потерями: часть данных осталась в исходном образе.
+    bool powerStateKnown = true;        ///< Известно, какие устройства включает и выключает активность.
+    bool commandCodesEditable = true;   ///< ИК-код команды можно править.
+};
+
 /// Чтение общих сведений о конфигурации. Реализации не владеют документом: это вид на него.
 class ConfigBackend {
 public:
@@ -32,6 +41,9 @@ public:
 
     /// @return Формат исходного файла.
     [[nodiscard]] virtual ConfigFormat format() const = 0;
+
+    /// @return Что умеет формат этого документа.
+    [[nodiscard]] virtual BackendCapabilities capabilities() const = 0;
 
     /// @return Общая модель для показа и проверок.
     [[nodiscard]] virtual const model::RemoteConfig& model() const = 0;
@@ -45,8 +57,9 @@ public:
     /// @return Для какого пульта конфигурация; пустое значение, если формат этого не хранит.
     [[nodiscard]] virtual formats::RemoteIdentity identity() const = 0;
 
-    /// @return true, если конфигурацию можно записать на пульт (правятся и сохраняются все).
-    [[nodiscard]] virtual bool canWriteToRemote() const = 0;
+    /// @return true, если формат вообще пишется на пульт.
+    /// @note Право записи конкретного документа решает только canWriteTo() (W1), а не это свойство.
+    [[nodiscard]] bool canWriteToRemote() const { return capabilities().writeToRemote; }
 };
 
 } // namespace harmony

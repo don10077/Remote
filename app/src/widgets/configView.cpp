@@ -424,6 +424,13 @@ std::string ConfigView::targetRemoteId() const {
     return document_ != nullptr ? document_->targetRemote() : std::string();
 }
 
+BackendCapabilities ConfigView::capabilities() const {
+    if (document_ == nullptr || document_->backend() == nullptr) {
+        return {};
+    }
+    return document_->backend()->capabilities();
+}
+
 void ConfigView::select(Item item, const std::string& id) {
     if (config_ == nullptr) {
         return;
@@ -500,7 +507,7 @@ ConfigView::Page ConfigView::currentPage() const {
 
 void ConfigView::selectFirst() {
     hasSelection_ = false;
-    if (config_ != nullptr && config_->property("SourceFormat") != "BinaryHid") {
+    if (config_ != nullptr && !capabilities().importedApproximation) {
         // Сразу показываем первую «настоящую» активность — так экран не пустой.
         for (int i = 0; i < static_cast<int>(config_->activities.size()); ++i) {
             if (!config_->activities[static_cast<std::size_t>(i)].isPowerOff()) {
@@ -704,7 +711,7 @@ void ConfigView::fillOverview() {
            "button sends to.</p>")
             .arg(updated.isEmpty() ? tr("unknown") : updated,
                  labels::plural(static_cast<qsizetype>(config_->commandCount()), "IR command", "IR commands")) +
-        powerOff + (config_->property("SourceFormat") == "BinaryHid"
+        powerOff + (capabilities().importedApproximation
             ? tr("<h3>Imported HID configuration</h3><p>The original image is retained in the saved project. "
                  "This project can be edited and saved; writing it back in the native HID format is not implemented.</p>") +
               tr("<p>Some names and keys remain numbered. Conditional macros and activity start/stop logic "
@@ -784,7 +791,7 @@ void ConfigView::showActivity(int index) {
     for (const auto& deviceId : activity.powerOff) {
         addDevice(deviceId, tr("turns off"));
     }
-    if (config_->property("SourceFormat") == "BinaryHid") {
+    if (!capabilities().powerStateKnown) {
         for (const auto& device : config_->devices) {
             if (activity.usesDevice(device.id) &&
                 std::ranges::find(activity.powerOn, device.id) == activity.powerOn.end() &&
