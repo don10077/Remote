@@ -509,14 +509,22 @@ private:
     /// Команде с подписью даём имя из неё (без пробелов, как у Logitech: «PowerToggle»).
     void nameCommands(model::RemoteConfig& result, const std::vector<Mode>& modes) {
         for (const auto& mode : modes) {
-            for (const auto& page : mode.pages) {
+            for (std::size_t page = 0; page < mode.pages.size(); ++page) {
                 std::vector<const Key*> soft;
-                for (const auto& key : page.keys)
+                for (const auto& key : mode.pages[page].keys)
                     if ((key.tag >> 6) == 2)
                         soft.push_back(&key);
-                const auto labels = softLabels(family_.screen, page.texts);
-                if (soft.size() != labels.size())
-                    continue; // пустые ячейки: соответствие неоднозначно
+                const auto labels = softLabels(family_.screen, mode.pages[page].texts);
+                if (soft.size() != labels.size()) {
+                    // Пустые ячейки: соответствие неоднозначно. Числа различаются — значит,
+                    // часть мест пуста и её не восстановить (C2). Без программы рисования
+                    // подписей нет вовсе, и сравнивать не с чем: предупреждения нет.
+                    if (!labels.empty())
+                        warnings_.push_back("Страница " + std::to_string(page + 1) + ": подписей " +
+                                            std::to_string(labels.size()) + ", кнопок " +
+                                            std::to_string(soft.size()) + ", пустые места не определены");
+                    continue;
+                }
                 for (std::size_t i = 0; i < soft.size(); ++i) {
                     const auto codes = commands(soft[i]->action);
                     if (codes.size() == 1)

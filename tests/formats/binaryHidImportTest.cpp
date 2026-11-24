@@ -133,8 +133,10 @@ harmony::formats::Bytes softLabelFixture(int architecture, int skin, unsigned sc
     put(212, 1, 2);
     put(214, 0x30000 + pageStart, 3);
     put(pageStart + shift, 0x30000 + 220, 3);
-    put(pageStart + shift + 3, 0x30000 + 240, 3);
-    std::size_t at = 240;
+    put(pageStart + shift + 3, 0x30000 + 260, 3);
+    // Программа рисования — после записи страницы: её завершающий ноль не должен
+    // перекрывать указатели страницы (для arch 14 они начинаются с byte 250).
+    std::size_t at = 260;
     for (const auto point : texts) {
         data[at++] = 5; // x, y, строка
         data[at++] = static_cast<std::uint8_t>(point.x);
@@ -266,4 +268,35 @@ TEST(BinaryHidImport, ImportedNamesComeFromTheirFamilyTables) {
         }
     }
     if (checked == 0) GTEST_SKIP() << "dumps/ нет — дампы бинарных семейств только на машине владельца";
+}
+
+// C2: пустые места страницы формата — предупреждение в отчёте импорта, а не свойство проекта.
+// Страница, где подписей больше, чем экранных кнопок: соответствие неоднозначно (S3),
+// пустые места восстановить нельзя — это надо показать.
+TEST(BinaryHidImport, PageWithFewerButtonsThanLabelsWarnsThroughImportReport) {
+    const auto warning = "Страница 1: подписей 2, кнопок 1, пустые места не определены";
+    const auto imported = harmony::formats::importBinaryHid(
+        harmony::formats::parseEzHex(softLabelFixture(14, 75, 0x2c, {{30, 90}, {100, 50}}))->payload);
+    ASSERT_TRUE(imported) << imported.error().message;
+    EXPECT_EQ(imported->report.warnings, (std::vector<std::string>{warning}))
+        << "предупреждение импорта — отчёт, а не свойство конфигурации";
+
+    auto document = harmony::ConfigDocument::fromEzHex(
+        softLabelFixture(14, 75, 0x2c, {{30, 90}, {100, 50}}), "page");
+    ASSERT_TRUE(document);
+    EXPECT_EQ(document->importReport().warnings, (std::vector<std::string>{warning}))
+        << "документ показывает отчёт импорта после открытия";
+}
+
+// Без геометрии семейства подписей не было и нет: сравнивать не с чем, предупреждения о
+// пустых местах нет (другие предупреждения импорта — имена клавиш — остаются).
+TEST(BinaryHidImport, GeometrylessFamilyDoesNotWarnAboutEmptyPlaces) {
+    const auto imported = harmony::formats::importBinaryHid(
+        harmony::formats::parseEzHex(softLabelFixture(12, 54, 0x2c, {{100, 80}}))->payload);
+    ASSERT_TRUE(imported) << imported.error().message;
+    std::string joined;
+    for (const auto& text : imported->report.warnings) joined += text + "; ";
+    EXPECT_EQ(std::ranges::count_if(imported->report.warnings,
+                                   [](const std::string& text) { return text.contains("пустые места"); }),
+              0) << joined;
 }

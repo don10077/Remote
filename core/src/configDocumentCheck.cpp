@@ -9,7 +9,8 @@
  *   ссылаются на несуществующие команды или устройства;
  * - активность не говорит, включено ли устройство, или не включает устройство,
  *   которому шлют команды её кнопки; нет роли DEFAULT; роль у двух устройств;
- * - клавиши, которых нет у модели документа, и имена-заполнители скан-кодов;
+ * - клавиши, которых нет у модели документа, и имена-заполнители скан-кодов; skin файла
+ *   не принадлежит модели документа (то же решение, что при записи);
  * - одинаковые id и имена, пустые имена, устройств больше, чем помнит пульт.
  */
 
@@ -17,6 +18,8 @@
 #include "harmony/core/buttonIcons.h"
 #include "harmony/core/modelKeys.h"
 #include "harmony/core/macro.h"
+#include "harmony/core/remoteCatalog.h"
+#include "harmony/core/writePolicy.h"
 
 #include <algorithm>
 #include <map>
@@ -114,7 +117,8 @@ std::vector<pugi::xml_node> operations(pugi::xml_node node) {
  * @brief Собирает проблемы документа: по одному методу на правило.
  *
  * Порядок проверок задаёт порядок проблем: конфигурация целиком, устройства, активности,
- * клавиши модели, ИК-данные команд, макросы, RF-бластер; в конце ошибки переносятся вперёд.
+ * клавиши модели и skin файла, ИК-данные команд, макросы, RF-бластер; в конце ошибки
+ * переносятся вперёд.
  */
 class Checker {
 public:
@@ -133,6 +137,7 @@ public:
             checkActivity(activity);
         }
         checkModelKeys();
+        checkModelMismatch();
         for (const auto& device : config_.devices) {
             checkIrData(device);
         }
@@ -373,22 +378,9 @@ private:
         }
     }
 
-    // --- Модель документа (C1) ------------------------------------------------------
+    // --- Модель документа (C1, C4) --------------------------------------------------
 
-    /// Имя клавиши доказано моделью: зона профиля, скан-таблица или надпись на корпусе.
-    /// Имена из конфигурации и из ячеек экрана — не факт о модели (K4, A5).
-    [[nodiscard]] bool keyIsModelName(const ModelKeys& keys, const std::string& name) const {
-        const auto canonical = canonicalKeyName(name);
-        for (const auto& key : keys.keys) {
-            if (key.source == KeySource::Config || key.source == KeySource::ProfileScreen) {
-                continue;
-            }
-            if (key.name == name || canonical == key.name) {
-                return true;
-            }
-        }
-        return false;
-    }
+    // Имя клавиши доказано моделью — решение `keyIsModelName()` (modelKeys, K4/C1/C4).
 
     /**
      * @brief Назначенные физические клавиши, которых нет у модели документа (Q5).
@@ -402,6 +394,7 @@ private:
     void checkModelKeys() {
         const ModelInfo model = document_.targetModel();
         const ModelKeys keys = modelKeys(model, {}, {}, &config_);
+        const auto missing = keysMissingOnModel(keys, config_);
         const auto checkOwner = [&](Problem::Where where, const std::string& id,
                                     const std::string& name,
                                     const std::vector<model::ControlGroup>& groups) {
@@ -416,7 +409,7 @@ private:
                         .hardKey = key;
                     continue;   // про заполнитель говорим один раз
                 }
-                if (keys.complete && !keyIsModelName(keys, key)) {
+                if (std::ranges::find(missing, key) != missing.end()) {
                     warning(where, id, say("%1 · %2", {name, key}),
                             say("the model has no key “%1”: the assignment will not work", {key}))
                         .hardKey = key;
@@ -428,6 +421,27 @@ private:
         }
         for (const auto& activity : config_.activities) {
             checkOwner(Problem::Where::Activity, activity.id, activity.label, activity.controlGroups);
+        }
+    }
+
+    /// Skin файла не принадлежит модели документа — решение `skinBelongs()` (W1, C4).
+    /// Проверка называет обе величины (правило 18) и сообщает о противоречии независимо от
+    /// права записи: формат, который на пульт не пишется, не отменяет факт об identity файла.
+    void checkModelMismatch() {
+        const ModelInfo model = document_.targetModel();
+        const int skin = document_.identity().skin;
+        if (!model.known || skinBelongs(model, skin)) {
+            return;  // без модели — только общие проверки (Q3)
+        }
+        const std::string value = std::to_string(skin);
+        const auto* bySkin = catalogModelBySkin(skin);
+        if (bySkin != nullptr) {
+            warning(Problem::Where::Config, model.id, say("The whole configuration"),
+                    say("file skin %1 belongs to model %2, the document targets %3",
+                        {value, std::string(bySkin->id), model.id}));
+        } else {
+            warning(Problem::Where::Config, model.id, say("The whole configuration"),
+                    say("file skin %1 does not belong to model %2", {value, model.id}));
         }
     }
 

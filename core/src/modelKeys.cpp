@@ -12,6 +12,9 @@
  *
  * Здесь нет кеша и нет чтения файлов: содержимое профиля передаёт приложение (`modelKeysQt`,
  * шаг A1). Функция вызывается из обновления таблиц, гейтов и диалогов, а не из отрисовки.
+ *
+ * Здесь же решение C1 (`keyIsModelName` и `keysMissingOnModel`): его читают проверка
+ * конфигурации и сводка смены модели (C4), поэтому оно одно, а не два.
  */
 
 #include "harmony/core/modelKeys.h"
@@ -27,6 +30,8 @@
 namespace harmony {
 
 namespace {
+
+constexpr const char* kHardGroup = "HardButtons";
 
 /**
  * Имена по модели там, где скан-кодов нет вовсе: надписи на корпусе.
@@ -138,6 +143,37 @@ ModelKeys modelKeys(const ModelInfo& model, std::span<const std::string> profile
     result.complete = profileGiven || (table != nullptr && table->complete);
     result.vocabularyFallback = !profileGiven && table == nullptr && printed == nullptr;
     return result;
+}
+
+bool keyIsModelName(const ModelKeys& keys, std::string_view name) {
+    const auto canonical = canonicalKeyName(name);
+    for (const auto& key : keys.keys) {
+        if (key.source == KeySource::Config || key.source == KeySource::ProfileScreen) {
+            continue;
+        }
+        if (key.name == name || canonical == key.name) {
+            return true;
+        }
+    }
+    return false;
+}
+
+std::vector<std::string> keysMissingOnModel(const ModelKeys& keys, const model::RemoteConfig& config) {
+    if (!keys.complete) return {};  // неполный список ничего не утверждает
+    std::vector<std::string> out;
+    const auto look = [&out, &keys](const std::vector<model::ControlGroup>& groups) {
+        for (const auto& group : groups) {
+            if (group.name != kHardGroup) continue;  // экранная кнопка: имени клавиши нет
+            for (const auto& button : group.buttons) {
+                if (button.name.empty() || isTemporaryZoneName(button.name)) continue;
+                if (keyIsModelName(keys, button.name)) continue;
+                if (std::ranges::find(out, button.name) == out.end()) out.push_back(button.name);
+            }
+        }
+    };
+    for (const auto& device : config.devices) look(device.controlGroups);
+    for (const auto& activity : config.activities) look(activity.controlGroups);
+    return out;
 }
 
 } // namespace harmony

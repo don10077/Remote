@@ -393,6 +393,7 @@ The configuration from %1 will be copied into this archive.</source>
     </message>
     <message>
       <location filename="../../../app/src/zoneEditing.cpp" />
+      <location filename="../../../core/src/configDocumentCheck.cpp" />
       <source>%1: temporary name, choose one from the list</source>
       <translation>%1: имя временное, выберите одно из списка</translation>
     </message>
@@ -1642,13 +1643,8 @@ Add a device?</source>
     </message>
     <message>
       <location filename="../../../transport/src/concordTransfer.cpp" />
-      <source>Cannot create the backup file</source>
-      <translation>Не удалось создать файл резервной копии</translation>
-    </message>
-    <message>
-      <location filename="../../../transport/src/concordTransfer.cpp" />
-      <source>Cannot finish the backup file; remote was not written</source>
-      <translation>Не удалось сохранить резервную копию; запись в пульт не выполнялась</translation>
+      <source>Cannot create or finish the backup file</source>
+      <translation type="unfinished" />
     </message>
     <message>
       <location filename="../../../transport/src/concordTransfer.cpp" />
@@ -5622,6 +5618,11 @@ The file holds the Hub's answer as it is — device names, models and commands, 
       <translation>Стр.</translation>
     </message>
     <message>
+      <location filename="../../../app/src/profileCheck.cpp" />
+      <source>page %1, place %2</source>
+      <translation type="unfinished" />
+    </message>
+    <message>
       <location filename="../../../app/src/widgets/zoneEditorProperties.cpp" />
       <location filename="../../../app/src/widgets/zoneEditorShared.h" />
       <source>Page number</source>
@@ -5946,6 +5947,21 @@ The file holds the Hub's answer as it is — device names, models and commands, 
       <location filename="../../../app/src/widgets/checkDialog.cpp" />
       <source>Problem</source>
       <translation>Проблема</translation>
+    </message>
+    <message>
+      <location filename="../../../app/src/profileCheck.cpp" />
+      <source>profile: %1</source>
+      <translation type="unfinished" />
+    </message>
+    <message>
+      <location filename="../../../app/src/profileCheck.cpp" />
+      <source>profile: %1 describes %2 cells, the grid has %3 places</source>
+      <translation type="unfinished" />
+    </message>
+    <message>
+      <location filename="../../../app/src/profileCheck.cpp" />
+      <source>profile: %1 has no command slots</source>
+      <translation type="unfinished" />
     </message>
     <message>
       <location filename="../../../app/src/widgets/journalDialog.cpp" />
@@ -8244,6 +8260,11 @@ They will not be sent to the remote either. When the device is made active again
       <location filename="../../../app/src/helpContent.cpp" />
       <source>The main window</source>
       <translation>Главное окно</translation>
+    </message>
+    <message>
+      <location filename="../../../core/src/configDocumentCheck.cpp" />
+      <source>the model has no key “%1”: the assignment will not work</source>
+      <translation type="unfinished" />
     </message>
     <message>
       <location filename="../../../app/src/widgets/newConfigDialog.cpp" />

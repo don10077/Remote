@@ -13,6 +13,7 @@
 #include "harmony/core/configDocument.h"
 
 #include <QDialog>
+#include <QJsonObject>
 #include <functional>
 #include <optional>
 
@@ -36,11 +37,16 @@ public:
      * @param document Открытая конфигурация (живёт дольше окна; правится только через @p apply).
      * @param apply Правка с отменой.
      * @param parent Родительское окно.
+     * @param remote Описание модели (снимок ресурсов): проблемы профиля добавляют к проверке (C2).
      */
-    CheckDialog(const ConfigDocument& document, Apply apply, QWidget* parent = nullptr);
+    CheckDialog(const ConfigDocument& document, Apply apply, QWidget* parent = nullptr,
+                const QJsonObject& remote = {});
 
     /// @return Проблема, место которой попросили показать (окно закрыто с Accepted).
     [[nodiscard]] const std::optional<Problem>& target() const { return target_; }
+
+    /// @return Проблемы, показанные в списке: проверка ядра и проблемы профиля (C2).
+    [[nodiscard]] const std::vector<Problem>& problems() const { return problems_; }
 
 private:
     /// Проверяет заново и заполняет список.
@@ -54,6 +60,7 @@ private:
 
     const ConfigDocument& document_;
     Apply apply_;
+    QJsonObject remote_;  ///< Описание модели (профиль): проблемы экрана, C2
     std::vector<Problem> problems_;
     std::optional<Problem> target_;
 

@@ -55,6 +55,8 @@ qt_add_executable(harmony_app
     src/labels.cpp
     src/labels.h
     src/nameCheck.h
+    src/profileCheck.cpp
+    src/profileCheck.h
     src/theme.cpp
     src/theme.h
     src/widgets/appHeader.cpp

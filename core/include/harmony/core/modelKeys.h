@@ -89,4 +89,25 @@ struct ModelKeys {
                                   std::span<const std::string> profileScreenKeys,
                                   const model::RemoteConfig* config);
 
+/**
+ * @brief Доказано ли имя моделью: зона профиля, скан-таблица или надпись на корпусе.
+ *
+ * Имена из конфигурации и из ячеек экрана — не факт о модели (K4, A5). Одно решение C1 для
+ * проверки и для сводки смены модели (A6, C4): здесь, а не в двух местах.
+ */
+[[nodiscard]] bool keyIsModelName(const ModelKeys& keys, std::string_view name);
+
+/**
+ * @brief Физические клавиши конфигурации, которых нет у модели (правило C1).
+ *
+ * Решает только когда список исчерпывающий; имена-заполнители скан-кодов не считаются —
+ * про них проверка говорит отдельно («временное имя»).
+ *
+ * @param keys Ответ `modelKeys()` для модели.
+ * @param config Фактическая конфигурация.
+ * @return Имена в порядке конфигурации (устройства, затем активности), без повторов.
+ */
+[[nodiscard]] std::vector<std::string> keysMissingOnModel(const ModelKeys& keys,
+                                                          const model::RemoteConfig& config);
+
 } // namespace harmony

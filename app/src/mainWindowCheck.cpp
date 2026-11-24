@@ -5,6 +5,8 @@
 
 #include "mainWindow.h"
 #include "labels.h"
+#include "profileCheck.h"
+#include "remoteResources.h"
 #include "widgets/configView.h"
 #include "widgets/checkDialog.h"
 #include "widgets/compareConfigsDialog.h"
@@ -63,7 +65,8 @@ void MainWindow::updateProblems() {
         problems_->hide();
         return;
     }
-    const auto problems = document_->check();
+    auto problems = document_->check();
+    profileCheck(problems, remoteResources::remote(QString::fromStdString(document_->targetRemote())));
     const auto errors = static_cast<qsizetype>(countProblems(problems, Problem::Severity::Error));
     const auto warnings = static_cast<qsizetype>(countProblems(problems, Problem::Severity::Warning));
     if (problems.empty()) {
@@ -88,14 +91,15 @@ void MainWindow::showCheck() {
         return;
     }
     CheckDialog dialog(*document_, [this](const QString& text, const auto& change) { return applyEdit(text, change); },
-                       this);
+                       this, remoteResources::remote(QString::fromStdString(document_->targetRemote())));
     if (dialog.exec() == QDialog::Accepted && dialog.target()) {
         showProblem(*dialog.target());
     }
 }
 
 void MainWindow::showProblem(const Problem& problem) {
-    if (problem.where == Problem::Where::Config) {
+    // Проблема профиля относится к модели, а не к месту в конфигурации (C2).
+    if (problem.where == Problem::Where::Config || problem.where == Problem::Where::Profile) {
         return;
     }
     configView_->select(problem.where == Problem::Where::Device ? ConfigView::Item::Device

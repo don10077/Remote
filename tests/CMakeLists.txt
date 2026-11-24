@@ -9,6 +9,7 @@ add_executable(harmony_tests
     configButtonsTest.cpp
     configCheckTest.cpp
     checkModelKeysTest.cpp
+    checkModelMismatchTest.cpp
     configDocumentTest.cpp
     configHubDocumentTest.cpp
     buttonCopyTest.cpp
@@ -158,6 +159,11 @@ if(HARMONY_BUILD_APP)
         ../app/src/modern/remoteViewShared.h
         ../app/src/widgets/commandDialog.cpp
         ../app/src/widgets/commandDialog.h
+        profileCheckTest.cpp
+        ../app/src/profileCheck.cpp
+        ../app/src/profileCheck.h
+        ../app/src/widgets/checkDialog.cpp
+        ../app/src/widgets/checkDialog.h
         ../app/src/labels.cpp
     )
     set_target_properties(harmony_gui_tests PROPERTIES AUTOMOC ON)

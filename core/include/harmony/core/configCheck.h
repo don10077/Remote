@@ -40,6 +40,7 @@ struct Problem {
         Config,   ///< Конфигурация целиком
         Device,   ///< Устройство id
         Activity, ///< Активность id
+        Profile,  ///< Модель: экран профиля (места кнопок), C2
     };
 
     /// Как исправляется.
@@ -62,6 +63,7 @@ struct Problem {
     int softPosition = -1; ///< Место экранной кнопки; −1 — нет
     Message what{ErrorCode::Format, std::string()}; ///< Что не так
     Message place{ErrorCode::Format, std::string()}; ///< Где: «Смотреть ТВ · VolumeUp»
+    Message hint{ErrorCode::Format, std::string()};  ///< Уточнение от данных модели: «page 1, place 2»
     Fix fix = Fix::None;
     std::string fixDevice; ///< Устройство для Fix::PowerOnDevice
 

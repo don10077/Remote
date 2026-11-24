@@ -95,9 +95,17 @@ RemoteProfileDialog::RemoteProfileDialog(const QString& current, QWidget* parent
         summary->setVisible(config && id != current);
         if (config && id != current) {
             const auto keys = modelKeysFor(id, config);
+            // C4: сводка называет те же клавиши, что даст предупреждение C1 после смены модели.
+            const auto missing = harmony::keysMissingOnModel(keys, *config);
+            QString names;
+            for (const auto& key : missing) {
+                if (!names.isEmpty()) names += QStringLiteral(", ");
+                names += QString::fromStdString(key);
+            }
             summary->setText(keys.complete
-                ? tr("Assignments on keys not available on the selected model: %1. "
+                ? tr("Assignments on keys not available on the selected model: %1 — %2. "
                      "Assignments are kept and will appear as warnings. Press OK to change the target.")
+                    .arg(names)
                     .arg(static_cast<qulonglong>(outsideModelAssignmentCount(keys, *config)))
                 : tr("The key list for the selected model is not complete; unavailable keys cannot be determined. "
                      "Assignments are kept. Press OK to change the target."));

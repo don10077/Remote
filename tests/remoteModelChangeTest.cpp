@@ -94,6 +94,39 @@ TEST_F(RemoteModelChange, CancellationKeepsAssignmentsAndSelectionIsOnlyAProposa
     EXPECT_EQ(config.devices.front().controlGroups.front().buttons.front().name, "SoftRight4");
 }
 
+// C4: сводка называет клавиши, которые получат предупреждение C1 после смены модели
+// (красное: прежде сводка говорит только число назначений).
+TEST_F(RemoteModelChange, SummaryNamesKeysThatWillWarnForTheNewModel) {
+    const auto config = assignments();
+    app::RemoteProfileDialog dialog("885", nullptr, &config);
+    auto* models = dialog.findChild<QComboBox*>();
+    auto* summary = dialog.findChild<QLabel*>("modelChangeSummary");
+    ASSERT_NE(models, nullptr);
+    ASSERT_NE(summary, nullptr);
+
+    models->setCurrentIndex(models->findData("650"));
+    EXPECT_TRUE(summary->text().contains("SoftRight4"));
+    EXPECT_TRUE(summary->text().contains("2")) << "число назначений остаётся в тексте";
+
+    // Полная модель, которая знает клавишу, — имён в сводке нет.
+    models->setCurrentIndex(models->findData("885"));
+    EXPECT_TRUE(summary->isHidden());
+}
+
+// Неполный список ничего не утверждает: имён клавиш в сводке нет (факт).
+TEST_F(RemoteModelChange, IncompleteModelSummaryNamesNoKeys) {
+    const auto config = assignments();
+    app::RemoteProfileDialog dialog("885", nullptr, &config);
+    auto* models = dialog.findChild<QComboBox*>();
+    auto* summary = dialog.findChild<QLabel*>("modelChangeSummary");
+    ASSERT_NE(models, nullptr);
+    ASSERT_NE(summary, nullptr);
+
+    models->setCurrentIndex(models->findData("880"));
+    EXPECT_TRUE(summary->text().contains("not complete"));
+    EXPECT_FALSE(summary->text().contains("SoftRight4"));
+}
+
 TEST_F(RemoteModelChange, ChoiceWithoutDocumentShowsNoChangeSummary) {
     app::RemoteProfileDialog dialog("885");
     auto* models = dialog.findChild<QComboBox*>();

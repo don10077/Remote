@@ -6,6 +6,8 @@
 #include "checkDialog.h"
 
 #include "../labels.h"
+#include "../profileCheck.h"
+#include "../remoteResources.h"
 
 #include <QApplication>
 #include <QHBoxLayout>
@@ -34,8 +36,9 @@ void setPrimary(QPushButton* button, bool primary) {
 
 } // namespace
 
-CheckDialog::CheckDialog(const ConfigDocument& document, Apply apply, QWidget* parent)
-    : QDialog(parent), document_(document), apply_(std::move(apply)) {
+CheckDialog::CheckDialog(const ConfigDocument& document, Apply apply, QWidget* parent,
+                         const QJsonObject& remote)
+    : QDialog(parent), document_(document), apply_(std::move(apply)), remote_(remote) {
     setWindowTitle(tr("Check configuration"));
     setMinimumSize(760, 480);
     resize(900, 560);
@@ -118,6 +121,7 @@ CheckDialog::CheckDialog(const ConfigDocument& document, Apply apply, QWidget* p
 
 void CheckDialog::refresh() {
     problems_ = document_.check();
+    profileCheck(problems_, remote_);  // C2: места экрана знает профиль, ядро его не видит
     list_->clear();
     const QIcon errorIcon = style()->standardIcon(QStyle::SP_MessageBoxCritical);
     const QIcon warningIcon = style()->standardIcon(QStyle::SP_MessageBoxWarning);
@@ -126,7 +130,9 @@ void CheckDialog::refresh() {
         auto* item = new QTreeWidgetItem(list_);
         item->setIcon(0, problem.severity == Problem::Severity::Error ? errorIcon : warningIcon);
         item->setText(0, labels::errorText(problem.place));
-        item->setText(1, labels::errorText(problem.what));
+        QString text = labels::errorText(problem.what);
+        if (!problem.hint.args.empty()) text += QStringLiteral(" — ") + labels::errorText(problem.hint);
+        item->setText(1, text);
         item->setToolTip(0, item->text(0));
         item->setToolTip(1, item->text(1));
         if (problem.fixable()) {
@@ -169,7 +175,9 @@ void CheckDialog::refresh() {
 
 void CheckDialog::updateButtons() {
     const Problem* problem = selected();
-    show_->setEnabled(problem != nullptr && problem->where != Problem::Where::Config);
+    // Проблема профиля — место в профиле модели, в конфигурации показывать нечего (C2).
+    show_->setEnabled(problem != nullptr && problem->where != Problem::Where::Config &&
+                      problem->where != Problem::Where::Profile);
     fix_->setEnabled(problem != nullptr && problem->fixable());
 }
 
