@@ -7,7 +7,13 @@
  * проверяют, что разбор и проверки следуют описанию, а не что описание совпадает с пультом.
  */
 
+#include "dumpFiles.h"
+
+#include "harmony/core/formats/binaryHid.h"
 #include "harmony/core/formats/container.h"
+#include "harmony/core/formats/ezhex.h"
+#include "harmony/core/formats/remoteCapture.h"
+#include "harmony/core/remoteCatalog.h"
 
 #include <gtest/gtest.h>
 
@@ -168,4 +174,128 @@ TEST(Container, RefusesChecksumMismatch) {
     const auto parsed = parseContainer(blob);
     ASSERT_FALSE(parsed);
     EXPECT_EQ(parsed.error().code, harmony::ErrorCode::Format);
+}
+
+// --- I6: вариант TPTP с 11 слотами (RF Wireless Extender C-RE4A) ----------------------
+
+// Красное на этапе А: строки варианта в таблице нет — CLI и разбор отказывают обоим дампам.
+// Ожидалось отдельное значение семейства; существующий зелёный тест
+// `RemoteFamilyTest.EveryContainerFamilyHasRemoteFamily` показал, что ключ описания —
+// архитектура, а число слотов — поле строки. Поэтому вариант остаётся arch 10 со своим N.
+TEST(Container, TableKnowsTheExtenderVariant) {
+    const auto* info = findFamily("TPTP", 11);
+    ASSERT_NE(info, nullptr) << "варианта 11 слотов в таблице семейств нет";
+    EXPECT_EQ(info->family, ContainerFamily::Arch10);
+    EXPECT_EQ(info->architecture, 10);
+    EXPECT_EQ(info->marker, "WLWL");
+    EXPECT_EQ(info->endMarker, "DKDK");
+    EXPECT_EQ(info->slots, 11u);
+    EXPECT_FALSE(info->semanticsVerified) << "семантику секций 890/895 применять нельзя: на данных экстендера она не проверена";
+}
+
+// Красное на этапе А: структура варианта разбирается (проверки рамки, а не допущения).
+TEST(Container, ExtenderVariantStructureParses) {
+    const auto* info = findFamily("TPTP", 11);
+    ASSERT_NE(info, nullptr);
+    const auto blob = makeContainer(*info);
+    const auto parsed = parseContainer(blob);
+    ASSERT_TRUE(parsed) << parsed.error().message;
+    EXPECT_EQ(parsed->family, info);
+    EXPECT_EQ(parsed->base, kBase);
+    EXPECT_EQ(parsed->sectionCount(), info->slots - 2);   // следует из конструкции фикстуры
+}
+
+// Красное на этапе А: сумма варианта проверяется, а не предполагается.
+TEST(Container, RefusesBrokenChecksumOfTheExtenderVariant) {
+    const auto* info = findFamily("TPTP", 11);
+    ASSERT_NE(info, nullptr);
+    auto blob = makeContainer(*info);
+    blob[info->markerOffset() + 8] ^= 0xFF;
+    const auto parsed = parseContainer(blob);
+    ASSERT_FALSE(parsed);
+    EXPECT_EQ(parsed.error().code, harmony::ErrorCode::Format);
+    EXPECT_TRUE(parsed.error().message.contains("checksum")) << parsed.error().message;
+}
+
+// Красное на этапе А: импорт не применяет семантику непроверенного варианта — он называет
+// вариант и семейство, чьё описание не используется (правило 18).
+TEST(Container, SemanticsOfAnUnverifiedVariantAreNotApplied) {
+    const auto* info = findFamily("TPTP", 11);
+    ASSERT_NE(info, nullptr);
+    const auto imported = harmony::formats::importBinaryHid(makeContainer(*info), "896");
+    ASSERT_FALSE(imported) << "импорт не должен выдумывать устройства по описанию 890/895";
+    EXPECT_EQ(imported.error().code, harmony::ErrorCode::Unsupported);
+    EXPECT_TRUE(imported.error().message.contains("TPTP")) << imported.error().message;
+    EXPECT_TRUE(imported.error().message.contains("11")) << imported.error().message;
+    EXPECT_TRUE(imported.error().message.contains("10")) << "названо семейство, чья семантика не применена";
+}
+
+// Красное на этапе А: разрешение на заполнение после концевого маркера — поле таблицы,
+// а не строка «TPTP» и число 23 в коде импорта.
+TEST(Container, TrailingPaddingIsAPropertyOfTheFamily) {
+    EXPECT_TRUE(findFamily("TPTP", 23)->trailingPaddingAllowed);
+    EXPECT_FALSE(findFamily("TPTP", 11)->trailingPaddingAllowed);
+
+    auto padded = makeContainer(*findFamily("TPTP", 23));
+    padded.insert(padded.end(), 8, 0);
+    const auto parsed = parseContainer(padded);
+    ASSERT_TRUE(parsed) << parsed.error().message;
+    EXPECT_EQ(parsed->endOffset, padded.size() - 4 - 8);
+
+    auto other = makeContainer(familyOf(ContainerFamily::Arch14));
+    other.insert(other.end(), 8, 0);
+    EXPECT_FALSE(parseContainer(other));
+}
+
+// Факт: вариант на 23 слота остаётся отдельной строкой таблицы.
+TEST(Container, TwentyThreeSlotVariantStaysDistinct) {
+    const auto* arch10 = findFamily("TPTP", 23);
+    const auto* extender = findFamily("TPTP", 11);
+    ASSERT_NE(arch10, nullptr);
+    ASSERT_NE(extender, nullptr);
+    EXPECT_EQ(arch10->family, ContainerFamily::Arch10);
+    EXPECT_EQ(arch10->slots, 23u);
+    EXPECT_EQ(extender->architecture, arch10->architecture);
+    EXPECT_NE(extender, arch10) << "11 и 23 слота — две строки одной архитектуры";
+    EXPECT_TRUE(arch10->semanticsVerified);
+}
+
+// Факт (пропускается без локальных дампов): оба файла экстендера дают один и тот же образ.
+// Модели пульта для skin 24 каталог не знает: экстендер — не пульт (I7), поэтому «896» остаётся
+// записью снятого файла, а не решением каталога. При расхождении программа называет оба
+// значения (правило 18): каталог — ничего, файл — «896».
+TEST(Container, ExtenderDumpsGiveOneImageAndNoRemoteModel) {
+    const auto ezhex = harmony::test::dumpFile("Json/C-RE4A", "c-re4a-20261124.EZHex");
+    const auto json = harmony::test::dumpFile("Json/C-RE4A", "c-re4a-20261124.remote.json");
+    if (ezhex.empty() || json.empty()) {
+        GTEST_SKIP() << "Локальные дампы экстендера не установлены: " << ezhex << " / " << json;
+    }
+
+    const harmony::test::Bytes bytes = harmony::test::readFile(ezhex);
+    const auto file = harmony::formats::parseEzHex(bytes);
+    ASSERT_TRUE(file) << file.error().message;
+    const auto capture = harmony::formats::parseRemoteCapture(harmony::test::readText(json));
+    ASSERT_TRUE(capture) << capture.error().message;
+
+    // Снятие хранит файл как есть (B3): тот же заголовок и те же байты данных.
+    EXPECT_EQ(capture->data, bytes) << "снятый JSON содержит файл как есть";
+    EXPECT_EQ(capture->identity.skin, file->identity.skin);
+    EXPECT_EQ(capture->container, CaptureContainer::EzHex);
+
+    const auto frame = parseContainer(file->payload);
+    ASSERT_TRUE(frame) << frame.error().message;
+    EXPECT_EQ(frame->family, findFamily("TPTP", 11));
+
+    // Тот же образ, разобранный из снятого JSON, даёт то же решение таблицы семейств.
+    const auto fromCapture = harmony::formats::parseEzHex(capture->data);
+    ASSERT_TRUE(fromCapture) << fromCapture.error().message;
+    const auto same = parseContainer(fromCapture->payload);
+    ASSERT_TRUE(same) << same.error().message;
+    EXPECT_EQ(same->family, frame->family);
+    EXPECT_EQ(same->base, frame->base);
+
+    const auto* model = harmony::catalogModelBySkin(file->identity.skin);
+    EXPECT_EQ(model, nullptr) << "каталог моделей пультов не знает skin 24 (I7)";
+    EXPECT_EQ(harmony::catalogModel(harmony::normalizedModelId(capture->modelId)), nullptr)
+        << "имя в снятом файле — запись файла, а не модель каталога (правило 18)";
 }

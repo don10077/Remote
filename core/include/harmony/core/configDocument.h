@@ -143,6 +143,26 @@ public:
     [[nodiscard]] static Result<ConfigDocument> fromFiles(const Files& files, std::string name);
 
     /**
+     * @brief Строка таблицы читателей формата (I1): имя, признак и открытие.
+     *
+     * Новый формат — новая строка таблицы, а не новая ветка в `fromEzHex()`. Признак (`accepts`)
+     * решает по таблице семейств `formats::containerFamilies()` (S1), не по строкам в коде;
+     * число слотов в признак не входит — его проверяет сам читатель.
+     *
+     * Открытие — метод класса, а не обычная функция: документ собирает только `ConfigDocument`
+     * (пакет и отчёт импорта — приватные данные pimpl). Последняя строка — путь по умолчанию.
+     */
+    struct ConfigReader {
+        std::string_view name;                                   ///< «binary-hid», «user-xml»
+        bool (*accepts)(const formats::EzHex&);                  ///< признак данных
+        Result<ConfigDocument> (*open)(const formats::EzHex&, std::span<const std::uint8_t>,
+                                       std::string name);        ///< исходный файл нужен для образа (B3)
+    };
+
+    /// @return Читатели по порядку: `fromEzHex()` берёт первого, который признал признак.
+    static std::span<const ConfigReader> configReaders();
+
+    /**
      * @brief Создаёт пустую конфигурацию: пульт и служебная активность «Выключено».
      * @param name Имя конфигурации (станет именем папки при сохранении).
      * @param powerOffLabel Подпись активности «выключить всё» на экране пульта.
@@ -843,6 +863,12 @@ public:
 
 private:
     explicit ConfigDocument(std::unique_ptr<Impl> impl);
+
+    /// Читатели таблицы `configReaders()`: сборка документа трогает pimpl, поэтому они члены класса.
+    static Result<ConfigDocument> openBinaryHid(const formats::EzHex&, std::span<const std::uint8_t>,
+                                                std::string);
+    static Result<ConfigDocument> openUserXml(const formats::EzHex&, std::span<const std::uint8_t>,
+                                              std::string);
 
     std::unique_ptr<Impl> impl_;
 };

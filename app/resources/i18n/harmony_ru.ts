@@ -197,6 +197,11 @@ The configuration from %1 will be copied into this archive.</source>
       <translation>%1 — снятие с %2 только для анализа; эта модель пока не открывается в редакторе</translation>
     </message>
     <message>
+      <location filename="../../../core/src/formats/binaryHid.cpp" />
+      <source>%1 with %2 slots follows the frame of family %3, but its section meanings are not confirmed by data</source>
+      <translation type="unfinished" />
+    </message>
+    <message>
       <location filename="../../../app/src/widgets/commandDialog.cpp" />
       <source>%1 · %2 bits</source>
       <translation>%1 · %2 бит</translation>
@@ -1313,8 +1318,8 @@ Add a device?</source>
     </message>
     <message>
       <location filename="../../../app/src/widgets/remoteProfileDialog.cpp" />
-      <source>Assignments on keys not available on the selected model: %1. Assignments are kept and will appear as warnings. Press OK to change the target.</source>
-      <translation>Назначения на клавишах, которых нет у выбранной модели: %1. Назначения сохраняются и будут показаны предупреждениями. Нажмите OK, чтобы сменить целевой пульт.</translation>
+      <source>Assignments on keys not available on the selected model: %1 — %2. Assignments are kept and will appear as warnings. Press OK to change the target.</source>
+      <translation type="unfinished" />
     </message>
     <message>
       <location filename="../../../app/src/widgets/settingsDialog.cpp" />
@@ -2293,11 +2298,6 @@ Add a device?</source>
       <location filename="../../../app/src/widgets/startDialog.cpp" />
       <source>configuration not found</source>
       <translation>конфигурация не найдена</translation>
-    </message>
-    <message>
-      <location filename="../../../app/src/remoteSession.cpp" />
-      <source>Configuration read from the remote (%1 KB)</source>
-      <translation>Конфигурация прочитана с пульта (%1 КБ)</translation>
     </message>
     <message>
       <location filename="../../../app/src/mainWindowRemote.cpp" />
@@ -3476,6 +3476,16 @@ Copy saved: %2</source>
       <location filename="../../../core/src/irdb/irDatabase.cpp" />
       <source>file not found: %1</source>
       <translation>файл не найден: %1</translation>
+    </message>
+    <message>
+      <location filename="../../../core/src/configDocumentCheck.cpp" />
+      <source>file skin %1 belongs to model %2, the document targets %3</source>
+      <translation type="unfinished" />
+    </message>
+    <message>
+      <location filename="../../../core/src/configDocumentCheck.cpp" />
+      <source>file skin %1 does not belong to model %2</source>
+      <translation type="unfinished" />
     </message>
     <message>
       <location filename="../../../app/src/widgets/irDatabasePanel.cpp" />
@@ -5134,6 +5144,11 @@ The file holds the Hub's answer as it is — device names, models and commands, 
       <translation>Проблем нет: на пульте всё будет работать, как настроено.</translation>
     </message>
     <message>
+      <location filename="../../../core/src/configDocumentPackage.cpp" />
+      <source>no reader accepts this container</source>
+      <translation type="unfinished" />
+    </message>
+    <message>
       <location filename="../../../core/src/configDocumentButtons.cpp" />
       <location filename="../../../core/src/configDocumentMacros.cpp" />
       <source>no remote button specified</source>
@@ -5518,6 +5533,11 @@ The file holds the Hub's answer as it is — device names, models and commands, 
       <location filename="../../../app/src/widgets/addDeviceDialog.cpp" />
       <source>Open settings…</source>
       <translation>Открыть настройки…</translation>
+    </message>
+    <message>
+      <location filename="../../../app/src/widgets/settingsDialog.cpp" />
+      <source>Open the editor after reading from the remote</source>
+      <translation type="unfinished" />
     </message>
     <message>
       <location filename="../../../app/src/widgets/startDialog.cpp" />
@@ -6203,7 +6223,6 @@ The file holds the Hub's answer as it is — device names, models and commands, 
     </message>
     <message>
       <location filename="../../../app/src/mainWindowRemote.cpp" />
-      <location filename="../../../app/src/remoteSession.cpp" />
       <source>Reading the configuration from the remote…</source>
       <translation>Чтение конфигурации с пульта…</translation>
     </message>

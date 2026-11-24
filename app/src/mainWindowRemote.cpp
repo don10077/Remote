@@ -7,6 +7,7 @@
 #include "documentSource.h"
 #include "labels.h"
 #include "remoteSession.h"
+#include "remoteReadOutcome.h"
 #include "widgets/writePreviewDialog.h"
 #include "widgets/remoteProfileDialog.h"
 #include "widgets/remoteSettingsDialog.h"
@@ -180,57 +181,53 @@ void MainWindow::saveCapture(const QByteArray& backup, const QString& modelId, c
         }
         saved = destination;
     }
+    // I4: галочка пользователя. Решает, что открывается в редакторе, вход `ConfigDocument::open()`
+    // (таблица читателей I1) — здесь нет ни списка форматов, ни модели.
+    if (settings::openInEditorAfterRead()) {
+        openReadResult(saved, check);
+        return;
+    }
+    showSavedCapture(saved, check);
+}
+
+// Прочитанное осталось файлом: показать, куда оно легло.
+void MainWindow::showSavedCapture(const QString& file, const QString& check) {
     QMessageBox box(QMessageBox::Information, tr("Read from remote"),
         tr("The configuration and remote information are saved in one file. Send this file for analysis.\n\nChecked: %1\n\n%2")
-            .arg(check, QDir::toNativeSeparators(saved)), QMessageBox::Ok, this);
+            .arg(check, QDir::toNativeSeparators(file)), QMessageBox::Ok, this);
     auto* folder = box.addButton(tr("Open folder"), QMessageBox::ActionRole);
     box.exec();
     if (box.clickedButton() == folder)
-        QDesktopServices::openUrl(QUrl::fromLocalFile(QFileInfo(saved).absolutePath()));
+        QDesktopServices::openUrl(QUrl::fromLocalFile(QFileInfo(file).absolutePath()));
 }
 
-void MainWindow::openFromRemote(const QByteArray& ezhex) {
-    finishRemoteProgress();
-    // Снятая конфигурация сразу ложится резервной копией — и открывается из неё.
-    const QString file = library::newBackupFile();
-    QSaveFile out(file);
-    if (!out.open(QIODevice::WriteOnly) || out.write(ezhex) != ezhex.size() || !out.commit()) {
-        QMessageBox::warning(this, tr("Read from remote"), tr("Could not save the file %1").arg(file));
+// Итог чтения с пульта: вход `ConfigDocument::open()` решает, что может открыться в редакторе
+// (таблица читателей I1), `readOutcome()` соединяет этот ответ с галочкой пользователя. Снимок
+// место на диске не запоминает — «Сохранить» не должно затереть файл для анализа.
+void MainWindow::openReadResult(const QString& file, const QString& check) {
+    auto opened = ConfigDocument::open(toPath(file));
+    if (readOutcome(opened, settings::openInEditorAfterRead()) != ReadOutcome::OpenInEditor) {
+        showSavedCapture(file, check);
         return;
     }
-    const QString saved = tr("Copy saved: %1").arg(QDir::toNativeSeparators(file));
-    // Открывается без места на диске: «Сохранить» не должно перезаписать резервную копию.
-    auto openUnsaved = [this, &ezhex, &file, &saved] {
-        const auto bytes = std::span(reinterpret_cast<const std::uint8_t*>(ezhex.constData()),
-                                     static_cast<std::size_t>(ezhex.size()));
-        auto document = ConfigDocument::fromEzHex(bytes, QFileInfo(file).completeBaseName().toStdString());
-        if (!document) {
-            QMessageBox::warning(this, tr("Read from remote"), labels::errorText(document.error()));
-            return;
-        }
-        showDocument(std::move(*document));
-        statusBar()->showMessage(tr("Configuration read from the remote. %1").arg(saved), 10000);
-    };
     if (!document_) {
-        openUnsaved();
-        return;
-    }
-    auto remote = ConfigDocument::open(toPath(file));
-    if (!remote) {
-        QMessageBox::warning(this, tr("Read from remote"), labels::errorText(remote.error()));
+        showDocument(std::move(*opened));
+        statusBar()->showMessage(tr("Configuration read from the remote. %1").arg(QDir::toNativeSeparators(file)),
+                                 10000);
         return;
     }
 
     // Открыта конфигурация: заменить её содержимое (с отменой) или открыть прочитанное отдельно.
     QMessageBox box(QMessageBox::Question, tr("Read from remote"), {}, QMessageBox::NoButton, this);
     box.setText(tr("Configuration read from the remote: %1, %2.")
-                    .arg(labels::plural(static_cast<qsizetype>(remote->model().devices.size()), "device", "devices"),
-                         labels::plural(static_cast<qsizetype>(remote->model().userActivityCount()), "activity", "activities")));
+                    .arg(labels::plural(static_cast<qsizetype>(opened->model().devices.size()), "device", "devices"),
+                         labels::plural(static_cast<qsizetype>(opened->model().userActivityCount()), "activity", "activities")));
     const QString undoKey = labels::shortcut(QKeySequence::Undo);
     box.setInformativeText(tr("%1\n\n“Replace current” — the contents of “%2” will match the remote; "
                               "“Save” writes them to the same place, undo with %3.\n\n%4")
-                               .arg(differenceText(document_->model(), remote->model()),
-                                    QString::fromStdString(document_->name()), undoKey, saved));
+                               .arg(differenceText(document_->model(), opened->model()),
+                                    QString::fromStdString(document_->name()), undoKey,
+                                    tr("Copy saved: %1").arg(QDir::toNativeSeparators(file))));
     QPushButton* replace = box.addButton(tr("Replace current"), QMessageBox::AcceptRole);
     QPushButton* separate = box.addButton(tr("Open separately"), QMessageBox::ActionRole);
     box.addButton(QMessageBox::Cancel);
@@ -238,13 +235,13 @@ void MainWindow::openFromRemote(const QByteArray& ezhex) {
     box.exec();
     if (box.clickedButton() == replace) {
         if (applyEdit(tr("Configuration from the remote"),
-                      [&](ConfigDocument& document) { return document.replaceContent(*remote); })) {
+                      [&](ConfigDocument& document) { return document.replaceContent(*opened); })) {
             statusBar()->showMessage(
                 tr("Contents replaced with the configuration from the remote. Undo — %1.").arg(undoKey),
                 10000);
         }
     } else if (box.clickedButton() == separate && confirmDiscard()) {
-        openUnsaved();
+        showDocument(std::move(*opened));
     }
 }
 

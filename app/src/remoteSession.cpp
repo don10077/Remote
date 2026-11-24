@@ -41,9 +41,6 @@ RemoteSession::RemoteSession(QObject* parent) : QObject(parent) {
             journal::info(connected ? tr("Remote connected: %1").arg(text) : tr("Remote disconnected"));
         }
     });
-    connect(this, &RemoteSession::readFinished, this, [](const QByteArray& ezhex) {
-        journal::info(tr("Configuration read from the remote (%1 KB)").arg((ezhex.size() + 1023) / 1024));
-    });
     connect(this, &RemoteSession::backupSaved, this, [](const QByteArray&, const QString& file) {
         journal::info(tr("Remote backup saved: %1").arg(QDir::toNativeSeparators(file)));
     });
@@ -143,30 +140,6 @@ void RemoteSession::probe() {
             return;
         }
         (void)connectAndReport(*choice->link);
-    });
-}
-
-void RemoteSession::readConfig() {
-    if (busy()) {
-        return;
-    }
-    journal::info(tr("Reading the configuration from the remote…"));
-    run([this] {
-        const auto choice = openLink();
-        if (!choice) { reportFailure(choice.error()); return; }
-        if (!choice->link) { reportFailure(transferText(), false); return; }
-        auto& link = *choice->link;
-        if (auto info = connectAndReport(link); !info) {
-            reportFailure(info.error());
-            return;
-        }
-        auto ezhex = link.readConfig(progressHandler());
-        if (!ezhex) {
-            reportFailure(ezhex.error());
-            return;
-        }
-        const QByteArray bytes(reinterpret_cast<const char*>(ezhex->data()), static_cast<qsizetype>(ezhex->size()));
-        QMetaObject::invokeMethod(this, [this, bytes] { emit readFinished(bytes); }, Qt::QueuedConnection);
     });
 }
 

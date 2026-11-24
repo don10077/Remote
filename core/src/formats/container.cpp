@@ -39,16 +39,20 @@ std::unexpected<Error> formatError(std::string text) {
 
 } // namespace
 
-const std::array<ContainerFamilyInfo, 6>& containerFamilies() {
+const std::array<ContainerFamilyInfo, 7>& containerFamilies() {
     // Признак и число слотов вместе дают архитектуру однозначно: у arch 8 и 10
     // один признак TPTP, но 21 и 23 слота; у GSPM — 22 (One), 20 (600–700) и 15 (300–350).
-    static constexpr std::array<ContainerFamilyInfo, 6> kFamilies{{
+    static constexpr std::array<ContainerFamilyInfo, 7> kFamilies{{
         {ContainerFamily::Arch8, 8, "TPTP", "WLWL", "DKDK", 21},
         {ContainerFamily::Arch9, 9, "AHCM", "CMAH", "MCHA", 20},
-        {ContainerFamily::Arch10, 10, "TPTP", "WLWL", "DKDK", 23},
+        // Заполнение после концевого маркера — факт образов arch 10 (его снимает и пишет пульт).
+        {ContainerFamily::Arch10, 10, "TPTP", "WLWL", "DKDK", 23, true, true},
         {ContainerFamily::Arch12, 12, "GSPM", "LWJL", "PTYY", 22},
         {ContainerFamily::Arch14, 14, "GSPM", "LWJL", "PTYY", 20},
         {ContainerFamily::Arch16, 16, "GSPM", "LWJL", "PTYY", 15},
+        // Экстендер C-RE4A: рамка arch 10, но 11 слотов. Семантика секций не подтверждена
+        // данными — 11 слотов не укладываются в карту слотов arch 10, где номера доходят до 22.
+        {ContainerFamily::Arch10, 10, "TPTP", "WLWL", "DKDK", 11, false, false},
     }};
     return kFamilies;
 }
@@ -80,11 +84,22 @@ Result<Container> parseContainer(std::span<const std::uint8_t> payload) {
     }
 
     const std::size_t marker = family->markerOffset();
-    const std::size_t end = payload.size() - 4;
     if (payload.size() < marker + family->marker.size() + 6) {
         return formatError(std::string(family->cookie) + ": the data is shorter than "
                            + std::to_string(family->slots) + " section slots plus the trailer");
     }
+    // Конец образа — смещение концевого маркера. Заполнение нулями после него признаёт только строка
+    // таблицы, где `trailingPaddingAllowed`; для остальных строк хвост — часть данных.
+    std::size_t end = payload.size();
+    if (family->trailingPaddingAllowed) {
+        while (end > 0 && payload[end - 1] == 0) {
+            --end;
+        }
+    }
+    if (end < family->endMarker.size()) {
+        return formatError(std::string(family->cookie) + ": the data is shorter than the end marker");
+    }
+    end -= family->endMarker.size();
     if (!markerAt(payload, end, family->endMarker)) {
         return formatError(std::string(family->cookie) + ": the end marker " + std::string(family->endMarker)
                            + " is missing at the end of the data");

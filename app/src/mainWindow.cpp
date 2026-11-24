@@ -172,7 +172,6 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
         updateTitle();
     });
     connect(remote_, &RemoteSession::progress, this, &MainWindow::showRemoteProgress);
-    connect(remote_, &RemoteSession::readFinished, this, &MainWindow::openFromRemote);
     connect(remote_, &RemoteSession::captureReadFinished, this, &MainWindow::saveCapture);
     connect(remote_, &RemoteSession::backupSaved, this, &MainWindow::backupSaved);
     connect(remote_, &RemoteSession::writeFinished, this, &MainWindow::remoteWritten);

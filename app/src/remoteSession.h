@@ -51,9 +51,6 @@ public:
      */
     void setModel(const harmony::ModelInfo& model) { model_ = model; }
 
-    /// Читает конфигурацию с пульта (итог — readFinished или failed).
-    void readConfig();
-
     /**
      * @brief Читает любой читаемый пульт (модель определяется сама) в один файл *.remote.json
      * и проверяет его (итог — captureReadFinished или failed).
@@ -90,8 +87,6 @@ signals:
     void stateChanged(bool connected, const QString& text);
     /// Ход операции: этап и выполнено из всего.
     void progress(harmony::transport::Stage stage, qint64 done, qint64 total);
-    /// Конфигурация прочитана (содержимое .EZHex).
-    void readFinished(const QByteArray& ezhex);
     /// Снятый файл *.remote.json (контейнер, сведения о пульте, SHA-256) уже проверен:
     /// @p modelId — id модели, @p check — что именно сошлось (для окна и журнала).
     void captureReadFinished(const QByteArray& json, const QString& modelId, const QString& check);

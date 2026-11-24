@@ -165,6 +165,8 @@ SettingsDialog::SettingsDialog(IrDatabaseService* irDatabase, QWidget* parent) :
                         this));
     autoProbe_ = new QCheckBox(tr("Check the remote connection every 10 seconds"), this);
     remote->addRow({}, autoProbe_);
+    openInEditor_ = new QCheckBox(tr("Open the editor after reading from the remote"), this);
+    remote->addRow({}, openInEditor_);
     learnTimeout_ = new QSpinBox(this);
     learnTimeout_->setRange(5, 120);
     learnTimeout_->setSuffix(tr(" s"));
@@ -241,6 +243,7 @@ void SettingsDialog::load() {
     host_->setText(host == QString::fromUtf8(transport::kDefaultRemoteHost) ? QString() : host);
     port_->setValue(settings::remotePort());
     autoProbe_->setChecked(settings::autoProbe());
+    openInEditor_->setChecked(settings::openInEditorAfterRead());
     learnTimeout_->setValue(settings::learnTimeout());
 }
 
@@ -254,6 +257,7 @@ void SettingsDialog::loadDefaults() {
         host_->clear();
         port_->setValue(transport::Endpoint{}.port);
         autoProbe_->setChecked(true);
+        openInEditor_->setChecked(true);
         learnTimeout_->setValue(30);
         backupFolder_->setText(QDir::toNativeSeparators(settings::defaultBackupFolder()));
     } else {
@@ -281,6 +285,7 @@ void SettingsDialog::store() {
     settings::setRemoteHost(host_->text());
     settings::setRemotePort(port_->value());
     settings::setAutoProbe(autoProbe_->isChecked());
+    settings::setOpenInEditorAfterRead(openInEditor_->isChecked());
     settings::setLearnTimeout(learnTimeout_->value());
 }
 

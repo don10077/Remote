@@ -35,6 +35,8 @@ qt_add_executable(harmony_app
     src/assignmentGate.h
     src/modelKeysQt.cpp
     src/modelKeysQt.h
+    src/remoteReadOutcome.cpp
+    src/remoteReadOutcome.h
     src/mainWindowVersions.cpp
     src/mainWindowButtons.cpp
     src/mainWindowCheck.cpp

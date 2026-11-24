@@ -53,6 +53,7 @@ private:
     QLineEdit* host_ = nullptr;
     QSpinBox* port_ = nullptr;
     QCheckBox* autoProbe_ = nullptr;
+    QCheckBox* openInEditor_ = nullptr;
     QSpinBox* learnTimeout_ = nullptr;
     IrDatabasePanel* irDatabase_ = nullptr;
     QWidget* remotePage_ = nullptr; ///< Вкладка «Пульт» (для «По умолчанию» на ней)

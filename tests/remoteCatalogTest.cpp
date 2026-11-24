@@ -30,6 +30,37 @@ TEST(RemoteCatalog, FindsModelBySkin) {
     EXPECT_EQ(catalogModelBySkin(9999), nullptr);
 }
 
+// Красное на этапе А: каталог — список моделей пультов. Skin 24 пультом не является:
+// справочник skins Logitech называет skins 20 и 24 «RF Wireless Extender», то есть
+// приёмник, а не пульт (`reference/remotes/README.md`, строки 115 и 117), и
+// `reference/architectures/harmony-890-895/misc.md` прямо говорит, что это не пульты.
+// Строки каталога для skins 20 и 24 убираются, поэтому модель по ним не отвечает.
+TEST(RemoteCatalog, ExtenderSkinIsNotARemoteModel) {
+    for (const int skin : {20, 24}) {
+        EXPECT_EQ(catalogModelBySkin(skin), nullptr) << skin;
+    }
+}
+
+// Красное на этапе А: ответ «может ли модель иметь модуль Z-Wave» — поле строки каталога
+// (правило 8), а не имя модели в коде. Строки решения владельца 24.11: 890, 895, 890 Pro,
+// 1000, 1100. Отрицательное для 1000i — из источника: клиент Logitech относит skin 52
+// (Harmony 1000i, Australia) к `Cognac.NoZwave` (`reference/architectures/README.md`
+// строка 100, `tests/logitech/test_host_client.py:1300`).
+// Разные ответы для `1100` и `1100i` — это проверка, что ответ берётся из строки каталога,
+// а не из суффикса имени: `normalizedModelId` приводит их к одному значению.
+TEST(RemoteCatalog, ExtenderSupportIsARowField) {
+    for (const char* id : {"890", "895", "890-pro", "1000", "1100"}) {
+        const auto* model = catalogModel(id);
+        ASSERT_NE(model, nullptr) << id;
+        EXPECT_TRUE(model->supportsExtender) << id;
+    }
+    EXPECT_FALSE(catalogModel("1000i")->supportsExtender) << "skin 52 — Cognac.NoZwave";
+    EXPECT_FALSE(catalogModel("1100i")->supportsExtender) << "модель с суффиксом i (24.11)";
+    // Ответ даёт строка каталога, а не имя: `1100` и `1100i` — две строки, и ответы у них
+    // разные. Если бы решение читалось из суффикса имени, тест не мог бы их различить.
+    EXPECT_NE(catalogModel("1100i"), catalogModel("1100"));
+}
+
 TEST(RemoteCatalog, ReadableModelsHaveArchitecture) {
     for (const auto& model : remoteCatalog()) {
         if (!model.readable) {

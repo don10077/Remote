@@ -10,6 +10,7 @@ add_executable(harmony_tests
     configCheckTest.cpp
     checkModelKeysTest.cpp
     checkModelMismatchTest.cpp
+    configReadersTest.cpp
     configDocumentTest.cpp
     configHubDocumentTest.cpp
     buttonCopyTest.cpp
@@ -22,6 +23,7 @@ add_executable(harmony_tests
     irEncodeTest.cpp
     configEditTest.cpp
     configEzHexTest.cpp
+    openEntryTest.cpp
     sourceImageTest.cpp
     importTargetRemoteTest.cpp
     formats/containerTest.cpp
@@ -165,6 +167,9 @@ if(HARMONY_BUILD_APP)
         ../app/src/widgets/checkDialog.cpp
         ../app/src/widgets/checkDialog.h
         ../app/src/labels.cpp
+        remoteReadOutcomeTest.cpp
+        ../app/src/remoteReadOutcome.cpp
+        ../app/src/remoteReadOutcome.h
     )
     set_target_properties(harmony_gui_tests PROPERTIES AUTOMOC ON)
     # Те же пути, что у harmony_tests: фикстуры в git и настоящие дампы (тесты на них пропускаются).

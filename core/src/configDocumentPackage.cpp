@@ -12,15 +12,18 @@
  */
 
 #include "configDocumentImpl.h"
+#include "harmony/core/formats/container.h"
 #include "harmony/core/remotePreferences.h"
 #include "harmony/core/writePolicy.h"
 #include "harmony/core/formats/binaryHid.h"
 #include "harmony/core/remoteCatalog.h"
 
+#include <algorithm>
 #include <array>
 #include <ctime>
 #include <iterator>
 #include <set>
+#include <span>
 #include <string_view>
 
 namespace harmony {
@@ -137,41 +140,64 @@ void ensureFolder(formats::ZipArchive& archive, std::string_view folder, std::in
     }
 }
 
+/// Первые 4 байта данных — признак формата: рамка образа или начало ZIP.
+std::string_view cookieOf(const formats::EzHex& ezhex) {
+    return std::string_view(reinterpret_cast<const char*>(ezhex.payload.data()),
+                            std::min<std::size_t>(ezhex.payload.size(), 4));
+}
+
+/**
+ * @brief Данные принадлежат семейству бинарного образа — по таблице семейств (S1).
+ *
+ * Число слотов в решении не участвует: его проверяет сам читатель (`parseContainer()`), иначе
+ * контейнер с известным признаком и числом слотов, которого в таблице нет, достался бы
+ * читателю XML.
+ */
+bool isFamilySign(const formats::EzHex& ezhex) {
+    const auto cookie = cookieOf(ezhex);
+    return std::ranges::any_of(formats::containerFamilies(),
+                               [&](const formats::ContainerFamilyInfo& family) { return family.cookie == cookie; });
+}
+
+bool acceptsBinaryHid(const formats::EzHex& ezhex) { return isFamilySign(ezhex); }
+
+// Последний читатель — путь по умолчанию: всё, что не семейство бинарного образа, открывается как
+// ZIP с деревом файлов пульта. Так текст ошибки для данных без признака остаётся прежним.
+bool acceptsUserXml(const formats::EzHex& ezhex) { return !isFamilySign(ezhex); }
+
 } // namespace
 
-Result<ConfigDocument> ConfigDocument::fromEzHex(std::span<const std::uint8_t> ezhex, std::string name) {
-    auto container = formats::parseEzHex(ezhex);
-    if (!container) {
-        return std::unexpected(std::move(container.error()));
-    }
-    // Classic HID stores a binary image inside EZHex, not the XML ZIP used by 900.
-    const std::string_view signature(reinterpret_cast<const char*>(container->payload.data()),
-                                     std::min<std::size_t>(container->payload.size(), 4));
-    if (signature == "GSPM" || signature == "AHCM" || signature == "TPTP") {
-        const auto* remote = catalogModelBySkin(container->identity.skin);
-        auto imported = formats::importBinaryHid(container->payload, remote ? remote->id : std::string_view{});
-        if (!imported) return std::unexpected(imported.error());
-        // Модель импорта не записывается свойством (B4): её решает targetRemote() по skin —
-        // тот же путь, что у файла без свойства. Свойство остаётся выбором пользователя (M5).
-        auto document = fromXml(detail::importedModelXml(imported->model, detail::kBinaryHidSourceFormat), std::move(name));
-        if (!document) return document;
-        document->impl_->importReport = std::move(imported->report);
-        auto archive = skeleton(0);
-        // Образ пишется без сжатия (решение владельца по B3): данные записи — это и есть
-        // исходный файл, поэтому sourceImage() отдаёт их как есть, байт в байт.
-        archive.entries.push_back(
-            formats::makeEntry(std::string(kSourceImageEntry), 0100644, ezhex, 0, false));
-        document->impl_->package = std::make_shared<const detail::Package>(detail::Package{
-            .header = container->header, .identity = container->identity, .archive = std::move(archive)});
-        document->impl_->importedFromBinary = true;
-        return document;
-    }
-    auto archive = formats::readZip(container->payload);
+/// Classic HID: внутри .EZHex бинарный образ, а не XML-архив 900.
+Result<ConfigDocument> ConfigDocument::openBinaryHid(const formats::EzHex& container,
+                                                      std::span<const std::uint8_t> file, std::string name) {
+    const auto* remote = catalogModelBySkin(container.identity.skin);
+    auto imported = formats::importBinaryHid(container.payload, remote ? remote->id : std::string_view{});
+    if (!imported) return std::unexpected(imported.error());
+    // Модель импорта не записывается свойством (B4): её решает targetRemote() по skin —
+    // тот же путь, что у файла без свойства. Свойство остаётся выбором пользователя (M5).
+    auto document = ConfigDocument::fromXml(detail::importedModelXml(imported->model, detail::kBinaryHidSourceFormat),
+                                            std::move(name));
+    if (!document) return document;
+    document->impl_->importReport = std::move(imported->report);
+    auto archive = skeleton(0);
+    // Образ пишется без сжатия (решение владельца по B3): данные записи — это и есть
+    // исходный файл, поэтому sourceImage() отдаёт их как есть, байт в байт.
+    archive.entries.push_back(formats::makeEntry(std::string(kSourceImageEntry), 0100644, file, 0, false));
+    document->impl_->package = std::make_shared<const detail::Package>(detail::Package{
+        .header = container.header, .identity = container.identity, .archive = std::move(archive)});
+    document->impl_->importedFromBinary = true;
+    return document;
+}
+
+/// XML-конфигурация 900 и хаб: ZIP с деревом файлов пульта.
+Result<ConfigDocument> ConfigDocument::openUserXml(const formats::EzHex& container,
+                                                   std::span<const std::uint8_t>, std::string name) {
+    auto archive = formats::readZip(container.payload);
     if (!archive) {
         return std::unexpected(std::move(archive.error()));
     }
 
-    Files files;
+    ConfigDocument::Files files;
     for (const PackedFile& file : packedFiles()) {
         const formats::ZipEntry* entry = archive->find(std::string(file.path));
         if (entry == nullptr) {
@@ -191,13 +217,36 @@ Result<ConfigDocument> ConfigDocument::fromEzHex(std::span<const std::uint8_t> e
         return makeError(ErrorCode::Format, "the .EZHex has no userconfig/UserConfiguration.xml");
     }
 
-    auto document = fromFiles(files, std::move(name));
+    auto document = ConfigDocument::fromFiles(files, std::move(name));
     if (!document) {
         return document;
     }
     document->impl_->package = std::make_shared<const detail::Package>(detail::Package{
-        .header = container->header, .identity = container->identity, .archive = std::move(*archive)});
+        .header = container.header, .identity = container.identity, .archive = std::move(*archive)});
     return document;
+}
+
+/// Строка таблицы = формат. Порядок — приоритет: первый признавший читатель открывает данные.
+std::span<const ConfigDocument::ConfigReader> ConfigDocument::configReaders() {
+    static constexpr std::array<ConfigReader, 2> kReaders{{
+        {"binary-hid", &acceptsBinaryHid, &openBinaryHid},
+        {"user-xml", &acceptsUserXml, &openUserXml},
+    }};
+    return kReaders;
+}
+
+Result<ConfigDocument> ConfigDocument::fromEzHex(std::span<const std::uint8_t> ezhex, std::string name) {
+    auto container = formats::parseEzHex(ezhex);
+    if (!container) {
+        return std::unexpected(std::move(container.error()));
+    }
+    for (const auto& reader : configReaders()) {
+        if (reader.accepts(*container)) {
+            return reader.open(*container, ezhex, std::move(name));
+        }
+    }
+    // До этой строки дело не доходит: последняя строка таблицы — путь по умолчанию.
+    return makeError(ErrorCode::Format, "no reader accepts this container");
 }
 
 Result<std::vector<std::uint8_t>> ConfigDocument::toEzHex(bool forRemote) const {

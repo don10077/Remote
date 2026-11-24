@@ -281,8 +281,10 @@ private:
     /// Сохраняет диагностический HID-дамп, не передавая его парсеру Harmony 900.
     void saveCapture(const QByteArray& backup, const QString& modelId, const QString& check);
 
-    /// Открывает конфигурацию, прочитанную с пульта.
-    void openFromRemote(const QByteArray& ezhex);
+    /// Прочитанное с пульта: открывается в редакторе то, что может читатель таблицы (I4).
+    void openReadResult(const QString& file, const QString& check);
+    /// Прочитанное осталось файлом: показать, куда оно легло.
+    void showSavedCapture(const QString& file, const QString& check);
 
     /// Записывает открытую конфигурацию на пульт (после подтверждения).
     void writeToRemote();

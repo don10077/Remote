@@ -44,6 +44,12 @@ void setHubHost(const QString& host);
 [[nodiscard]] bool autoProbe();
 void setAutoProbe(bool on);
 
+/// @return Открывать в редакторе то, что прочитано с пульта (по умолчанию — да). Без галочки
+///         прочитанное только сохраняется файлом. Что именно можно открыть, решает вход
+///         `ConfigDocument::open()` (I4), а не это окно.
+[[nodiscard]] bool openInEditorAfterRead();
+void setOpenInEditorAfterRead(bool on);
+
 /// @return Сколько ждать сигнал родного пульта при обучении, с.
 [[nodiscard]] int learnTimeout();
 void setLearnTimeout(int seconds);

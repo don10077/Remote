@@ -23,6 +23,7 @@ constexpr auto kRemoteHost = "settings/remoteHost";
 constexpr auto kRemotePort = "settings/remotePort";
 constexpr auto kHubHost = "settings/hubHost";
 constexpr auto kAutoProbe = "settings/autoProbe";
+constexpr auto kOpenInEditor = "settings/openInEditorAfterRead";
 constexpr auto kLearnTimeout = "settings/learnTimeout";
 constexpr auto kTheme = "settings/theme";
 constexpr auto kIrdbDevicesUrl = "irdb/devicesUrl";
@@ -112,6 +113,14 @@ bool autoProbe() {
 
 void setAutoProbe(bool on) {
     QSettings().setValue(kAutoProbe, on);
+}
+
+bool openInEditorAfterRead() {
+    return QSettings().value(kOpenInEditor, true).toBool();
+}
+
+void setOpenInEditorAfterRead(bool on) {
+    QSettings().setValue(kOpenInEditor, on);
 }
 
 int learnTimeout() {

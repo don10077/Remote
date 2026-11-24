@@ -6,7 +6,6 @@
 #include "harmony/core/remoteFamily.h"
 #include <algorithm>
 #include <cctype>
-#include <cstring>
 #include <map>
 #include <nlohmann/json.hpp>
 #include <optional>
@@ -784,14 +783,22 @@ ImportedModel Reader::read() {
 }
 } // namespace
 Result<ImportedModel> importBinaryHid(std::span<const std::uint8_t> payload, std::string_view modelId) {
-    if (payload.size() > 10 && std::memcmp(payload.data(), "TPTP", 4) == 0 && payload[9] == 23)
-        while (!payload.empty() && payload.back() == 0)
-            payload = payload.first(payload.size() - 1);
     auto frame = parseContainer(payload);
     if (!frame)
         return std::unexpected(frame.error());
+    // Строка таблицы, где семантику секций не подтверждали данными, не даёт модель: программа
+    // называет признак, число слотов и семейство, чьё описание не применяет (правило 18).
+    if (!frame->family->semanticsVerified) {
+        return makeError(ErrorCode::Unsupported,
+                         "%1 with %2 slots follows the frame of family %3, but its section meanings are not confirmed by data",
+                         {std::string(frame->family->cookie), std::to_string(frame->family->slots),
+                          std::to_string(frame->family->architecture)});
+    }
+    // Для чтения берётся ровно контейнер: заполнение после концевого маркера — не часть образа.
+    const std::span<const std::uint8_t> image =
+        payload.first(frame->endOffset + frame->family->endMarker.size());
     try {
-        return Reader(payload, *frame, modelId).read();
+        return Reader(image, *frame, modelId).read();
     } catch (const std::exception& error) {
         return makeError(ErrorCode::Format, "HID import: %1", {error.what()});
     }

@@ -36,7 +36,8 @@
     "link": "usb-net",
     "read": false,
     "rawRestore": true,
-    "configWriteTested": false
+    "configWriteTested": false,
+    "supportsExtender": true
   },
   {
     "id": "1000i",
@@ -62,7 +63,8 @@
     "link": "usb-net",
     "read": true,
     "rawRestore": true,
-    "configWriteTested": false
+    "configWriteTested": false,
+    "supportsExtender": true
   },
   {
     "id": "1100i",
@@ -528,7 +530,8 @@
     "link": "usb-hid",
     "read": true,
     "rawRestore": true,
-    "configWriteTested": false
+    "configWriteTested": false,
+    "supportsExtender": true
   },
   {
     "id": "890-pro",
@@ -540,19 +543,8 @@
     "link": "usb-hid",
     "read": true,
     "rawRestore": true,
-    "configWriteTested": false
-  },
-  {
-    "id": "891",
-    "name": "Harmony 891",
-    "skins": [
-      20
-    ],
-    "architecture": 10,
-    "link": "usb-hid",
-    "read": true,
-    "rawRestore": true,
-    "configWriteTested": false
+    "configWriteTested": false,
+    "supportsExtender": true
   },
   {
     "id": "892",
@@ -576,19 +568,8 @@
     "link": "usb-hid",
     "read": true,
     "rawRestore": true,
-    "configWriteTested": false
-  },
-  {
-    "id": "896",
-    "name": "Harmony 896",
-    "skins": [
-      24
-    ],
-    "architecture": 10,
-    "link": "usb-hid",
-    "read": true,
-    "rawRestore": true,
-    "configWriteTested": false
+    "configWriteTested": false,
+    "supportsExtender": true
   },
   {
     "id": "897",
