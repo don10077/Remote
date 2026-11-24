@@ -7,6 +7,7 @@
 
 #include <cstdint>
 #include <filesystem>
+#include "harmony/core/writeFileNew.h"
 #include <vector>
 
 namespace harmony::cli {
@@ -31,5 +32,13 @@ namespace harmony::cli {
  * @return true — записано; false — ошибка записи или переименования.
  */
 [[nodiscard]] bool writeFileAtomic(const std::filesystem::path& path, const std::vector<std::uint8_t>& bytes);
+
+/**
+ * @brief Создаёт новый файл, атомарно отказывая при существующем имени.
+ * @param path Путь нового файла, включая Unicode на Windows.
+ * @param bytes Содержимое файла.
+ * @return true при полной записи; false при ошибке или существующем файле.
+ */
+using harmony::writeFileNew;
 
 } // namespace harmony::cli

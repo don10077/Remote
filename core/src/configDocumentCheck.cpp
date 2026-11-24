@@ -9,11 +9,13 @@
  *   ссылаются на несуществующие команды или устройства;
  * - активность не говорит, включено ли устройство, или не включает устройство,
  *   которому шлют команды её кнопки; нет роли DEFAULT; роль у двух устройств;
+ * - клавиши, которых нет у модели документа, и имена-заполнители скан-кодов;
  * - одинаковые id и имена, пустые имена, устройств больше, чем помнит пульт.
  */
 
 #include "configDocumentImpl.h"
 #include "harmony/core/buttonIcons.h"
+#include "harmony/core/modelKeys.h"
 #include "harmony/core/macro.h"
 
 #include <algorithm>
@@ -112,7 +114,7 @@ std::vector<pugi::xml_node> operations(pugi::xml_node node) {
  * @brief Собирает проблемы документа: по одному методу на правило.
  *
  * Порядок проверок задаёт порядок проблем: конфигурация целиком, устройства, активности,
- * ИК-данные команд, макросы, RF-бластер; в конце ошибки переносятся вперёд.
+ * клавиши модели, ИК-данные команд, макросы, RF-бластер; в конце ошибки переносятся вперёд.
  */
 class Checker {
 public:
@@ -130,6 +132,7 @@ public:
         for (const auto& activity : config_.activities) {
             checkActivity(activity);
         }
+        checkModelKeys();
         for (const auto& device : config_.devices) {
             checkIrData(device);
         }
@@ -367,6 +370,64 @@ private:
                 problem.softPosition = button->position;
                 problem.fix = Problem::Fix::RemoveSoftButton;
             }
+        }
+    }
+
+    // --- Модель документа (C1) ------------------------------------------------------
+
+    /// Имя клавиши доказано моделью: зона профиля, скан-таблица или надпись на корпусе.
+    /// Имена из конфигурации и из ячеек экрана — не факт о модели (K4, A5).
+    [[nodiscard]] bool keyIsModelName(const ModelKeys& keys, const std::string& name) const {
+        const auto canonical = canonicalKeyName(name);
+        for (const auto& key : keys.keys) {
+            if (key.source == KeySource::Config || key.source == KeySource::ProfileScreen) {
+                continue;
+            }
+            if (key.name == name || canonical == key.name) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * @brief Назначенные физические клавиши, которых нет у модели документа (Q5).
+     *
+     * Предупреждение только когда список клавиш исчерпывающий: при неполной таблице отсутствие
+     * имени ничего не утверждает. Ядро не видит содержимое профиля — решают таблицы семейства,
+     * надписи по модели и сама конфигурация. Имя вне словаря (пометка скан-кода) — заполнитель,
+     * о нём говорится отдельно и независимо от полноты списка: для одного имени одно
+     * предупреждение.
+     */
+    void checkModelKeys() {
+        const ModelInfo model = document_.targetModel();
+        const ModelKeys keys = modelKeys(model, {}, {}, &config_);
+        const auto checkOwner = [&](Problem::Where where, const std::string& id,
+                                    const std::string& name,
+                                    const std::vector<model::ControlGroup>& groups) {
+            for (const model::Button* button : hardButtons(groups)) {
+                const std::string key = button->name;
+                if (key.empty()) {
+                    continue;   // экранные кнопки: имени клавиши здесь нет
+                }
+                if (isTemporaryZoneName(key)) {
+                    warning(where, id, say("%1 · %2", {name, key}),
+                            say("%1: temporary name, choose one from the list", {key}))
+                        .hardKey = key;
+                    continue;   // про заполнитель говорим один раз
+                }
+                if (keys.complete && !keyIsModelName(keys, key)) {
+                    warning(where, id, say("%1 · %2", {name, key}),
+                            say("the model has no key “%1”: the assignment will not work", {key}))
+                        .hardKey = key;
+                }
+            }
+        };
+        for (const auto& device : config_.devices) {
+            checkOwner(Problem::Where::Device, device.id, device.displayName(), device.controlGroups);
+        }
+        for (const auto& activity : config_.activities) {
+            checkOwner(Problem::Where::Activity, activity.id, activity.label, activity.controlGroups);
         }
     }
 

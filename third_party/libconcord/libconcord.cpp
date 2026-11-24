@@ -774,8 +774,9 @@ int deinit_concord()
 
 int _get_identity(lc_callback cb, void *cb_arg, uint32_t cb_stage)
 {
-    if ((rmt->GetIdentity(ri, hid_info, cb, cb_arg, cb_stage))) {
-        return LC_ERROR;
+    const int identity_error = rmt->GetIdentity(ri, hid_info, cb, cb_arg, cb_stage);
+    if (identity_error) {
+        return identity_error;
     }
 
     /* Do some sanity checking */

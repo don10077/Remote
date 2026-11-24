@@ -4,6 +4,7 @@
 #include "harmony/core/formats/container.h"
 #include "harmony/core/formats/zipArchive.h"
 
+#include "harmony/core/writeFileNew.h"
 #include <libconcord.h>
 #include <pugixml.hpp>
 #include <zip.h>
@@ -113,11 +114,7 @@ Result<void> saveBackup(const std::filesystem::path& path, const formats::Bytes&
     std::error_code ec;
     if (std::filesystem::exists(path, ec) || ec)
         return makeError(ErrorCode::Io, "Backup already exists or cannot be checked");
-    std::ofstream out(path, std::ios::binary | std::ios::noreplace);
-    if (!out) return makeError(ErrorCode::Io, "Cannot create the backup file");
-    out.write(reinterpret_cast<const char*>(bytes.data()), static_cast<std::streamsize>(bytes.size()));
-    out.close();
-    if (!out) return makeError(ErrorCode::Io, "Cannot finish the backup file; remote was not written");
+    if (!writeFileNew(path, bytes)) return makeError(ErrorCode::Io, "Cannot create or finish the backup file");
     std::ifstream verify(path, std::ios::binary);
     const formats::Bytes saved{std::istreambuf_iterator<char>(verify), {}};
     if (saved != bytes) return makeError(ErrorCode::Io, "Backup verification failed; remote was not written");

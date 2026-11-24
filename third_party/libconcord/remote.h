@@ -338,6 +338,8 @@ public:
 class CRemoteZ_HID : public CRemoteZ_Base
 {
 private:
+    uint8_t m_udp_command = 0;
+    uint8_t m_tcp_command = 0;
     uint8_t m_tx_seq;
     uint8_t m_rx_seq;
     int UDP_Write(uint8_t typ, uint8_t cmd, uint32_t len=0,
@@ -345,7 +347,7 @@ private:
     int UDP_Read(uint8_t &status, uint32_t &len, uint8_t *data);
     int TCP_Write(uint8_t typ, uint8_t cmd, uint32_t len=0,
         uint8_t *data=NULL);
-    int TCP_Read(uint8_t &status, uint32_t &len, uint8_t *data);
+    int TCP_Read(uint8_t &status, uint32_t &len, uint8_t *data, bool acceptEmptyAck=false);
 
 protected:
     int TCPSendAndCheck(uint8_t cmd, uint32_t len=0, uint8_t *data=NULL,

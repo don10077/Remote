@@ -70,3 +70,15 @@ TEST(CliFiles, FailedWriteKeepsNothing) {
     EXPECT_FALSE(std::filesystem::exists(file));
     EXPECT_FALSE(std::filesystem::exists(folder.path / "missing" / "copy.EZHex.tmp"));
 }
+
+TEST(CliFiles, ExclusiveWriteSupportsUnicodeAndKeepsExistingBytes) {
+    const TempFolder folder;
+    const auto file = folder.path / std::filesystem::path(u8"копия.EZHex");
+    const std::vector<std::uint8_t> bytes{0, 1, 0xff, 0x0a};
+    ASSERT_TRUE(harmony::cli::writeFileNew(file, bytes));
+    EXPECT_EQ(readBytes(file), bytes);
+    const std::vector<std::uint8_t> replacement{2, 3};
+    EXPECT_FALSE(harmony::cli::writeFileNew(file, replacement));
+    EXPECT_EQ(readBytes(file), bytes);
+    EXPECT_FALSE(harmony::cli::writeFileNew(folder.path / "missing" / "copy.EZHex", bytes));
+}

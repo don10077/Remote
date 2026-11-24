@@ -6,9 +6,61 @@
 #include <algorithm>
 #include <set>
 #include "../../third_party/libconcord/read_flash_packet.h"
+#include <remote.h>
+#include <protocol_z.h>
+#include <z_hid_packet.h>
 
 using namespace harmony;
 using namespace harmony::transport;
+
+namespace {
+/// Exposes packet parsing without opening a USB device.
+class ZHidParser final : public CRemoteZ_HID {
+public:
+    using CRemoteZ_HID::ParseParams;
+    using CRemoteZ_Base::TParamList;
+};
+}
+
+TEST(ZHidPackets, RejectsRegionDataInPlaceOfIdentity) {
+    ZHidParser parser;
+    std::uint8_t packet[60]{0x40, 0xf8, 0x2f, 0x01, 0x48};
+    ZHidParser::TParamList params{};
+    EXPECT_NE(parser.ParseParams(55, packet, params), 0);
+    EXPECT_EQ(params.count, 0u);
+    EXPECT_EQ(params.p[2], nullptr);
+}
+
+TEST(ZHidPackets, SkipsStandaloneAckAndPreviousCommandReply) {
+    const std::uint8_t ack[]{3, TYPE_TCP_ACK, 0xf8, 0x2f};
+    EXPECT_EQ(harmony_z_tcp_packet(ack, sizeof(ack), COMMAND_READ_REGION_DATA), 0);
+    EXPECT_EQ(harmony_z_tcp_packet(ack, sizeof(ack), COMMAND_WRITE_UPDATE_DATA, true), 1);
+    std::uint8_t reply[]{5, TYPE_TCP_ACK, 0xf8, 0x2f, TYPE_RESPONSE, COMMAND_READ_REGION};
+    EXPECT_EQ(harmony_z_tcp_packet(reply, sizeof(reply), COMMAND_READ_REGION_DATA), 0);
+    reply[5] = COMMAND_READ_REGION_DATA;
+    EXPECT_EQ(harmony_z_tcp_packet(reply, sizeof(reply), COMMAND_READ_REGION_DATA), 1);
+    EXPECT_EQ(harmony_z_tcp_packet(reply, 5, COMMAND_READ_REGION_DATA), -1);
+    reply[5] = COMMAND_READ_REGION_DONE;
+    EXPECT_EQ(harmony_z_tcp_packet(reply, sizeof(reply), COMMAND_READ_REGION_DATA), 1);
+    reply[0] = 61;
+    EXPECT_EQ(harmony_z_tcp_packet(reply, sizeof(reply), COMMAND_READ_REGION_DATA), -1);
+}
+
+TEST(ZHidPackets, ValidatesIdentityAndGuidLengths) {
+    ZHidParser parser;
+    std::uint8_t packet[60]{1, TYPE_RESPONSE, COMMAND_GET_SYSTEM_INFO, STATUS_OK};
+    ZHidParser::TParamList params{};
+    EXPECT_NE(parser.ParseParams(14, packet, params), 0);
+    EXPECT_EQ(parser.ParseParams(15, packet, params), 0);
+    EXPECT_EQ(params.count, 8u);
+    EXPECT_EQ(params.p[7], packet + 17);
+    packet[2] = COMMAND_GET_GUID;
+    EXPECT_NE(parser.ParseParams(47, packet, params), 0);
+    EXPECT_EQ(params.p[7], nullptr);
+    EXPECT_EQ(parser.ParseParams(48, packet, params), 0);
+    packet[3] = STATUS_BUSY;
+    EXPECT_NE(parser.ParseParams(48, packet, params), 0);
+}
 
 TEST(ClassicHidPackets, ValidatesActualReportLengthAndChunkBoundary) {
     const std::uint8_t packet[]{0x63, 0x12, 0xab, 0xcd};

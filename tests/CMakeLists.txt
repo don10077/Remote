@@ -8,6 +8,7 @@ add_executable(harmony_tests
     configAddTest.cpp
     configButtonsTest.cpp
     configCheckTest.cpp
+    checkModelKeysTest.cpp
     configDocumentTest.cpp
     configHubDocumentTest.cpp
     buttonCopyTest.cpp
@@ -79,6 +80,7 @@ target_compile_definitions(harmony_tests PRIVATE
 # harmony::core — через harmony::transport (PUBLIC), без дубля на строке линковки.
 target_link_libraries(harmony_tests PRIVATE
     harmony::transport
+    harmony_concord # Проверка разбора Z-HID без USB-устройства.
     GTest::gtest_main
     nlohmann_json::nlohmann_json
     ZLIB::ZLIB # irdbFixture.h пишет .gz: усечённый источник должен распознаваться как ошибка

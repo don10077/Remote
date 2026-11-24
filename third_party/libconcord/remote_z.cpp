@@ -26,6 +26,7 @@
 #include "remote.h"
 #include "usblan.h"
 #include "protocol_z.h"
+#include "z_hid_packet.h"
 #include "remote_z_learn/single.h"
 #include "remote_z_learn/start.h"
 #include "remote_z_learn/stop.h"
@@ -86,6 +87,7 @@ int TCP_Ack(bool increment_ack = false, bool fin = false) {
 int CRemoteZ_HID::UDP_Write(uint8_t typ, uint8_t cmd, uint32_t len,
                             uint8_t *data)
 {
+    m_udp_command = cmd;
     if (len > 60)
         return LC_ERROR;
     uint8_t pkt[HID_UDP_MAX_PACKET_SIZE];
@@ -109,11 +111,21 @@ int CRemoteZ_HID::UDP_Write(uint8_t typ, uint8_t cmd, uint32_t len,
 
 int CRemoteZ_HID::UDP_Read(uint8_t &status, uint32_t &len, uint8_t *data)
 {
-    uint8_t pkt[HID_UDP_MAX_PACKET_SIZE];
-    int err;
-    if ((err = HID_ReadReport(pkt))) {
-        return LC_ERROR_READ;
+    uint8_t pkt[HID_UDP_MAX_PACKET_SIZE]{};
+    // A previous interrupted region read can leave TCP packets in the HID queue.
+    // They are not UDP replies and must never reach ParseParams.
+    bool received = false;
+    for (unsigned attempt = 0; attempt < 64; ++attempt) {
+        unsigned count = 0;
+        if (HID_ReadReport(pkt, 1000, &count)) return LC_ERROR_READ;
+        if (count < 5 || pkt[0] < 4 || pkt[0] > 60 || pkt[0] >= count)
+            return LC_ERROR_INVALID_DATA_FROM_REMOTE;
+        if (pkt[1] == 1 && pkt[2] == TYPE_RESPONSE && pkt[3] == m_udp_command) {
+            received = true;
+            break;
+        }
     }
+    if (!received) return LC_ERROR_INVALID_DATA_FROM_REMOTE;
 
     debug("Reading packet:");
 #ifdef _DEBUG
@@ -142,6 +154,7 @@ int CRemoteZ_HID::UDP_Read(uint8_t &status, uint32_t &len, uint8_t *data)
 int CRemoteZ_HID::TCP_Write(uint8_t typ, uint8_t cmd, uint32_t len,
                             uint8_t *data)
 {
+    m_tcp_command = cmd;
     uint8_t pkt[HID_UDP_MAX_PACKET_SIZE];
 
     /*
@@ -187,18 +200,25 @@ int CRemoteZ_HID::TCP_Write(uint8_t typ, uint8_t cmd, uint32_t len,
 }
 
 
-int CRemoteZ_HID::TCP_Read(uint8_t &status, uint32_t &len, uint8_t *data)
+int CRemoteZ_HID::TCP_Read(uint8_t &status, uint32_t &len, uint8_t *data, bool acceptEmptyAck)
 {
-    uint8_t pkt[HID_UDP_MAX_PACKET_SIZE];
-    int err;
+    uint8_t pkt[HID_UDP_MAX_PACKET_SIZE]{};
     /*
      * Many TCP operations can take a while, like computing checksums,
      * and it will be a while before we get a response. So we set the
      * timeout to 30 seconds.
      */
-    if ((err = HID_ReadReport(pkt, 30000))) {
-        return LC_ERROR_READ;
+    bool received = false;
+    for (unsigned attempt = 0; attempt < 64; ++attempt) {
+        unsigned count = 0;
+        if (HID_ReadReport(pkt, 30000, &count)) return LC_ERROR_READ;
+        const int reply = harmony_z_tcp_packet(pkt, count, m_tcp_command, acceptEmptyAck);
+        if (reply < 0) return LC_ERROR_INVALID_DATA_FROM_REMOTE;
+        if (reply == 0) continue;
+        received = true;
+        break;
     }
+    if (!received) return LC_ERROR_INVALID_DATA_FROM_REMOTE;
 
     debug("Reading packet:");
 #ifdef _DEBUG
@@ -217,14 +237,14 @@ int CRemoteZ_HID::TCP_Read(uint8_t &status, uint32_t &len, uint8_t *data)
      * payload size.  To get the payload size we subtract both the TCP and
      * UDP headers from pkt[0] and then add one.
      */
-    len = pkt[0] - HID_TCP_HDR_SIZE - HID_UDP_HDR_SIZE + 1;
+    len = pkt[0] >= 5 ? pkt[0] - 5 : 0;
     last_seq = pkt[2];
     last_ack = pkt[3];
-    last_payload_bytes = len + HID_UDP_HDR_SIZE; // tcp payload size
+    last_payload_bytes = pkt[0] - 3;
     //if(!len) return 0;
     //memcpy(data, pkt + 6, len);
     // include headers, minus the size
-    memcpy(data, pkt + 1, len + HID_TCP_HDR_SIZE + HID_UDP_HDR_SIZE - 1);
+    memcpy(data, pkt + 1, pkt[0]);
     return 0;
 }
 
@@ -240,10 +260,14 @@ int CRemoteZ_HID::Read(uint8_t &status, uint32_t &len, uint8_t *data)
 
 int CRemoteZ_HID::ParseParams(uint32_t len, uint8_t *data, TParamList &pl)
 {
+    pl = {};
+    if (len < 1 || data[0] != 1 || data[1] != TYPE_RESPONSE || data[3] != STATUS_OK)
+        return LC_ERROR_INVALID_DATA_FROM_REMOTE;
     debug("ParseParams, %02x %02x %02x %02x %02x %02x\n", data[0], data[1],
           data[2], data[3], data[4], data[5]);
     switch (data[2]) {
         case COMMAND_GET_SYSTEM_INFO:
+            if (len < 15) return LC_ERROR_INVALID_DATA_FROM_REMOTE;
             pl.count = 8;
             pl.p[0] = data + 4;
             pl.p[1] = data + 6;
@@ -255,6 +279,8 @@ int CRemoteZ_HID::ParseParams(uint32_t len, uint8_t *data, TParamList &pl)
             pl.p[7] = data + 17;
             break;
         case COMMAND_GET_CURRENT_TIME:
+            if (len < 9 || (len > 16 && len < 18))
+                return LC_ERROR_INVALID_DATA_FROM_REMOTE;
             pl.count = (len > 16) ? 12 : 8;
             pl.p[0] = data + 4;
             pl.p[1] = data + 6;
@@ -270,9 +296,12 @@ int CRemoteZ_HID::ParseParams(uint32_t len, uint8_t *data, TParamList &pl)
             pl.p[11] = data + 20;
             break;
         case COMMAND_GET_GUID:
+            if (len < SERIAL_SIZE) return LC_ERROR_INVALID_DATA_FROM_REMOTE;
             pl.count = 1;
             pl.p[0] = data + 4;
             break;
+        default:
+            return LC_ERROR_INVALID_DATA_FROM_REMOTE;
     }
     return 0;
 }
@@ -1023,8 +1052,10 @@ int CRemoteZ_Base::GetIdentity(TRemoteInfo &ri, THIDINFO &hid, lc_callback cb,
         cb(cb_stage, 0, 1, 2, LC_CB_COUNTER_TYPE_STEPS, cb_arg, NULL);
     }
 
-    CRemoteZ_Base::TParamList pl;
-    ParseParams(len, rsp, pl);
+    CRemoteZ_Base::TParamList pl{};
+    if ((IsUSBNet() ? rsp[1] : rsp[2]) != COMMAND_GET_SYSTEM_INFO ||
+        ParseParams(len, rsp, pl) || pl.count != 8)
+        return LC_ERROR_INVALID_DATA_FROM_REMOTE;
 
     ri.flash_mfg = 0x01;
     ri.flash_id = 0x49;
@@ -1068,7 +1099,9 @@ int CRemoteZ_Base::GetIdentity(TRemoteInfo &ri, THIDINFO &hid, lc_callback cb,
            NULL);
     }
 
-    ParseParams(len, rsp, pl);
+    if ((IsUSBNet() ? rsp[1] : rsp[2]) != COMMAND_GET_GUID ||
+        ParseParams(len, rsp, pl) || pl.count != 1)
+        return LC_ERROR_INVALID_DATA_FROM_REMOTE;
 
     make_serial(pl.p[0], ri);
 
@@ -1521,7 +1554,7 @@ int CRemoteZ_HID::TCPSendAndCheck(uint8_t cmd, uint32_t len, uint8_t *data,
         return LC_ERROR_WRITE;
     }
 
-    if ((err = TCP_Read(status, rlen, rsp))) {
+    if ((err = TCP_Read(status, rlen, rsp, ackonly))) {
         debug("Failed to read from remote");
         return LC_ERROR_READ;
     }
@@ -1673,7 +1706,7 @@ int CRemoteZ_HID::UpdateConfig(const uint32_t len, const uint8_t *wr,
         return LC_ERROR_WRITE;
     }
 
-    if ((err = TCP_Read(status, rlen, rsp))) {
+    if ((err = TCP_Read(status, rlen, rsp, true))) {
         debug("Failed to read from remote");
         return LC_ERROR_READ;
     }
@@ -1685,7 +1718,7 @@ int CRemoteZ_HID::UpdateConfig(const uint32_t len, const uint8_t *wr,
         return LC_ERROR_WRITE;
     }
 
-    if ((err = TCP_Read(status, rlen, rsp))) {
+    if ((err = TCP_Read(status, rlen, rsp, true))) {
         debug("Failed to read from remote");
         return LC_ERROR_READ;
     }
@@ -1726,7 +1759,7 @@ int CRemoteZ_HID::UpdateConfig(const uint32_t len, const uint8_t *wr,
     }
 
     /* Read their empty ack */
-    if ((err = TCP_Read(status, rlen, rsp))) {
+    if ((err = TCP_Read(status, rlen, rsp, true))) {
         debug("Failed to read from remote");
         return LC_ERROR_READ;
     }

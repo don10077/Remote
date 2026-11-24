@@ -24,3 +24,6 @@ Additional Harmony patches:
   flash packet lengths, sequences and exact chunk completion before copying data.
 - Bound classic configuration end vectors by the detected flash capacity before
   allocating the readback buffer.
+- Validate Z-HID UDP/TCP report bounds and identity parameters before accessing
+  them; reject unrelated replies, skip standalone TCP ACKs, and preserve
+  identity error codes instead of reporting an unspecified failure.

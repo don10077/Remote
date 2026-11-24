@@ -1,4 +1,5 @@
 #include "transferCommands.h"
+#include "cliFiles.h"
 #include "harmony/core/remoteCatalog.h"
 #include "harmony/core/remoteProfile.h"
 #include "harmony/transport/concordTransfer.h"
@@ -91,11 +92,11 @@ int runTransferCommand(std::span<char*> args, const std::string& host) {
                 static_cast<int>(static_cast<unsigned>(day.day())), static_cast<int>(time.hours().count()),
                 static_cast<int>(time.minutes().count())).c_str()));
         }
-        std::ofstream output(target, std::ios::binary | std::ios::noreplace);
-        if (!output) { std::cerr << "Cannot create output (existing files are not overwritten).\n"; return 2; }
-        output.write(json->data(), static_cast<std::streamsize>(json->size()));
-        output.close();
-        if (!output) { std::cerr << "Could not finish output file.\n"; return 2; }
+        if (!harmony::cli::writeFileNew(target,
+                {reinterpret_cast<const std::uint8_t*>(json->data()), json->size()})) {
+            std::cerr << "Cannot create output (existing files are not overwritten).\n";
+            return 2;
+        }
         std::cout << "File: " << target.string() << '\n';
         std::cout << "Configuration saved: model " << (capture.modelId.empty() ? "?" : capture.modelId) << ", "
                   << capture.data.size() << " bytes (" << harmony::formats::containerName(capture.container) << ").\n";
