@@ -73,7 +73,7 @@ void ZoneEditorDialog::runAutoZones() {
         return;
     }
     if (!hasLayer() || !layer().body()) return;
-    const QString photoPath = remoteResources::folder() + QStringLiteral("/remotes/") + model_ + QStringLiteral("/photo.png");
+    const QString photoPath = remoteResources::folder() + QStringLiteral("/remotes/") + model_ + QStringLiteral("/") + remoteResources::kPhotoFile;
     if (!QFileInfo::exists(photoPath)) {
         note(tr("Auto zones needs the photo %1, but the file was not found.").arg(photoPath));
         return;

@@ -2,6 +2,7 @@
 #include "../app/src/remoteResources.h"
 #include "../app/src/zoneEditing.h"
 #include "../app/src/i18n.h"
+#include "profileNames.h"
 #include <QAction>
 #include <QApplication>
 #include <QComboBox>
@@ -33,10 +34,11 @@ struct WorkingProfile {
     QByteArray modernBytes, legacyBytes;
 
     explicit WorkingProfile(const QString& id) : model(id) {
-        const QString dir = QDir(harmony::app::remoteResources::folder()).filePath("remotes/" + model);
-        modern = dir + "/profile.json";
-        legacy = dir + "/remote.json";
-        backup = dir + "/remote.json.bak";
+        const QString root = harmony::app::remoteResources::folder();
+        using namespace harmony::testpaths;
+        modern = QDir(root).filePath(modelKey(model, harmony::app::remoteResources::kProfileFile));
+        legacy = QDir(root).filePath(modelKey(model, harmony::app::remoteResources::kLegacyProfileFile));
+        backup = QDir(root).filePath(modelKey(model, harmony::app::remoteResources::kLegacyProfileBackup));
         modernBytes = read(modern);
         legacyBytes = read(legacy);
     }
@@ -46,7 +48,7 @@ struct WorkingProfile {
     }
     /// Встроенный профиль модели — исходное состояние для теста.
     QByteArray builtin() const {
-        QFile file(":/res/remotes/" + model + "/profile.json");
+        QFile file(harmony::testpaths::builtinProfile(model));
         return file.open(QIODevice::ReadOnly) ? file.readAll() : QByteArray();
     }
     /// Положить встроенный профиль под новым именем, убрав старое имя и `.bak`.

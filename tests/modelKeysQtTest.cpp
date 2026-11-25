@@ -17,6 +17,7 @@
 #include "../app/src/modelKeysQt.h"
 #include "../app/src/modern/remoteView.h"
 #include "../app/src/remoteResources.h"
+#include "profileNames.h"
 
 #include "harmony/core/buttonOwner.h"
 #include "harmony/core/configDocument.h"
@@ -40,6 +41,7 @@ using namespace harmony;
 
 namespace {
 namespace resources = harmony::app::remoteResources;
+namespace paths = harmony::testpaths;
 
 /// Каждый тест работает со своим снимком ресурсов: профили как данные, в git.
 class ModelKeysQtTest : public testing::Test {
@@ -106,13 +108,13 @@ TEST_F(ModelKeysQtTest, ProfileNamesComeFromTheFileTheAppReads) {
 
     QImage image(100, 100, QImage::Format_ARGB32);
     image.fill(Qt::white);
-    ASSERT_TRUE(image.save(root.path() + "/remotes/" + id + "/photo.png", "PNG"));
+    ASSERT_TRUE(image.save(root.path() + "/" + paths::photoKey(id), "PNG"));
 
     const QJsonObject remote = {
         {"id", id},
         {"name", "A1 fixture"},
         {"hardware", QJsonObject{
-            {"image", "photo.png"},
+            {"image", resources::kPhotoFile},
             {"size", QJsonArray{100, 100}},
             {"zones", QJsonArray{
                 QJsonObject{{"id", "Power"}, {"kind", "Key"},
@@ -132,7 +134,7 @@ TEST_F(ModelKeysQtTest, ProfileNamesComeFromTheFileTheAppReads) {
             }},
         }}},
     };
-    QFile file(root.path() + "/remotes/" + id + "/profile.json");
+    QFile file(root.path() + "/" + paths::profileKey(id));
     ASSERT_TRUE(file.open(QIODevice::WriteOnly));
     const QByteArray text = QJsonDocument(remote).toJson();
     ASSERT_EQ(file.write(text), text.size());

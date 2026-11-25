@@ -22,6 +22,7 @@
 #include "../app/src/modern/remotePanel.h"
 #include "../app/src/modern/remoteView.h"
 #include "../app/src/remoteResources.h"
+#include "profileNames.h"
 
 #include "harmony/core/model/remoteConfig.h"
 #include "harmony/core/modelInfo.h"
@@ -47,6 +48,7 @@ using harmony::app::RemoteView;
 
 namespace {
 namespace resources = harmony::app::remoteResources;
+namespace paths = harmony::testpaths;
 
 /// Профили как данные, в git: каждый тест работает со своим снимком ресурсов.
 class HardKeyIdsTest : public testing::Test {
@@ -62,7 +64,7 @@ protected:
 /// Записать profile.json в папку тестового снимка.
 void writeFixture(const QString& root, const QString& id, const QJsonObject& remote) {
     ASSERT_TRUE(QDir().mkpath(root + "/remotes/" + id));
-    QFile file(root + "/remotes/" + id + "/profile.json");
+    QFile file(root + "/" + paths::profileKey(id));
     ASSERT_TRUE(file.open(QIODevice::WriteOnly));
     const QByteArray text = QJsonDocument(remote).toJson();
     ASSERT_EQ(file.write(text), text.size());
@@ -108,13 +110,13 @@ TEST_F(HardKeyIdsTest, ProfileRejectedBySizeMismatchIsNotInTheSnapshot) {
     QImage image(100, 120, QImage::Format_ARGB32);            // фото 100×120
     image.fill(Qt::white);
     ASSERT_TRUE(QDir().mkpath(root.path() + "/remotes/" + id));
-    ASSERT_TRUE(image.save(root.path() + "/remotes/" + id + "/photo.png", "PNG"));
+    ASSERT_TRUE(image.save(root.path() + "/" + paths::photoKey(id), "PNG"));
 
     const QJsonObject remote = {
         {"id", id},
         {"name", "K5 fixture"},
         {"hardware", QJsonObject{
-            {"image", "photo.png"},
+            {"image", resources::kPhotoFile},
             {"size", QJsonArray{100, 100}},                  // размер не совпал с фото
             {"zones", QJsonArray{QJsonObject{
                 {"id", "Power"}, {"kind", "Key"},

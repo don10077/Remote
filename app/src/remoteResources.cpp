@@ -34,8 +34,8 @@ QHash<QString, QString> skippedById;
 QStringList migratedFiles;
 /// Предупреждения последнего reload(): модель загружена, но данные расходятся.
 QStringList warnings;
-const QString kPrefix = ":/res/";
-const QString kRemotes = ":/res/remotes/";
+const QString kPrefix = kResourcePrefix;
+const QString kRemotes = kPrefix + kRemotesDir + QLatin1Char('/');
 /// Проверить конечные координаты прямоугольника и положительный размер.
 QRectF rect(const QJsonValue& value) {
     const auto a = value.toArray();
@@ -45,17 +45,17 @@ QRectF rect(const QJsonValue& value) {
 }
 /// Путь профиля от корня папки ресурсов: `remotes/<id>/profile.json`.
 QString profileKey(const QString& modelId) {
-    return QStringLiteral("remotes/") + modelId + "/" + kProfileFile;
+    return kRemotesDir + QLatin1Char('/') + modelId + QLatin1Char('/') + kProfileFile;
 }
 /// Старое имя профиля от корня папки ресурсов: `remotes/<id>/remote.json`.
 QString legacyKey(const QString& modelId) {
-    return QStringLiteral("remotes/") + modelId + "/" + kLegacyProfileFile;
+    return kRemotesDir + QLatin1Char('/') + modelId + QLatin1Char('/') + kLegacyProfileFile;
 }
-/// Профиль пульта: `remotes/<id>/profile.json` или старое имя, путь от корня папки ресурсов.
+/// Файл профиля пульта: `remotes/<id>/profile.json` или старое имя, путь от корня папки ресурсов.
 bool profileFile(const QString& relative) {
-    static const QRegularExpression pattern(
-        QStringLiteral("^remotes/[^/]+/(profile|remote)\\.json$"));
-    return pattern.match(relative).hasMatch();
+    if (!relative.startsWith(kRemotesDir + QLatin1Char('/'))) return false;
+    const QString name = relative.section('/', 2, 2);
+    return relative.count(QLatin1Char('/')) == 2 && (name == kProfileFile || name == kLegacyProfileFile);
 }
 /// Имя файла — старое (`remote.json`), а не `profile.json`.
 bool legacyProfile(const QString& relative) {
@@ -76,7 +76,8 @@ QByteArray builtinProfile(const QString& modelId) {
  */
 bool managed(const QString& relative) {
     if (relative.endsWith(".json")) return profileFile(relative);
-    return (relative.startsWith("remotes/") || relative.startsWith("sprites/")) &&
+    return (relative.startsWith(kRemotesDir + QLatin1Char('/')) ||
+            relative.startsWith(kSpritesDir + QLatin1Char('/'))) &&
            (relative.endsWith(".png") || relative.endsWith(".svg"));
 }
 }
@@ -355,8 +356,9 @@ QString reload(const QString& root) {
     }
     warnings.clear();
     for (const QString& modelId : both)
-        warnings.append(QStringLiteral("remotes/") + modelId +
-                        ": both profile.json and remote.json exist; profile.json is used");
+        warnings.append(QStringLiteral("remotes/") + modelId + QStringLiteral(": both ") + kProfileFile +
+                        QStringLiteral(" and ") + kLegacyProfileFile + QStringLiteral(" exist; ") +
+                        kProfileFile + QStringLiteral(" is used"));
     // Профиль прошлой версии программы переводится на новую схему в памяти: лишний connection
     // (связь теперь в каталоге модели) и старые style и compact экранов. Правки пользователя
     // (зоны, цвета, экраны) сохраняются. Файл на диске не меняется,
@@ -433,9 +435,9 @@ QString reload(const QString& root) {
             return source + ": unknown connection driver";
 
         const auto size = hardware.value("size").toArray();
-        const auto image = QImage::fromData(candidate.value(dir + "/photo.png"));
+        const auto image = QImage::fromData(candidate.value(dir + "/" + kPhotoFile));
         if (size.size() != 2 || QSize(size[0].toInt(), size[1].toInt()) != image.size() || image.isNull() ||
-            remote.value("id").toString() != modelId || hardware.value("image") != "photo.png")
+            remote.value("id").toString() != modelId || hardware.value("image") != kPhotoFile)
             return source + ": id, hardware.image or hardware.size mismatch";
         const QRectF bounds(image.rect());
         const auto screen = remote.value("display").toObject().value("rect");
@@ -490,7 +492,7 @@ QString reload(const QString& root) {
                 if (!rect(layer.value("rect")).isValid()) return source + ": invalid layer in screen " + id;
             }
         }
-        models.push_back({modelId.toStdString(), name.toStdString(), (dir + "/photo.png").toStdString(), driver.toStdString()});
+        models.push_back({modelId.toStdString(), name.toStdString(), (dir + "/" + kPhotoFile).toStdString(), driver.toStdString()});
         return {};
     };
     QStringList ids = parsed.keys();
@@ -538,7 +540,7 @@ QStringList modelIds(const QString& root) {
         const QDir dir(remotesDir.filePath(id));
         const bool hasProfile = QFileInfo::exists(dir.filePath(kProfileFile)) ||
                                 QFileInfo::exists(dir.filePath(kLegacyProfileFile));
-        if (!result.contains(id) && (hasProfile || QFileInfo::exists(dir.filePath("photo.png"))))
+        if (!result.contains(id) && (hasProfile || QFileInfo::exists(dir.filePath(kPhotoFile))))
             result.append(id);
     }
     return result;
@@ -549,9 +551,9 @@ QString createStub(const QString& modelId, const QString& root) {
     const QString target = dir.filePath(kProfileFile);
     // Старый файл профиля тоже считается существующим: заготовка рядом с ним только мешала бы.
     if (QFileInfo::exists(target) || QFileInfo::exists(dir.filePath(kLegacyProfileFile))) return {};
-    const QString photo = dir.filePath("photo.png");
+    const QString photo = dir.filePath(kPhotoFile);
     const QImage image(photo);
-    if (image.isNull()) return photo + ": no valid photo.png";
+    if (image.isNull()) return photo + ": no valid " + kPhotoFile;
     const QJsonObject screen{
         {"id", "devices"}, {"role", "devices"},
         {"ref", QJsonArray{232, 290}},
@@ -560,7 +562,7 @@ QString createStub(const QString& modelId, const QString& root) {
     const QJsonObject remote{
         {"schemaVersion", 1}, {"id", modelId}, {"name", modelId},
         {"capabilities", QJsonObject{{"touch", false}}},
-        {"hardware", QJsonObject{{"image", "photo.png"},
+        {"hardware", QJsonObject{{"image", kPhotoFile},
                                  {"size", QJsonArray{image.width(), image.height()}},
                                  {"zones", QJsonArray{}}}},
         {"screens", QJsonArray{screen}}};
@@ -602,7 +604,7 @@ QString adoptLegacyProfile(const QString& modelId, const QString& root) {
 }
 
 QStringList exportFiles(const QString& modelId) {
-    const QString model = kPrefix + "remotes/" + modelId + "/";
+    const QString model = kRemotes + modelId + "/";
     QStringList files;
     for (auto it = snapshot.cbegin(); it != snapshot.cend(); ++it) {
         if (modelId.isEmpty() || it.key().startsWith(model)) files.append(it.key().mid(kPrefix.size()));
@@ -671,8 +673,8 @@ QStringList watchPaths(const QString& root) {
     while (entries.hasNext()) {
         const QString path = entries.next();
         const QString relative = base.relativeFilePath(path);
-        if (entries.fileInfo().isDir() ? relative == "remotes" || relative == "sprites" ||
-                                             relative.startsWith("remotes/") || relative.startsWith("sprites/")
+        if (entries.fileInfo().isDir() ? relative == kRemotesDir || relative == kSpritesDir ||
+                                             relative.startsWith(kRemotesDir + QLatin1Char('/')) || relative.startsWith(kSpritesDir + QLatin1Char('/'))
                                        : managed(relative))
             paths.append(path);
     }

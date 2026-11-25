@@ -24,6 +24,8 @@
 #include <optional>
 
 namespace harmony::app::zoneEditing {
+/// Префикс папки резервных копий при записи: `.zone-editor-backup-`.
+inline const QString kBackupPrefix = QStringLiteral(".zone-editor-backup-");
 /**
  * @brief Сохранить набор файлов с проверкой конфликтов, подготовкой и откатом при сбое.
  * @param root Папка ресурсов.

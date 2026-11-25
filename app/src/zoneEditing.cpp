@@ -652,7 +652,7 @@ QString saveFiles(const QString& root, const QHash<QString, QByteArray>& expecte
     for (const auto& path : paths)
         if (!expected.contains(path) || QDir::isAbsolutePath(path) || QDir::cleanPath(path).startsWith("../"))
             return tr("Cannot save an unknown resource: %1").arg(path);
-    QTemporaryDir backup(QDir(root).filePath(".zone-editor-backup-XXXXXX"));
+    QTemporaryDir backup(QDir(root).filePath(kBackupPrefix + "XXXXXX"));
     if (!backup.isValid()) return tr("Could not create a backup folder. Nothing was saved.");
     std::vector<std::unique_ptr<QSaveFile>> staged;
     for (const auto& path : paths) {

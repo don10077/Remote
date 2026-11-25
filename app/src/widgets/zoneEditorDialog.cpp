@@ -920,7 +920,7 @@ bool ZoneEditorDialog::loadModel(const QString& model) {
     const auto hardware = remote.value(QStringLiteral("hardware")).toObject();
     const auto zonesValue = hardware.value(QStringLiteral("zones"));
     QPixmap photo;
-    photo.loadFromData(readResource(QStringLiteral("remotes/") + model + QStringLiteral("/photo.png")));
+    photo.loadFromData(readResource(QStringLiteral("remotes/") + model + QStringLiteral("/") + remoteResources::kPhotoFile));
     if (remote.isEmpty() || !zonesValue.isArray() || photo.isNull()) {
         QString text = tr("Could not read the resources of remote %1.").arg(model);
         if (!file.error.isEmpty()) text += QStringLiteral("\n\n") + file.error;

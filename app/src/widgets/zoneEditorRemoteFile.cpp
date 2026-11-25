@@ -343,7 +343,8 @@ std::optional<QJsonValue> ZoneEditorDialog::imageValue(QLineEdit* input) {
     const QString text = QDir::fromNativeSeparators(input->text().trimmed());
     if (text.isEmpty()) return QJsonValue(QJsonValue::Undefined);
     // Загрузчик читает картинки только из sprites/ и папок пультов (.png, .svg).
-    const bool managed = (text.startsWith(QLatin1String("sprites/")) || text.startsWith(QLatin1String("remotes/"))) &&
+    const bool managed = (text.startsWith(remoteResources::kSpritesDir + QLatin1Char('/')) ||
+                          text.startsWith(remoteResources::kRemotesDir + QLatin1Char('/'))) &&
                          (text.endsWith(QLatin1String(".png")) || text.endsWith(QLatin1String(".svg"))) &&
                          !text.contains(QLatin1String(".."));
     const bool exists = QFileInfo::exists(QDir(remoteResources::folder()).filePath(text)) ||

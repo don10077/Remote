@@ -10,8 +10,16 @@
 class QDir;
 
 namespace harmony::app::remoteResources {
+/// Корень ресурсов приложения в ресурс-пакете: `:/res/`.
+inline const QString kResourcePrefix = QStringLiteral(":/res/");
+/// Папка моделей внутри ресурсов: `remotes`.
+inline const QString kRemotesDir = QStringLiteral("remotes");
+/// Папка картинок экранов внутри ресурсов: `sprites`.
+inline const QString kSpritesDir = QStringLiteral("sprites");
 /// Имя файла профиля в папке пульта.
 inline const QString kProfileFile = QStringLiteral("profile.json");
+/// Имя фото модели в папке пульта.
+inline const QString kPhotoFile = QStringLiteral("photo.png");
 /// Старое имя файла профиля (до 2026-11): читается, если profile.json ещё нет.
 inline const QString kLegacyProfileFile = QStringLiteral("remote.json");
 /// Суффикс, под которым остаётся старый файл после первой записи профиля.

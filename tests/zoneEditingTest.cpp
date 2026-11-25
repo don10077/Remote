@@ -4,7 +4,7 @@
  */
 
 #include "../app/src/zoneEditing.h"
-
+#include "../app/src/remoteResources.h"
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -14,6 +14,7 @@
 #include <QDir>
 
 namespace ze = harmony::app::zoneEditing;
+namespace resources = harmony::app::remoteResources;
 
 namespace {
 
@@ -397,13 +398,13 @@ TEST(ZoneEditing, ZoneTextsOfBodyAndScreen) {
 TEST(ZoneEditing, SaveFilesDetectsConflictAndWritesWholeSet) {
     QTemporaryDir root;
     ASSERT_TRUE(root.isValid());
-    const QHash<QString, QByteArray> originals{{"profile.json", "old profile"}, {"zones.json", "old zones"}};
+    const QHash<QString, QByteArray> originals{{resources::kProfileFile, "old profile"}, {"zones.json", "old zones"}};
     for (auto it = originals.cbegin(); it != originals.cend(); ++it) {
         QFile file(QDir(root.path()).filePath(it.key()));
         ASSERT_TRUE(file.open(QIODevice::WriteOnly));
         ASSERT_EQ(file.write(it.value()), it.value().size());
     }
-    const QHash<QString, QByteArray> changed{{"profile.json", "new profile"}, {"zones.json", "new zones"}};
+    const QHash<QString, QByteArray> changed{{resources::kProfileFile, "new profile"}, {"zones.json", "new zones"}};
     auto incorrect = originals;
     incorrect["zones.json"] = "outdated";
     EXPECT_FALSE(ze::saveFiles(root.path(), incorrect, changed).isEmpty());
@@ -418,7 +419,7 @@ TEST(ZoneEditing, SaveFilesDetectsConflictAndWritesWholeSet) {
         ASSERT_TRUE(file.open(QIODevice::ReadOnly));
         EXPECT_EQ(file.readAll(), it.value());
     }
-    EXPECT_TRUE(QDir(root.path()).entryList({".zone-editor-backup-*"}, QDir::Dirs | QDir::Hidden).isEmpty());
+    EXPECT_TRUE(QDir(root.path()).entryList({ze::kBackupPrefix + QStringLiteral("*")}, QDir::Dirs | QDir::Hidden).isEmpty());
 }
 
 TEST(ZoneEditing, SaveOnTopKeepsExternalRemoteChanges) {
@@ -429,7 +430,7 @@ TEST(ZoneEditing, SaveOnTopKeepsExternalRemoteChanges) {
     current.replace("\"id\": \"880\"", "\"id\": \"880\", \"name\": \"Living room\"");
     ASSERT_NE(current, kRemote);
     {
-        QFile file(QDir(root.path()).filePath("profile.json"));
+        QFile file(QDir(root.path()).filePath(resources::kProfileFile));
         ASSERT_TRUE(file.open(QIODevice::WriteOnly));
         ASSERT_EQ(file.write(current), current.size());
     }
@@ -438,10 +439,10 @@ TEST(ZoneEditing, SaveOnTopKeepsExternalRemoteChanges) {
     ASSERT_TRUE(patched.has_value());
     patched = ze::patchZones(*patched, QString(), {R"({"id": "B", "rect": [1, 1, 5, 5]})"});
     ASSERT_TRUE(patched.has_value());
-    const QHash<QString, QByteArray> expected{{"profile.json", current}};
-    const QHash<QString, QByteArray> updates{{"profile.json", *patched}};
+    const QHash<QString, QByteArray> expected{{resources::kProfileFile, current}};
+    const QHash<QString, QByteArray> updates{{resources::kProfileFile, *patched}};
     ASSERT_TRUE(ze::saveFiles(root.path(), expected, updates).isEmpty());
-    QFile file(QDir(root.path()).filePath("profile.json"));
+    QFile file(QDir(root.path()).filePath(resources::kProfileFile));
     ASSERT_TRUE(file.open(QIODevice::ReadOnly));
     const auto saved = QJsonDocument::fromJson(file.readAll()).object();
     EXPECT_EQ(saved.value("name").toString(), "Living room"); // ручная правка сохранилась

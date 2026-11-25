@@ -20,6 +20,11 @@ OPAQUE = 0.97
 # Пороги Canny для поиска «гладких» областей кнопок: фото разные, один порог не подходит всем.
 CANNY_PASSES = ((30, 90), (60, 180), (15, 45), (8, 25), (100, 250))
 
+# Имена файлов модели — те же, что в программе (remoteResources.h).
+PHOTO_FILE = "photo.png"
+PROFILE_FILE = "profile.json"
+LEGACY_PROFILE_FILE = "remote.json"
+
 
 def iou(a, b):
     inter = overlap(a, b)
@@ -35,12 +40,12 @@ def overlap(a, b):
 
 
 def profile_file(photo: Path) -> Path:
-    """Файл профиля рядом с photo.png: profile.json, затем старое имя remote.json."""
-    for name in ("profile.json", "remote.json"):
+    """Файл профиля рядом с фото: PROFILE_FILE, затем LEGACY_PROFILE_FILE."""
+    for name in (PROFILE_FILE, LEGACY_PROFILE_FILE):
         path = photo.parent / name
         if path.is_file():
             return path
-    return photo.parent / "profile.json"
+    return photo.parent / PROFILE_FILE
 
 
 def load(photo: Path):
@@ -188,7 +193,7 @@ def main():
     if len(args) < 1 or (not json_mode and len(args) < 2):
         raise SystemExit(__doc__)
     path = Path(args[0])
-    photo = path if path.is_file() else path / "photo.png"
+    photo = path if path.is_file() else path / PHOTO_FILE
     if not photo.is_file():
         raise SystemExit(f"фото не найдено: {photo}")
     rgb, boxes = detect(photo)
