@@ -146,6 +146,11 @@ The configuration from %1 will be copied into this archive.</source>
       <translation>В базе %1. Введите производителя и модель.</translation>
     </message>
     <message>
+      <location filename="../../../transport/src/fileProtocolReader.cpp" />
+      <source>%1 is confirmed on %2, not on %3</source>
+      <translation type="unfinished" />
+    </message>
+    <message>
       <location filename="../../../core/src/configDocumentCheck.cpp" />
       <source>%1 is stored as a recorded signal: its toggle bit never changes, so the device may take two presses in a row for one long press</source>
       <translation>%1 сохранён записанным сигналом: бит переключения не меняется, и два нажатия подряд устройство может принять за одно долгое</translation>
@@ -185,6 +190,21 @@ The configuration from %1 will be copied into this archive.</source>
       <location filename="../../../app/src/zoneEditing.cpp" />
       <source>%1 overlaps %2</source>
       <translation>%1 перекрывает %2</translation>
+    </message>
+    <message>
+      <location filename="../../../transport/src/fileProtocolReader.cpp" />
+      <source>%1 reply answers another command</source>
+      <translation type="unfinished" />
+    </message>
+    <message>
+      <location filename="../../../transport/src/fileProtocolReader.cpp" />
+      <source>%1 reply is shorter than its header</source>
+      <translation type="unfinished" />
+    </message>
+    <message>
+      <location filename="../../../transport/src/fileProtocolReader.cpp" />
+      <source>%1 reply names another service</source>
+      <translation type="unfinished" />
     </message>
     <message>
       <location filename="../../../app/src/mainWindowButtons.cpp" />
@@ -2911,6 +2931,11 @@ Copy saved: %2</source>
       <translation>Данные (IRremote):</translation>
     </message>
     <message>
+      <location filename="../../../transport/src/fileProtocolReader.cpp" />
+      <source>Data packet is shorter than its header</source>
+      <translation type="unfinished" />
+    </message>
+    <message>
       <location filename="../../../core/src/ir/irProtocol.cpp" />
       <source>data timings exceed the entry</source>
       <translation>тайминги данных выходят за пределы записи</translation>
@@ -4883,6 +4908,16 @@ The file holds the Hub's answer as it is — device names, models and commands, 
       <translation type="unfinished" />
     </message>
     <message>
+      <location filename="../../../transport/src/fileProtocolReader.cpp" />
+      <source>Model %1 has no family description, so no file is confirmed for it on the file protocol</source>
+      <translation type="unfinished" />
+    </message>
+    <message>
+      <location filename="../../../transport/src/fileProtocolReader.cpp" />
+      <source>Model %1 is not confirmed to answer %2 on the file protocol</source>
+      <translation type="unfinished" />
+    </message>
+    <message>
       <location filename="../../../transport/src/linkFactory.cpp" />
       <source>Model %1 is not in the catalog: the connection is chosen by the connected hardware (auto)</source>
       <translation type="unfinished" />
@@ -5656,6 +5691,11 @@ The file holds the Hub's answer as it is — device names, models and commands, 
       <translation>Открыть папку ресурсов пультов</translation>
     </message>
     <message>
+      <location filename="../../../transport/src/fileProtocolReader.cpp" />
+      <source>Open reply does not carry a handle and a size</source>
+      <translation type="unfinished" />
+    </message>
+    <message>
       <location filename="../../../app/src/widgets/zoneEditorDialog.cpp" />
       <source>Open screen:</source>
       <translation>Какой экран:</translation>
@@ -5818,6 +5858,11 @@ The file holds the Hub's answer as it is — device names, models and commands, 
       <location filename="../../../transport/src/usbnet.cpp" />
       <source>parameter length %1 cannot be encoded</source>
       <translation>длину параметра %1 нельзя закодировать</translation>
+    </message>
+    <message>
+      <location filename="../../../transport/src/fileProtocolReader.cpp" />
+      <source>Parameters do not fit in one 64-byte report</source>
+      <translation type="unfinished" />
     </message>
     <message>
       <location filename="../../../app/src/mainWindowMenus.cpp" />
@@ -6354,6 +6399,7 @@ The file holds the Hub's answer as it is — device names, models and commands, 
     </message>
     <message>
       <location filename="../../../transport/src/concordTransfer.cpp" />
+      <location filename="../../../transport/src/fileProtocolReader.cpp" />
       <location filename="../../../transport/src/harmonyHidReader.cpp" />
       <source>Reading cancelled</source>
       <translation>Чтение отменено</translation>
@@ -8723,6 +8769,11 @@ They will not be sent to the remote either. When the device is made active again
       <translation>Пульт выполняет шаги один за другим.</translation>
     </message>
     <message>
+      <location filename="../../../transport/src/fileProtocolReader.cpp" />
+      <source>The remote refused %1 (the answer carries %2)</source>
+      <translation type="unfinished" />
+    </message>
+    <message>
       <location filename="../../../transport/src/remoteServices.cpp" />
       <source>the remote refused the setting %1 (HTTP %2)</source>
       <translation>пульт отклонил настройку %1 (HTTP %2)</translation>
@@ -9472,6 +9523,11 @@ They will not be sent to the remote either. When the device is made active again
       <location filename="../../../transport/src/harmonyHidReader.cpp" />
       <source>Unknown HID flash chip: %1</source>
       <translation>Неизвестная микросхема памяти HID: %1</translation>
+    </message>
+    <message>
+      <location filename="../../../transport/src/fileProtocolReader.cpp" />
+      <source>Unknown model %1</source>
+      <translation type="unfinished" />
     </message>
     <message>
       <location filename="../../../core/src/configDocumentAdd.cpp" />

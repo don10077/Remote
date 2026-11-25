@@ -11,7 +11,7 @@
  *
  * Список файлов — данные семейства (`RemoteFamily::answerableFiles`), потому что путь на этом
  * протоколе может быть действием: `/sys/factoryreset` и `/sys/reboot` открываются для чтения,
- * а имена `/tde/haptic/*` действуют на открывании. Поэтому вне списка читатель ничего не
+ * а имена группы `/tde/haptic` действуют на открывании. Поэтому вне списка читатель ничего не
  * отправляет.
  */
 
@@ -35,7 +35,7 @@ struct FileContent {
     std::string path;                             ///< прочитанный путь
     harmony::FileShape shape = harmony::FileShape::Unknown;  ///< форма ответа — из данных семейства
     std::size_t statedSize = 0;                   ///< размер из ответа open: единственный конец файла
-    std::vector<std::uint8_t> bytes;              ///< данные; короткий ответ остаётся коротким
+    std::vector<std::uint8_t> bytes = {};          ///< данные; короткий ответ остаётся коротким
     bool complete = false;                        ///< bytes.size() == statedSize
 };
 

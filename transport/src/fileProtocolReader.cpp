@@ -156,9 +156,12 @@ Result<FileContent> FileProtocolReader::read(std::string_view path, const Progre
                          (static_cast<std::size_t>(stated[2]) << 8) |
                          static_cast<std::size_t>(stated[3]);
 
-    // Первый ответ на read — эхо заголовка запроса; данные идут пакетами после него.
+    // Первый ответ на read — эхо заголовка запроса; данные идут пакетами после него. Пакеты
+    // читаются до признака конца: последний объявляет полную длину и дополняется NUL, поэтому
+    // конец файла говорит только размер, который заявил open. Передачу нужно прочитать целиком,
+    // иначе close ответил бы пакетом данных, а не ответом на close.
     bool terminated = false;
-    while (!terminated && content.bytes.size() < content.statedSize) {
+    while (!terminated) {
         auto request = buildRequest(kRead, {byteParam(handle),
                                             byteParam(static_cast<std::uint8_t>(kPacketsPerRequest))});
         if (!request) return std::unexpected(request.error());
@@ -167,6 +170,7 @@ Result<FileContent> FileProtocolReader::read(std::string_view path, const Progre
         if (!header) return std::unexpected(header.error());
         if (auto checked = checkReply(*header, "read", kRead); !checked)
             return std::unexpected(checked.error());
+        std::size_t inRequest = 0;
         for (std::size_t packet = 0; packet < kPacketsPerRequest; ++packet) {
             auto report = channel_.receive();
             if (!report) return std::unexpected(report.error());
@@ -177,8 +181,12 @@ Result<FileContent> FileProtocolReader::read(std::string_view path, const Progre
             const std::size_t length = std::min<std::size_t>((*report)[1], report->size() - 2);
             content.bytes.insert(content.bytes.end(), report->begin() + 2,
                                  report->begin() + 2 + static_cast<std::ptrdiff_t>(length));
+            inRequest += length;
         }
-        if (progress && !progress(Stage::Read, content.bytes.size(), content.statedSize))
+        // Запрос без пакетов — передача кончилась без признака конца: читатель не ждёт дальше.
+        if (inRequest == 0) break;
+        if (progress && !progress(Stage::Read, std::min(content.bytes.size(), content.statedSize),
+                                  content.statedSize))
             return makeError(ErrorCode::Cancelled, "Reading cancelled");
     }
 

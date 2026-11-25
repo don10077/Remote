@@ -44,6 +44,8 @@ public:
     std::size_t statedSize = 83;
     std::size_t delivered = 124;
     bool refuseOpen = false;
+    bool dataLeftAtClose = false;   // остались непотреблённые пакеты передачи на момент close
+    bool sawEndMarker = false;      // читатель прочитал пакет 0xFE до close
 
     Result<void> send(const std::array<std::uint8_t, 64>& report) override {
         const auto command = report[1];
@@ -51,21 +53,21 @@ public:
         const auto params = requestParams(report);
         if (command == kPing) {
             pingParameterCount = report[3];
-            replies.push_back({0xFF, kPing, 0x00, 0x00});
+            push({0xFF, kPing, 0x00, 0x00}, false);
             return {};
         }
         if (command == kOpen) {
             openPath = text(params.empty() ? std::vector<std::uint8_t>{} : params[0]);
             openMode = params.size() > 1 ? text(params[1]) : "";
             if (refuseOpen) {
-                replies.push_back({0xFF, kOpen, 0xFF, 0x01, 0x01, 0x0B});
+                push({0xFF, kOpen, 0xFF, 0x01, 0x01, 0x0B}, false);
                 return {};
             }
-            replies.push_back(reply(kOpen, {{1, handle}, bigEndian(statedSize)}));
+            push(reply(kOpen, {{handle}, bigEndian(statedSize)}), false);
             return {};
         }
         if (command == kRead) {
-            replies.push_back(reply(kRead, {{1, handle}, {1, 32}}));   // эхо заголовка запроса
+            push(reply(kRead, {{handle}, {32}}), false);   // эхо заголовка запроса
             std::size_t sent = 0;
             while (sent < delivered) {
                 const std::size_t chunk = std::min<std::size_t>(delivered - sent, 62);
@@ -73,13 +75,14 @@ public:
                 for (std::size_t i = 0; i < chunk; ++i)
                     packet.push_back(sent + i < file.size() ? file[sent + i] : 0x00);
                 sent += chunk;
-                replies.push_back(std::move(packet));
+                push(std::move(packet), true);
             }
-            replies.push_back({0xFE});
+            push({0xFE}, true);
             return {};
         }
         if (command == kClose) {
-            replies.push_back({0xFF, kClose, 0x00, 0x00});
+            dataLeftAtClose = !fromTransfer.empty();
+            push({0xFF, kClose, 0x00, 0x00}, false);
             return {};
         }
         return makeError(ErrorCode::Remote, "The fake channel answers only reading commands");
@@ -88,13 +91,22 @@ public:
     Result<std::vector<std::uint8_t>> receive() override {
         if (replies.empty()) return makeError(ErrorCode::Io, "Timeout");
         auto report = std::move(replies.front());
+        const bool item = fromTransfer.front();
         replies.pop_front();
+        fromTransfer.pop_front();
+        if (item && !report.empty() && report[0] == 0xFE) sawEndMarker = true;
         return report;
     }
 
 private:
     std::deque<std::vector<std::uint8_t>> replies;
+    std::deque<bool> fromTransfer;   // тот же порядок, что у replies: пакет передачи или ответ
     std::uint8_t handle = 5;
+
+    void push(std::vector<std::uint8_t> report, bool isTransferItem) {
+        fromTransfer.push_back(isTransferItem);
+        replies.push_back(std::move(report));
+    }
 
     static std::vector<std::vector<std::uint8_t>> requestParams(const std::array<std::uint8_t, 64>& report) {
         std::vector<std::vector<std::uint8_t>> params;
@@ -104,6 +116,7 @@ private:
             std::vector<std::uint8_t> value;
             if (tag == 0x80) {
                 while (at < report.size() && report[at] != 0) value.push_back(report[at++]);
+                if (at < report.size()) ++at;   // завершающий ноль строки тоже часть параметра
             } else {
                 for (std::size_t n = 0; n < tag && at < report.size(); ++n) value.push_back(report[at++]);
             }
@@ -122,7 +135,7 @@ private:
     }
 
     static std::vector<std::uint8_t> bigEndian(std::size_t value) {
-        return {4, static_cast<std::uint8_t>(value >> 24), static_cast<std::uint8_t>(value >> 16),
+        return {static_cast<std::uint8_t>(value >> 24), static_cast<std::uint8_t>(value >> 16),
                 static_cast<std::uint8_t>(value >> 8), static_cast<std::uint8_t>(value)};
     }
 
@@ -175,7 +188,7 @@ TEST(FileProtocolReader, SendsOnlyReadingCommandsAndThePingWithoutParameters) {
     FileProtocolReader reader(channel, "touch");
     const auto result = reader.read("/rf/deviceinfo");
     ASSERT_TRUE(result) << result.error().message;
-    EXPECT_EQ(channel.commands, std::vector<std::uint8_t>{kPing, kOpen, kRead, kClose});
+    EXPECT_EQ(channel.commands, (std::vector<std::uint8_t>{kPing, kOpen, kRead, kClose}));
     EXPECT_EQ(channel.pingParameterCount, std::size_t{0});   // ping с параметром — имитация USB-сброса
 }
 
@@ -227,8 +240,20 @@ TEST(FileProtocolReader, RefusalAtOpenIsAnErrorAndStopsBeforeReading) {
     const auto result = reader.read("/rf/deviceinfo");
     ASSERT_FALSE(result);
     EXPECT_EQ(result.error().code, ErrorCode::Remote);
-    EXPECT_EQ(channel.commands, std::vector<std::uint8_t>{kPing, kOpen}) << "read не отправляется";
+    EXPECT_EQ(channel.commands, (std::vector<std::uint8_t>{kPing, kOpen})) << "read не отправляется";
     EXPECT_NE(result.error().message.find("0x0B"), std::string::npos) << result.error().message;
+}
+
+TEST(FileProtocolReader, ReadsTheTransferToTheEndMarkerBeforeClosing) {
+    FakeFileChannel channel;
+    channel.file = fixture(kDeviceInfo);
+    channel.statedSize = channel.file.size();
+    channel.delivered = channel.statedSize + 41;   // последний пакет объявляет полную длину
+    FileProtocolReader reader(channel, "touch");
+    const auto result = reader.read("/rf/deviceinfo");
+    ASSERT_TRUE(result) << result.error().message;
+    EXPECT_TRUE(channel.sawEndMarker);
+    EXPECT_FALSE(channel.dataLeftAtClose) << "close отправлен, пока передача не прочитана до конца";
 }
 
 TEST(FileProtocolReader, ClosesTheFileBeforeOpeningAnother) {
@@ -241,6 +266,6 @@ TEST(FileProtocolReader, ClosesTheFileBeforeOpeningAnother) {
     ASSERT_TRUE(first) << first.error().message;
     const auto second = reader.read("/sys/sysinfo");
     ASSERT_TRUE(second) << second.error().message;
-    EXPECT_EQ(channel.commands, std::vector<std::uint8_t>{kPing, kOpen, kRead, kClose,
-                                                           kPing, kOpen, kRead, kClose});
+    EXPECT_EQ(channel.commands, (std::vector<std::uint8_t>{kPing, kOpen, kRead, kClose,
+                                                           kPing, kOpen, kRead, kClose}));
 }
