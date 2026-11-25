@@ -1368,7 +1368,9 @@ int CRemoteZ_HID::ReadRegion(uint8_t region, uint32_t &rgn_len, uint8_t *rd,
               data_read);
 
         if (cb) {
-            cb(cb_stage, cb_count++, data_read, data_read+1,
+            // The region length is unknown until READ_REGION_DONE. A moving
+            // total of data_read + 1 falsely reports 99% throughout the scan.
+            cb(cb_stage, cb_count++, data_read, 0,
                LC_CB_COUNTER_TYPE_BYTES, cb_arg, NULL);
         }
     }

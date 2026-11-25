@@ -63,6 +63,12 @@ GPL-3.0-only without warranty. Writing changes the remote's configuration memory
 Harmony 900 uses a USB network connection. The remote normally listens at
 `169.254.1.2`, TCP port `3074`. Connection settings are available in the application.
 
+Harmony 1100 uses the same USB network connection. On Windows, open Network
+Connections (`ncpa.cpl`) and check that **RemoteControl USBLAN Adapter** is enabled.
+If it is disabled, enable it with administrator permission, then reconnect the remote
+and wait for the adapter to obtain an IP address before reading. A disabled adapter
+prevents both detection and configuration reading, even when the USB driver is installed.
+
 On Linux, use **Set up USB connection…** in the connection menu for the initial setup.
 The application installs the required USB network and HID access rules with administrator
 permission. Reconnect the remote afterwards. The USB network setup requires `dnsmasq`,

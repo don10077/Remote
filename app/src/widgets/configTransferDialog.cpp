@@ -13,6 +13,7 @@
 #include <QDir>
 #include <QFile>
 #include <QFileDialog>
+#include <QFileInfo>
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QLineEdit>
@@ -83,13 +84,14 @@ void ConfigTransferDialog::readToFile() {
     if (!model || !model->readable) return;
     // Читается в один файл *.remote.json: контейнер с пульта плюс сведения о снятии и SHA-256.
     const auto now = QDateTime::currentDateTime();
-    const QString suggested = QDir(library::backupFolder()).filePath(QString::fromStdString(formats::captureFileName(
+    const QString suggested = QDir(library::lastDialogDir()).filePath(QString::fromStdString(formats::captureFileName(
         id, now.date().year(), now.date().month(), now.date().day(), now.time().hour(), now.time().minute())));
     QString filename = QFileDialog::getSaveFileName(this, tr("Read configuration to file"), suggested,
                                                     tr("Remote capture (*.remote.json)"));
     const QString suffix = QString::fromLatin1(formats::kRemoteCaptureExtension);
     if (!filename.isEmpty() && !filename.endsWith(suffix, Qt::CaseInsensitive)) filename += suffix;
     if (filename.isEmpty()) return;
+    library::setLastDialogDir(QFileInfo(filename).absolutePath());
     const transport::Endpoint endpoint{settings::remoteHost().toStdString(), static_cast<std::uint16_t>(settings::remotePort())};
     setBusy(true);
     status_->setText(tr("Connecting…"));
@@ -97,8 +99,11 @@ void ConfigTransferDialog::readToFile() {
     worker_ = QThread::create([this, id, filename, endpoint] {
         const auto progress = [this](transport::Stage stage, std::size_t done, std::size_t total) {
             QMetaObject::invokeMethod(this, [this, stage, done, total] {
-                status_->setText(stage == transport::Stage::Read ? tr("Reading configuration…")
-                                                                 : tr("Connecting to the remote…"));
+                status_->setText(stage == transport::Stage::Read
+                    ? (total == 0 && done > 0
+                        ? tr("Receiving configuration (%1 KB)…").arg((done + 1023) / 1024)
+                        : tr("Reading configuration…"))
+                    : tr("Connecting to the remote…"));
                 progress_->setRange(0, total ? 100 : 0);
                 if (total) progress_->setValue(static_cast<int>(done * 100 / total));
             }, Qt::QueuedConnection);
@@ -171,10 +176,11 @@ void ConfigTransferDialog::readHub() {
     QString safeHost = host;
     safeHost.replace(':', '-');
     const QString filename = QFileDialog::getSaveFileName(this, tr("Save Harmony Hub configuration"),
-        QDir(library::backupFolder()).filePath("HarmonyHub-" + safeHost + "-" +
+        QDir(library::lastDialogDir()).filePath("HarmonyHub-" + safeHost + "-" +
             QDateTime::currentDateTime().toString("yyyyMMdd-HHmmss") + ".hub.json"),
         tr("Harmony Hub configuration (*.hub.json);;All files (*)"));
     if (filename.isEmpty()) return;
+    library::setLastDialogDir(QFileInfo(filename).absolutePath());
     hubFile_.clear();
     setBusy(true);
     status_->setText(tr("Connecting to the Hub at %1…").arg(host));
