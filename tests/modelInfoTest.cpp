@@ -70,6 +70,6 @@ TEST_F(ModelInfoTest, DocumentSummaryFollowsTargetChanges) {
     EXPECT_EQ(info.name, "My remote");
     EXPECT_EQ(info.architecture, 0);
     EXPECT_EQ(info.link, harmony::LinkKind::UsbNet)
-        << "модели нет в каталоге: способ подключения из remote.json";
+        << "модели нет в каталоге: способ подключения из profile.json";
 }
 } // namespace

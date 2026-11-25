@@ -2,7 +2,7 @@
 
 /**
  * @file zoneEditing.h
- * @brief Логика редактора зон без виджетов: проверка зон и точечная правка текста remote.json.
+ * @brief Логика редактора зон без виджетов: проверка зон и точечная правка текста profile.json.
  *
  * Слои разметки: «корпус» — `hardware.zones` в пикселях фото, «экран» — `cells` одного экрана
  * (`screens[]`) в единицах его `ref`. Правка заменяет в файле только изменённый фрагмент
@@ -74,7 +74,7 @@ QJsonArray autoZones(const QJsonArray& boxes, const QJsonArray& existing, const 
 /**
  * @brief Проверить зоны корпуса. Ошибки — то, из-за чего программа отвергнет ресурсы
  *        при загрузке; предупреждения — подозрительная, но допустимая разметка.
- * @param zones Зоны корпуса (`hardware.zones` в remote.json).
+ * @param zones Зоны корпуса (`hardware.zones` в profile.json).
  * @param photo Размер фото (`hardware.size`).
  * @param screen Рамка экрана; nullopt — экран не размечен.
  */
@@ -94,7 +94,7 @@ QList<Issue> checkScreen(const QJsonArray& zones, const QSizeF& ref, const QSet<
 QByteArray zoneLine(const QJsonObject& zone);
 
 /**
- * @brief Исходный текст каждой зоны remote.json: `hardware.zones` при пустом `screenId`,
+ * @brief Исходный текст каждой зоны profile.json: `hardware.zones` при пустом `screenId`,
  *        иначе `cells` экрана `screenId`.
  * @return nullopt — текст не разобран или такого экрана нет.
  */
@@ -118,7 +118,7 @@ inline constexpr qreal kDefaultGap = 4;
 std::optional<QByteArray> patchGrid(const QByteArray& text, const QString& screenId, int cols, int rows,
                                     std::optional<qreal> gap = std::nullopt);
 /**
- * @brief Записать одно значение remote.json, не трогая остальной текст.
+ * @brief Записать одно значение profile.json, не трогая остальной текст.
  *
  * Существующее значение заменяется на месте; отсутствующий ключ дописывается последним членом
  * объекта в его оформлении (с новой строки, если объект многострочный), недостающие

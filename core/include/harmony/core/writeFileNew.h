@@ -17,7 +17,10 @@ inline bool writeFileNew(const std::filesystem::path& path, std::span<const std:
     auto* raw = std::fopen(path.c_str(), "wbx");
 #endif
     if (!raw) return false;
-    std::unique_ptr<std::FILE, decltype(&std::fclose)> file(raw, std::fclose);
+    // glibc annotates fclose; GCC 13 warns if its attributed pointer type is
+    // used as a template argument. A callable keeps the deleter portable.
+    const auto closeFile = [](std::FILE* handle) { std::fclose(handle); };
+    std::unique_ptr<std::FILE, decltype(closeFile)> file(raw, closeFile);
     const bool written = std::fwrite(bytes.data(), 1, bytes.size(), file.get()) == bytes.size();
     const bool closed = std::fclose(file.release()) == 0;
     if (written && closed) return true;

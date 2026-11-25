@@ -106,7 +106,7 @@ void ZoneEditorDialog::refreshScreens() {
         if (role >= 0) roleBox_->setCurrentIndex(role);
     }
 
-    // Поля оформления открытого экрана — как в remote.json; пустое поле — значение по умолчанию.
+    // Поля оформления открытого экрана — как в profile.json; пустое поле — значение по умолчанию.
     const QJsonObject screen = onScreen ? layer().screen : QJsonObject();
     const auto fill = [&screen](QLineEdit* field, const QStringList& keys) {
         QSignalBlocker block(field);

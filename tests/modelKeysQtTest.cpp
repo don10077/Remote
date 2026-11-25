@@ -132,7 +132,7 @@ TEST_F(ModelKeysQtTest, ProfileNamesComeFromTheFileTheAppReads) {
             }},
         }}},
     };
-    QFile file(root.path() + "/remotes/" + id + "/remote.json");
+    QFile file(root.path() + "/remotes/" + id + "/profile.json");
     ASSERT_TRUE(file.open(QIODevice::WriteOnly));
     const QByteArray text = QJsonDocument(remote).toJson();
     ASSERT_EQ(file.write(text), text.size());

@@ -1,6 +1,6 @@
 /**
  * @file zoneEditorDialog.cpp
- * @brief Редактор зон пультов в remote.json: зоны корпуса и ячейки экранов.
+ * @brief Редактор зон пультов в profile.json: зоны корпуса и ячейки экранов.
  */
 
 #include "zoneEditorDialog.h"
@@ -91,7 +91,7 @@ QString modelName(const QString& id) {
     for (const auto& profile : harmony::remoteProfiles) {
         if (profile.id == id.toStdString()) return QString::fromStdString(profile.name);
     }
-    // Новая модель могла быть отклонена загрузчиком: имя читаем из её remote.json.
+    // Новая модель могла быть отклонена загрузчиком: имя читаем из её profile.json.
     const QJsonObject profile = remoteResources::readRemote(id).remote;
     // При несовпадении id и папки показываем id: так ошибка сразу видна.
     if (profile.value(QStringLiteral("id")).toString() == id) {
@@ -108,10 +108,10 @@ QString roleTitle(const QString& role) {
     return role;
 }
 
-/// Цвет фона экрана и плиток, если в remote.json он не задан.
+/// Цвет фона экрана и плиток, если в profile.json он не задан.
 constexpr const char* kDefaultBackground = "#0b3442";
 
-/// Цвет рамки плиток, если в remote.json он не задан.
+/// Цвет рамки плиток, если в profile.json он не задан.
 constexpr const char* kDefaultBorder = "#ffffff";
 
 /// Название способа подключения (`connection.driver`).
@@ -699,7 +699,7 @@ ZoneEditorDialog::ZoneEditorDialog(const QString& model, QWidget* parent) : QDia
     screensLayout->addWidget(selectedGroup);
     screensLayout->addStretch(1); // свободное место внизу вкладки, а не в списке экранов
 
-    // Вкладка «Пульт»: поля remote.json, общие для всего пульта. Каждое поле сразу пишется в файл.
+    // Вкладка «Пульт»: поля profile.json, общие для всего пульта. Каждое поле сразу пишется в файл.
     auto* remotePage = new QWidget(this);
     auto* remoteLayout = new QVBoxLayout(remotePage);
     remoteLayout->setContentsMargins(0, 12, 0, 0);
@@ -890,11 +890,28 @@ QByteArray ZoneEditorDialog::readResource(const QString& relative) {
 }
 
 QString ZoneEditorDialog::remotePath() const {
-    return QStringLiteral("remotes/") + model_ + QStringLiteral("/remote.json");
+    return QStringLiteral("remotes/") + model_ + QLatin1Char('/') + remoteResources::kProfileFile;
+}
+
+bool ZoneEditorDialog::adoptProfileFile() {
+    const QString path = remotePath();
+    const QString source = profileSource_.isEmpty() ? path : profileSource_;
+    if (source == path) return true;
+    if (const QString error = remoteResources::adoptLegacyProfile(model_); !error.isEmpty()) {
+        QMessageBox::warning(this, windowTitle(), error);
+        return false;
+    }
+    // Дальше сверка и запись идут по profile.json: старый файл уже в .bak.
+    const auto it = files_.constFind(source);
+    const QByteArray original = it == files_.cend() ? QByteArray() : *it;
+    files_.remove(source);
+    files_.insert(path, original);
+    profileSource_ = path;
+    return true;
 }
 
 bool ZoneEditorDialog::loadModel(const QString& model) {
-    // Папка с одним photo.png: создаём заготовку remote.json, иначе запись увидит «внешнее изменение».
+    // Папка с одним photo.png: создаём заготовку профиля, иначе запись увидит «внешнее изменение».
     if (const QString stub = remoteResources::createStub(model); !stub.isEmpty()) note(stub);
     // Один разбор файла: описание и текст зон берутся из того же текста, что сверяется при записи.
     const remoteResources::RemoteFile file = remoteResources::readRemote(model);
@@ -1013,7 +1030,10 @@ bool ZoneEditorDialog::loadModel(const QString& model) {
     layers_ = layers;
     current_ = -1;
     files_.clear();
-    files_.insert(file.path, file.text); // сверяется с диском при записи: исходный текст, а не переведённый
+    // Сверяется с диском при записи: исходный текст, а не переведённый. Путь — тот файл,
+    // который прочитан сейчас: profile.json, а пока его нет — старый remote.json (V0).
+    profileSource_ = file.sourcePath.isEmpty() ? file.path : file.sourcePath;
+    files_.insert(profileSource_, file.text);
     undo_.clear();
     canvas_->setBackdrop(photo_, photoSize_);
 
@@ -1136,7 +1156,7 @@ void ZoneEditorDialog::updateScreenBackdrop() {
         screen.insert(QStringLiteral("id"), l.layout);
         screen.insert(QStringLiteral("ref"), QJsonArray{l.ref.width(), l.ref.height()});
         screen.insert(QStringLiteral("cells"), l.current.zones);
-        // Заголовок в шапке нужен только черновику экрана в редакторе, в remote.json его нет.
+        // Заголовок в шапке нужен только черновику экрана в редакторе, в profile.json его нет.
         if (l.draft) screen.insert(QStringLiteral("title"), roleTitle(l.role));
         preview.overrideScreen(screen);
     }

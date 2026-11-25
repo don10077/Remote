@@ -26,7 +26,7 @@ namespace harmony::app {
  *   or the colour of the device a key belongs to inside an activity).
  *
  * All key geometry is stored in pixel coordinates of the source photo
- * (remote.json: hardware.size) and scaled on paint, so the widget can be any
+ * (profile.json: hardware.size) and scaled on paint, so the widget can be any
  * size. Key ids are the names of document::data::HardButtons ("VolumeUp",
  * "Number1", ...), which is also what item::Button::name holds.
  */
@@ -65,7 +65,7 @@ public:
     };
 
     explicit RemoteView(QWidget* parent = nullptr);
-    /** Загрузить фото и геометрию модели из remote.json; пустой id — пульт по умолчанию (первый в каталоге). */
+    /** Загрузить фото и геометрию модели из profile.json; пустой id — пульт по умолчанию (первый в каталоге). */
     void setRemoteProfile(const QString& id);
     /// Есть фотография и корректно загруженные зоны профиля выбранной модели.
     [[nodiscard]] bool hasProfile() const { return !photo.isNull() && !modelZones.isEmpty(); }
@@ -74,14 +74,14 @@ public:
     /**
      * @brief Подменить экран несохранёнными правками редактора зон; новый экран создаёт.
      *
-     * Экран берётся целиком, как объект из `screens` remote.json; ячейки без `rect` ставятся
-     * по сетке (remoteResources::normalizeScreen). Поле `title`, которого нет в remote.json,
+     * Экран берётся целиком, как объект из `screens` profile.json; ячейки без `rect` ставятся
+     * по сетке (remoteResources::normalizeScreen). Поле `title`, которого нет в profile.json,
      * задаёт заголовок в шапке черновика.
      * @param screen Экран; его `id` — режим, который подменяется или создаётся. Пустой `id` — ничего не делать.
      * @note Вызывать после setRemoteProfile().
      */
     void overrideScreen(const QJsonObject& screen);
-    /// Подменить оформление плиток пульта (блок `tiles` remote.json) правками редактора.
+    /// Подменить оформление плиток пульта (блок `tiles` profile.json) правками редактора.
     void overrideTiles(const QJsonObject& tileStyle) { tiles = tileStyle; }
 
     /** size of the source photo in pixels, all zones are relative to it */
@@ -239,7 +239,7 @@ private:
     void paintScreen(QPainter& p);
     /**
      * Единая схема для всех пультов: спрайт экрана целиком (compose), иначе фон и плитки
-     * как у 900 по зонам экрана из remote.json пульта. Имена раскладок не используются.
+     * как у 900 по зонам экрана из profile.json пульта. Имена раскладок не используются.
      */
     void paintModernScreen(QPainter& p);
     /**
@@ -273,16 +273,16 @@ private:
     QPixmap scaledPhoto; ///< cache for the current widget size
     QSize photoSize{PHOTO_WIDTH, PHOTO_HEIGHT};
     QRectF modelScreen;
-    /** основной цвет фона LCD (display.tint в remote.json), может быть невалидным */
+    /** основной цвет фона LCD (display.tint в profile.json), может быть невалидным */
     QColor screenTint;
     QList<Zone> modelZones;
     QList<Zone> allZones; ///< modelZones + кнопки текущего экрана
     quint64 resourceRevision = 0; ///< Версия снимка ресурсов.
     QString profileId;
-    /// Экраны пульта: id → экран из remote.json (ячейки с rect); "devices" может ссылаться на экран активностей.
+    /// Экраны пульта: id → экран из profile.json (ячейки с rect); "devices" может ссылаться на экран активностей.
     QJsonObject modes;
-    QJsonObject tiles; ///< общее оформление плиток пульта (блок "tiles" remote.json)
-    bool touchScreen = false; ///< экран сенсорный (`capabilities.touch` remote.json), касания по плиткам
+    QJsonObject tiles; ///< общее оформление плиток пульта (блок "tiles" profile.json)
+    bool touchScreen = false; ///< экран сенсорный (`capabilities.touch` profile.json), касания по плиткам
     QString activeMode;
     QList<ActivityItem> deviceItems;
     int otherPage = 0;

@@ -439,6 +439,8 @@ void MainWindow::applyRemoteResources(bool interactive) {
                          "It is updated on disk the next time it is saved in the zone editor.")
                           .arg(QDir::toNativeSeparators(file)));
     }
+    for (const QString& warning : remoteResources::profileWarnings())
+        journal::warning(tr("Remote profile: %1").arg(warning));
     // Ошибки чужих пультов не шумят при запуске: они показываются при выборе пульта и в редакторе зон.
     configView_->refresh();
     updateTitle();

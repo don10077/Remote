@@ -10,7 +10,7 @@
 namespace harmony {
 
 /// Способ связи с пультом. Значение по умолчанию — в каталоге модели; пользователь может
-/// задать свой способ в `connection.driver` файла remote.json, и заданное значение важнее
+/// задать свой способ в `connection.driver` файла profile.json, и заданное значение важнее
 /// каталога (решено владельцем 22.11). Право записи при этом решает каталог (OD9).
 enum class LinkKind {
     None,   ///< связи нет (или модель неизвестна)
@@ -20,16 +20,16 @@ enum class LinkKind {
     Hub,    ///< сам хаб (Link, Home Hub, Ultimate Hub)
 };
 
-/// Имена способов связи — они же значения `connection.driver` в remote.json.
+/// Имена способов связи — они же значения `connection.driver` в profile.json.
 inline constexpr std::array<std::string_view, 5> kLinkNames = {"none", "usb-net", "usb-hid", "mh", "hub"};
 
-/// @return Способ связи по имени из remote.json; nullopt — имени нет в kLinkNames.
+/// @return Способ связи по имени из profile.json; nullopt — имени нет в kLinkNames.
 std::optional<LinkKind> linkFromName(std::string_view name);
 /// @return Имя способа связи — то же, что пишется в `connection.driver`.
 std::string_view linkName(LinkKind link);
 
 /// Сведения физического пульта. Каталог хранится в `remoteCatalog.json`, профиль
-/// (`remote.json`) — только оформление; связь между ними — id модели.
+/// (`profile.json`) — только оформление; связь между ними — id модели.
 struct RemoteModel {
     std::string_view id;
     std::string_view name;
@@ -51,7 +51,7 @@ const RemoteModel* catalogModel(std::string_view id);
 const RemoteModel* catalogModelBySkin(int skin);
 /// @return Строка, которой программа называет конфигурацию хаба; nullptr — в каталоге такой нет.
 const RemoteModel* hubModel();
-/// @return Способ связи модели: поле `connection.driver` файла remote.json, если оно задано,
+/// @return Способ связи модели: поле `connection.driver` файла profile.json, если оно задано,
 /// иначе — каталог; неизвестная модель без поля — `LinkKind::None`.
 LinkKind modelLink(std::string_view modelId);
 /// @return true, если модель подключается по USB-сети.

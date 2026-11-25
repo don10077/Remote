@@ -5,6 +5,7 @@
 #include <QApplication>
 #include <QMouseEvent>
 #include <QFile>
+#include <QFileInfo>
 #include <QImage>
 #include <QJsonArray>
 #include <QJsonDocument>
@@ -38,17 +39,26 @@ protected:
         resources::reload(builtin.path());
     }
     void write(const QString& relative, const QByteArray& bytes) {
-        QFile file(dir.path() + "/" + relative);
+        const QString path = dir.path() + "/" + relative;
+        ASSERT_TRUE(QDir().mkpath(QFileInfo(path).path()));
+        QFile file(path);
         ASSERT_TRUE(file.open(QIODevice::WriteOnly));
         ASSERT_EQ(file.write(bytes), bytes.size());
     }
 };
 
-/// remote.json встроенной модели как объект.
+/// profile.json встроенной модели как объект.
 QJsonObject remoteOf(const QString& model) {
-    return QJsonDocument::fromJson(resources::data(":/res/remotes/" + model + "/remote.json")).object();
+    return QJsonDocument::fromJson(resources::data(":/res/remotes/" + model + "/profile.json")).object();
 }
 QByteArray toBytes(const QJsonObject& object) { return QJsonDocument(object).toJson(); }
+/// Профиль 900 под другим id: папка со своей photo.png (размер тот же) и одним файлом профиля.
+QJsonObject customRemote(const QString& id) {
+    auto remote = remoteOf("900");
+    remote["id"] = id;
+    remote["name"] = id;
+    return remote;
+}
 /// Зоны корпуса пульта из снимка ресурсов.
 QJsonArray zonesOf(const QString& model) {
     return resources::remote(model).value("hardware").toObject().value("zones").toArray();
@@ -69,7 +79,7 @@ TEST_F(RemoteResourcesTest, OverrideReloadRemovalAndInvalidRollback) {
     auto hardware = remote["hardware"].toObject();
     hardware["zones"] = zones;
     remote["hardware"] = hardware;
-    write("remotes/900/remote.json", toBytes(remote));
+    write("remotes/900/profile.json", toBytes(remote));
     const auto modified = zones;
     root = dir.path();
     ASSERT_TRUE(resources::reload(root).isEmpty());
@@ -86,18 +96,18 @@ TEST_F(RemoteResourcesTest, OverrideReloadRemovalAndInvalidRollback) {
     EXPECT_TRUE(harmony::app::RemoteView::hardKeyIds("900").contains("CustomKey"));
     EXPECT_EQ(resources::data(":/res/remotes/900/photo.png"), originalPhoto);
     const auto version = resources::revision();
-    write("remotes/900/remote.json", "{broken");
-    EXPECT_TRUE(resources::reload(root).contains("remote.json"));
+    write("remotes/900/profile.json", "{broken");
+    EXPECT_TRUE(resources::reload(root).contains("profile.json"));
     EXPECT_EQ(resources::revision(), version);
     EXPECT_EQ(zonesOf("900"), modified);
     zone["rect"] = QJsonArray{0, 0, 9999, 9999};
     zones[0] = zone;
     hardware["zones"] = zones;
     remote["hardware"] = hardware;
-    write("remotes/900/remote.json", toBytes(remote));
+    write("remotes/900/profile.json", toBytes(remote));
     EXPECT_TRUE(resources::reload(root).contains("CustomKey"));
     EXPECT_EQ(zonesOf("900"), modified);
-    ASSERT_TRUE(QFile::remove(dir.path() + "/remotes/900/remote.json"));
+    ASSERT_TRUE(QFile::remove(dir.path() + "/remotes/900/profile.json"));
     ASSERT_TRUE(resources::reload(root).isEmpty());
     view.setRemoteProfile("900");
     EXPECT_EQ(zonesOf("900"), original);
@@ -127,7 +137,7 @@ TEST_F(RemoteResourcesTest, PhotoChangesAndInvalidPhotoRollback) {
     EXPECT_EQ(resources::data(path), previousImage);
 }
 TEST_F(RemoteResourcesTest, OldSchemaIsMigratedKeepingUserEdits) {
-    // remote.json от прошлой версии программы: старые connection и style, но со своим цветом плиток.
+    // profile.json от прошлой версии программы: старые connection и style, но со своим цветом плиток.
     ASSERT_TRUE(QDir().mkpath(dir.path() + "/remotes/600"));
     auto remote = remoteOf("600");
     remote["connection"] = QJsonObject{{"transport", "usb-hid"}, {"driver", "hid"}, {"configFormat", "unsupported"}};
@@ -139,7 +149,7 @@ TEST_F(RemoteResourcesTest, OldSchemaIsMigratedKeepingUserEdits) {
     screens[0] = screen;
     remote["screens"] = screens;
     remote["tiles"] = QJsonObject{{"color", "#aa0000"}, {"border", "#ffffff"}};
-    write("remotes/600/remote.json", toBytes(remote));
+    write("remotes/600/profile.json", toBytes(remote));
     root = dir.path();
     ASSERT_TRUE(resources::reload(root).isEmpty());
     ASSERT_EQ(resources::migratedByReload().size(), 1);
@@ -221,7 +231,7 @@ TEST_F(RemoteResourcesTest, ReadRemoteForEditingUsesDiskTextAndCurrentSchema) {
     // Нет файла в папке — встроенное описание.
     const auto builtinFile = resources::readRemote("900", dir.path());
     EXPECT_TRUE(builtinFile.error.isEmpty());
-    EXPECT_EQ(builtinFile.text, resources::data(":/res/remotes/900/remote.json"));
+    EXPECT_EQ(builtinFile.text, resources::data(":/res/remotes/900/profile.json"));
     EXPECT_EQ(builtinFile.current, builtinFile.text);
     EXPECT_EQ(builtinFile.remote.value("id").toString(), "900");
 
@@ -230,19 +240,19 @@ TEST_F(RemoteResourcesTest, ReadRemoteForEditingUsesDiskTextAndCurrentSchema) {
     // схемы нормализуются, поля format и transport больше нет.
     auto remote = remoteOf("900");
     remote["connection"] = QJsonObject{{"driver", "harmony900"}, {"configFormat", "harmony900"}};
-    write("remotes/900/remote.json", toBytes(remote));
+    write("remotes/900/profile.json", toBytes(remote));
     const auto file = resources::readRemote("900", dir.path());
-    EXPECT_EQ(file.path, "remotes/900/remote.json");
+    EXPECT_EQ(file.path, "remotes/900/profile.json");
     EXPECT_EQ(file.text, toBytes(remote));
     EXPECT_EQ(file.remote["connection"].toObject().value("driver").toString(), "usb-net");
     EXPECT_FALSE(QJsonDocument::fromJson(file.current).object()["connection"].toObject().contains("format"));
     EXPECT_EQ(resources::currentSchema(file.text, "900"), file.current);
 
     // Сломанный файл: ошибка с путём, описание пустое.
-    write("remotes/900/remote.json", "{broken");
+    write("remotes/900/profile.json", "{broken");
     const auto broken = resources::readRemote("900", dir.path());
     EXPECT_TRUE(broken.remote.isEmpty());
-    EXPECT_TRUE(broken.error.contains("remote.json"));
+    EXPECT_TRUE(broken.error.contains("profile.json"));
 }
 
 TEST_F(RemoteResourcesTest, DiscoverNewModelAndPersistProject) {
@@ -251,7 +261,7 @@ TEST_F(RemoteResourcesTest, DiscoverNewModelAndPersistProject) {
     remote["id"] = "custom-600";
     remote["name"] = "Custom 600";
     remote["connection"] = QJsonObject{{"driver", "usb-hid"}};
-    write("remotes/custom-600/remote.json", toBytes(remote));
+    write("remotes/custom-600/profile.json", toBytes(remote));
     write("remotes/custom-600/photo.png", resources::data(":/res/remotes/600/photo.png"));
     root = dir.path();
     ASSERT_TRUE(resources::reload(root).isEmpty());
@@ -270,7 +280,7 @@ TEST_F(RemoteResourcesTest, DiscoverNewModelAndPersistProject) {
     EXPECT_FALSE(document.targetModel().known);
     EXPECT_EQ(document.targetModel().name, "Custom 600");
     EXPECT_EQ(document.targetModel().link, harmony::LinkKind::UsbHid)
-        << "своей модели нет в каталоге: связь из remote.json";
+        << "своей модели нет в каталоге: связь из profile.json";
     EXPECT_FALSE(document.toEzHex(true));
     const auto saved = document.toEzHex(false);
     ASSERT_TRUE(saved);
@@ -278,7 +288,7 @@ TEST_F(RemoteResourcesTest, DiscoverNewModelAndPersistProject) {
     ASSERT_TRUE(reopened);
     EXPECT_EQ(reopened->targetRemote(), "custom-600");
     remote["connection"] = QJsonObject{{"driver", "unknown-driver"}};
-    write("remotes/custom-600/remote.json", toBytes(remote));
+    write("remotes/custom-600/profile.json", toBytes(remote));
     // Ошибка в пользовательской модели не блокирует загрузку: модель пропускается.
     EXPECT_TRUE(resources::reload(root).isEmpty());
     EXPECT_EQ(resources::skipped().size(), 1);
@@ -294,7 +304,7 @@ TEST_F(RemoteResourcesTest, DiscoverNewModelAndPersistProject) {
     EXPECT_EQ(reopened->targetModel().name, "custom-600");
 }
 
-// W3 (решено владельцем 22.11): способ подключения — значение из remote.json, если оно задано;
+// W3 (решено владельцем 22.11): способ подключения — значение из profile.json, если оно задано;
 // без поля — каталог. Право записи по-прежнему решает каталог (OD9).
 TEST_F(RemoteResourcesTest, ConnectionFieldDecidesTransportAndNotWriting) {
     // Своя модель вне каталога: каталог её не знает, работает поле из файла.
@@ -303,7 +313,7 @@ TEST_F(RemoteResourcesTest, ConnectionFieldDecidesTransportAndNotWriting) {
     custom["id"] = "my-650";
     custom["name"] = "My 650";
     custom["connection"] = QJsonObject{{"driver", "usb-net"}};
-    write("remotes/my-650/remote.json", toBytes(custom));
+    write("remotes/my-650/profile.json", toBytes(custom));
     write("remotes/my-650/photo.png", resources::data(":/res/remotes/650/photo.png"));
     root = dir.path();
     ASSERT_TRUE(resources::reload(root).isEmpty());
@@ -317,15 +327,15 @@ TEST_F(RemoteResourcesTest, ConnectionFieldDecidesTransportAndNotWriting) {
     auto catalog = remoteOf("650");
     catalog["connection"] = QJsonObject{{"driver", "usb-net"}};
     ASSERT_TRUE(QDir().mkpath(dir.path() + "/remotes/650"));
-    write("remotes/650/remote.json", toBytes(catalog));
+    write("remotes/650/profile.json", toBytes(catalog));
     write("remotes/650/photo.png", resources::data(":/res/remotes/650/photo.png"));
     ASSERT_TRUE(resources::reload(root).isEmpty());
     EXPECT_TRUE(harmony::usesUsbNet("650")) << "значение файла важнее каталога";
     EXPECT_EQ(harmony::canWriteTo(harmony::modelInfo("650")).verdict, harmony::WriteVerdict::Experimental)
         << "650 не подтверждена записью, профиль на запись не влияет";
-    // Значение штатного remote.json — тоже данные пользователя: 700 задаёт связь своим файлом.
+    // Значение штатного profile.json — тоже данные пользователя: 700 задаёт связь своим файлом.
     EXPECT_EQ(harmony::remoteProfile("700")->driver, "usb-hid");
-    // Модель без своего remote.json: связь только из каталога.
+    // Модель без своего profile.json: связь только из каталога.
     EXPECT_EQ(harmony::remoteProfile("525"), nullptr);
     EXPECT_FALSE(harmony::usesUsbNet("525")) << "525 — USB HID из каталога";
 }
@@ -338,7 +348,7 @@ TEST_F(RemoteResourcesTest, ModelInfoUsesOnlyItsOwnProfileAfterReload) {
     auto remote = remoteOf("600");
     remote["id"] = "600i";
     remote["name"] = "Copied profile";
-    write("remotes/600i/remote.json", toBytes(remote));
+    write("remotes/600i/profile.json", toBytes(remote));
     write("remotes/600i/photo.png", resources::data(":/res/remotes/600/photo.png"));
     ASSERT_TRUE(resources::reload(dir.path()).isEmpty());
     const auto info = harmony::modelInfo("600i");
@@ -361,7 +371,7 @@ TEST_F(RemoteResourcesTest, GridScreenCellsGetRectsFromColRowAndSpans) {
         {"grid", QJsonObject{{"cols", 2}, {"rows", 2}, {"gap", 0}}},
         {"cells", QJsonArray{QJsonObject{{"id", "A"}, {"col", 0}, {"row", 0}, {"colSpan", 2}},
                              QJsonObject{{"id", "B"}, {"col", 1}, {"row", 1}}}}}};
-    write("remotes/gridmodel/remote.json", toBytes(remote));
+    write("remotes/gridmodel/profile.json", toBytes(remote));
     write("remotes/gridmodel/photo.png", resources::data(":/res/remotes/600/photo.png"));
     root = dir.path();
     ASSERT_TRUE(resources::reload(root).isEmpty());
@@ -373,7 +383,7 @@ TEST_F(RemoteResourcesTest, GridScreenCellsGetRectsFromColRowAndSpans) {
     EXPECT_EQ(cells[1].toObject()["rect"].toArray(), (QJsonArray{50, 50, 50, 50}));
     EXPECT_EQ(cells[1].toObject()["kind"].toString(), "ScreenSlot");
     // На диске файл не меняется: rect достраивается только в памяти.
-    const auto onDisk = QJsonDocument::fromJson(resources::data(":/res/remotes/gridmodel/remote.json")).object();
+    const auto onDisk = QJsonDocument::fromJson(resources::data(":/res/remotes/gridmodel/profile.json")).object();
     EXPECT_FALSE(onDisk.value("screens").toArray()[0].toObject().value("cells").toArray()[0].toObject()
                      .contains("rect"));
 }
@@ -390,10 +400,9 @@ TEST(RemoteResources, GridCellsAreLaidOutInsideTileArea) {
 }
 
 TEST_F(RemoteResourcesTest, LeftoverFilesOfOldSchemaAreIgnored) {
-    // Файлы прошлых версий (profile.json, zones.json, screens.json, layouts.json) не читаются:
+    // Файлы прошлых версий (zones.json, screens.json, layouts.json) не читаются:
     // даже испорченные, они не мешают загрузке и не попадают в выгрузку.
     write("layouts.json", "{broken");
-    write("remotes/900/profile.json", "{broken");
     write("remotes/900/zones.json", "[]");
     write("remotes/900/screens.json", "{}");
     root = dir.path();
@@ -401,11 +410,11 @@ TEST_F(RemoteResourcesTest, LeftoverFilesOfOldSchemaAreIgnored) {
     EXPECT_FALSE(zonesOf("900").isEmpty());
     EXPECT_TRUE(resources::data(":/res/remotes/900/zones.json").isEmpty());
     for (const auto& file : resources::exportFiles({}))
-        if (file.endsWith(".json")) { EXPECT_TRUE(file.endsWith("/remote.json")) << file.toStdString(); }
+        if (file.endsWith(".json")) { EXPECT_TRUE(file.endsWith("/profile.json")) << file.toStdString(); }
 }
 
 TEST_F(RemoteResourcesTest, FolderWithOnlyPhotoIsListedAndGetsStub) {
-    // Папка с одним photo.png: редактор зон показывает её и создаёт заготовку remote.json.
+    // Папка с одним photo.png: редактор зон показывает её и создаёт заготовку profile.json.
     ASSERT_TRUE(QDir().mkpath(dir.path() + "/remotes/fresh"));
     QImage photo(120, 300, QImage::Format_ARGB32);
     photo.fill(Qt::transparent);
@@ -424,7 +433,7 @@ TEST_F(RemoteResourcesTest, FolderWithOnlyPhotoIsListedAndGetsStub) {
     EXPECT_TRUE(remote.value("hardware").toObject().value("zones").toArray().isEmpty());
     EXPECT_EQ(remote.value("screens").toArray().size(), 1);
     EXPECT_NE(harmony::remoteProfile("fresh"), nullptr);
-    // Существующий remote.json заготовка не трогает; папка без photo.png — ошибка.
+    // Существующий profile.json заготовка не трогает; папка без photo.png — ошибка.
     const auto before = resources::readRemote("fresh", root).text;
     EXPECT_TRUE(resources::createStub("fresh", root).isEmpty());
     EXPECT_EQ(resources::readRemote("fresh", root).text, before);
@@ -485,7 +494,7 @@ TEST_F(RemoteResourcesTest, InvalidBackgroundZonesRejectModel) {
     screen["background"] = QJsonObject{{"header", QJsonObject{{"height", -5}}}};
     screens[0] = screen;
     remote["screens"] = screens;
-    write("remotes/zoned/remote.json", toBytes(remote));
+    write("remotes/zoned/profile.json", toBytes(remote));
     write("remotes/zoned/photo.png", resources::data(":/res/remotes/600/photo.png"));
     root = dir.path();
     EXPECT_TRUE(resources::reload(root).isEmpty());
@@ -495,12 +504,12 @@ TEST_F(RemoteResourcesTest, InvalidBackgroundZonesRejectModel) {
 }
 
 TEST_F(RemoteResourcesTest, ZoneEditorListsRejectedModelFolders) {
-    // Новая папка с чужим id в remote.json: загрузчик отклоняет её целиком,
+    // Новая папка с чужим id в profile.json: загрузчик отклоняет её целиком,
     // но редактор зон должен показать модель, чтобы ошибку можно было исправить.
     ASSERT_TRUE(QDir().mkpath(dir.path() + "/remotes/880"));
     auto remote = remoteOf("700");
     remote["id"] = "700"; // папка 880, а внутри остался id скопированной модели
-    write("remotes/880/remote.json", toBytes(remote));
+    write("remotes/880/profile.json", toBytes(remote));
     write("remotes/880/photo.png", resources::data(":/res/remotes/700/photo.png"));
     root = dir.path();
     EXPECT_TRUE(resources::reload(root).isEmpty()); // чужая модель пропущена, остальные работают
@@ -512,13 +521,13 @@ TEST_F(RemoteResourcesTest, ZoneEditorListsRejectedModelFolders) {
 
 TEST_F(RemoteResourcesTest, ExportModelAndAllRoundTrip) {
     const auto model = resources::exportFiles("900");
-    EXPECT_TRUE(model.contains("remotes/900/remote.json"));
+    EXPECT_TRUE(model.contains("remotes/900/profile.json"));
     EXPECT_EQ(std::count_if(model.cbegin(), model.cend(), [](const QString& f) { return f.endsWith(".json"); }), 1);
     EXPECT_TRUE(model.contains("remotes/900/photo.png"));
     for (const auto& file : model) EXPECT_TRUE(file.startsWith("remotes/900/")) << file.toStdString();
     EXPECT_TRUE(resources::exportFiles("no-such-model").isEmpty());
     const auto all = resources::exportFiles({});
-    EXPECT_TRUE(all.contains("remotes/600/remote.json"));
+    EXPECT_TRUE(all.contains("remotes/600/profile.json"));
     EXPECT_TRUE(std::any_of(all.cbegin(), all.cend(), [](const QString& f) { return f.startsWith("sprites/"); }));
 
     QTemporaryDir out;
@@ -543,7 +552,7 @@ TEST_F(RemoteResourcesTest, ExportModelAndAllRoundTrip) {
 
 TEST_F(RemoteResourcesTest, WatchPathsOnlyResourceFiles) {
     EXPECT_TRUE(resources::watchPaths(dir.path() + "/missing").isEmpty());
-    write("remotes/900/remote.json", resources::data(":/res/remotes/900/remote.json"));
+    write("remotes/900/profile.json", resources::data(":/res/remotes/900/profile.json"));
     write("notes.txt", "not a resource");
     ASSERT_TRUE(QDir().mkpath(dir.path() + "/theme"));
     write("theme/check.png", resources::data(":/res/remotes/900/photo.png"));
@@ -552,7 +561,7 @@ TEST_F(RemoteResourcesTest, WatchPathsOnlyResourceFiles) {
     EXPECT_TRUE(paths.contains(dir.path()));
     EXPECT_TRUE(paths.contains(dir.path() + "/remotes"));
     EXPECT_TRUE(paths.contains(dir.path() + "/remotes/900"));
-    EXPECT_TRUE(paths.contains(dir.path() + "/remotes/900/remote.json"));
+    EXPECT_TRUE(paths.contains(dir.path() + "/remotes/900/profile.json"));
     EXPECT_FALSE(paths.contains(dir.path() + "/notes.txt"));
     EXPECT_FALSE(paths.contains(dir.path() + "/theme"));
     EXPECT_FALSE(paths.contains(dir.path() + "/theme/check.png"));
@@ -561,13 +570,13 @@ TEST_F(RemoteResourcesTest, WatchPathsOnlyResourceFiles) {
 TEST_F(RemoteResourcesTest, PrepareFolderAddsMissingFilesAndKeepsExisting) {
     // Пользовательский файл не перезаписывается; остальное докладывается из встроенных ресурсов.
     const QByteArray custom = "{\"custom\":true}";
-    write("remotes/900/remote.json", custom);
+    write("remotes/900/profile.json", custom);
     root = dir.path();
     ASSERT_TRUE(resources::prepareFolder(root).isEmpty());
-    QFile kept(dir.path() + "/remotes/900/remote.json");
+    QFile kept(dir.path() + "/remotes/900/profile.json");
     ASSERT_TRUE(kept.open(QIODevice::ReadOnly));
     EXPECT_EQ(kept.readAll(), custom);
-    for (const QString& file : {QString("remotes/600/remote.json"), QString("remotes/900/photo.png")}) {
+    for (const QString& file : {QString("remotes/600/profile.json"), QString("remotes/900/photo.png")}) {
         QFile added(dir.path() + "/" + file);
         ASSERT_TRUE(added.open(QIODevice::ReadOnly)) << file.toStdString();
         EXPECT_EQ(added.readAll(), resources::data(":/res/" + file)) << file.toStdString();
@@ -580,7 +589,7 @@ TEST_F(RemoteResourcesTest, CreateRestoreAndNeverRewriteExistingFiles) {
     root = dir.path() + "/resources";
     ASSERT_FALSE(QDir(root).exists());
     ASSERT_TRUE(resources::reload(root).isEmpty());
-    const QString zonesPath = root + "/remotes/900/remote.json";
+    const QString zonesPath = root + "/remotes/900/profile.json";
     const QString photoPath = root + "/remotes/900/photo.png";
     const auto originalPhoto = resources::data(":/res/remotes/900/photo.png");
     QFile zones(zonesPath);
@@ -610,7 +619,7 @@ TEST_F(RemoteResourcesTest, CreateRestoreAndNeverRewriteExistingFiles) {
     EXPECT_EQ(restored.readAll(), originalPhoto);
     restored.close();
     ASSERT_TRUE(resources::reload(root).isEmpty());
-    EXPECT_EQ(resources::data(":/res/remotes/900/remote.json"), changed);
+    EXPECT_EQ(resources::data(":/res/remotes/900/profile.json"), changed);
     // Препятствие на месте корня даёт ошибку, а не другую скрытую папку.
     QFile blocked(dir.path() + "/blocked");
     ASSERT_TRUE(blocked.open(QIODevice::WriteOnly));
@@ -626,6 +635,115 @@ TEST_F(RemoteResourcesTest, ModelListIsOrderedById) {
     EXPECT_TRUE(std::ranges::is_sorted(ids)) << "порядок списка моделей";
     EXPECT_TRUE(ids.contains("900")) << "900 в списке моделей";
     EXPECT_NE(ids.first(), "900") << "900 не первый: модели по умолчанию нет";
+}
+
+// V0: профиль пульта читается из profile.json — нового имени файла.
+TEST_F(RemoteResourcesTest, ProfileFileIsReadUnderNewName) {
+    const QString id = "profile-only";
+    write("remotes/" + id + "/photo.png", resources::data(":/res/remotes/900/photo.png"));
+    write("remotes/" + id + "/profile.json", toBytes(customRemote(id)));
+    root = dir.path();
+    ASSERT_TRUE(resources::reload(root).isEmpty());
+    EXPECT_FALSE(resources::remote(id).isEmpty());
+    const auto file = resources::readRemote(id, root);
+    EXPECT_EQ(file.path, "remotes/" + id + "/profile.json");
+    EXPECT_EQ(file.sourcePath, file.path);
+    EXPECT_TRUE(resources::profileWarnings().isEmpty());
+    EXPECT_TRUE(resources::exportFiles(id).contains("remotes/" + id + "/profile.json"));
+}
+
+// V0: старое имя remote.json читается, пока profile.json нет (совместимость).
+TEST_F(RemoteResourcesTest, LegacyRemoteFileIsReadWhenProfileIsMissing) {
+    const QString id = "legacy-only";
+    write("remotes/" + id + "/photo.png", resources::data(":/res/remotes/900/photo.png"));
+    write("remotes/" + id + "/remote.json", toBytes(customRemote(id)));
+    root = dir.path();
+    ASSERT_TRUE(resources::reload(root).isEmpty());
+    EXPECT_FALSE(resources::remote(id).isEmpty());
+    const auto file = resources::readRemote(id, root);
+    EXPECT_EQ(file.path, "remotes/" + id + "/profile.json") << "писать всегда в новое имя";
+    EXPECT_EQ(file.sourcePath, "remotes/" + id + "/remote.json") << "прочитан старый файл";
+    EXPECT_TRUE(resources::exportFiles(id).contains("remotes/" + id + "/profile.json"));
+    EXPECT_FALSE(resources::exportFiles(id).contains("remotes/" + id + "/remote.json"));
+    const auto warnings = resources::profileWarnings();
+    EXPECT_TRUE(warnings.isEmpty()) << warnings.join(", ").toStdString();
+}
+
+// V0: оба файла — берётся profile.json; предупреждение называет оба файла (правило 18).
+TEST_F(RemoteResourcesTest, BothProfileFilesPreferNewNameAndWarn) {
+    const QString id = "both-files";
+    write("remotes/" + id + "/photo.png", resources::data(":/res/remotes/900/photo.png"));
+    auto modern = customRemote(id);
+    modern["name"] = "New profile";
+    auto legacy = customRemote(id);
+    legacy["name"] = "Old profile";
+    write("remotes/" + id + "/profile.json", toBytes(modern));
+    write("remotes/" + id + "/remote.json", toBytes(legacy));
+    root = dir.path();
+    ASSERT_TRUE(resources::reload(root).isEmpty());
+    EXPECT_EQ(resources::remote(id).value("name").toString(), "New profile");
+    EXPECT_EQ(resources::readRemote(id, root).sourcePath, "remotes/" + id + "/profile.json");
+    const auto warnings = resources::profileWarnings();
+    ASSERT_EQ(warnings.size(), 1);
+    EXPECT_TRUE(warnings.first().contains("profile.json"));
+    EXPECT_TRUE(warnings.first().contains("remote.json"));
+}
+
+// V0: перед первой записью старый файл переводится на новое имя, прежний текст остаётся в .bak.
+TEST_F(RemoteResourcesTest, FirstSaveAdoptsLegacyFile) {
+    const QString id = "adopt-me";
+    write("remotes/" + id + "/photo.png", resources::data(":/res/remotes/900/photo.png"));
+    const QByteArray legacyText = toBytes(customRemote(id));
+    write("remotes/" + id + "/remote.json", legacyText);
+    root = dir.path();
+    ASSERT_TRUE(resources::reload(root).isEmpty());
+    const auto before = resources::remote(id);
+    ASSERT_FALSE(before.isEmpty());
+
+    EXPECT_TRUE(resources::adoptLegacyProfile(id, root).isEmpty());
+    const QDir modelDir(dir.path() + "/remotes/" + id);
+    EXPECT_TRUE(modelDir.exists("profile.json"));
+    EXPECT_TRUE(modelDir.exists("remote.json.bak"));
+    EXPECT_FALSE(modelDir.exists("remote.json"));
+    QFile backup(modelDir.filePath("remote.json.bak"));
+    ASSERT_TRUE(backup.open(QIODevice::ReadOnly));
+    EXPECT_EQ(backup.readAll(), legacyText) << "старый файл не потерян";
+    backup.close();
+
+    ASSERT_TRUE(resources::reload(root).isEmpty());
+    EXPECT_EQ(resources::remote(id), before) << "повторная загрузка даёт ту же модель";
+    EXPECT_TRUE(resources::profileWarnings().isEmpty());
+}
+
+// V0: снятый файл *.remote.json (P2) — не профиль: он не загружается и в выгрузку не попадает.
+TEST_F(RemoteResourcesTest, CapturedRemoteFileIsNotAProfile) {
+    const QString id = "capture-only";
+    const QString capture = "Harmony-" + id + "-20261125-1200.remote.json";
+    write("remotes/" + id + "/photo.png", resources::data(":/res/remotes/900/photo.png"));
+    write("remotes/" + id + "/" + capture, toBytes(customRemote(id)));
+    root = dir.path();
+    ASSERT_TRUE(resources::reload(root).isEmpty());
+    EXPECT_TRUE(resources::remote(id).isEmpty()) << "снятый файл не описывает пульт";
+    EXPECT_TRUE(resources::data(":/res/remotes/" + id + "/" + capture).isEmpty());
+    const auto files = resources::exportFiles(id);
+    EXPECT_FALSE(files.contains("remotes/" + id + "/" + capture));
+    EXPECT_FALSE(files.contains("remotes/" + id + "/profile.json"));
+}
+
+// V0: имя файла для записи — profile.json; старое имя существует только для чтения.
+TEST(RemoteResources, ProfileFilePathPrefersNewName) {
+    QTemporaryDir dir;
+    ASSERT_TRUE(dir.isValid());
+    const QDir modelDir(dir.path());
+    EXPECT_EQ(resources::profileFilePath(modelDir), modelDir.filePath("profile.json"));
+    QFile legacy(modelDir.filePath("remote.json"));
+    ASSERT_TRUE(legacy.open(QIODevice::WriteOnly));
+    legacy.close();
+    EXPECT_EQ(resources::profileFilePath(modelDir), modelDir.filePath("remote.json"));
+    QFile modern(modelDir.filePath("profile.json"));
+    ASSERT_TRUE(modern.open(QIODevice::WriteOnly));
+    modern.close();
+    EXPECT_EQ(resources::profileFilePath(modelDir), modelDir.filePath("profile.json"));
 }
 
 TEST(RemoteResources, WorkingFolderIsBesideExecutable) {

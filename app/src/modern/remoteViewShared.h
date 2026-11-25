@@ -26,13 +26,13 @@ inline QRectF readRect(const QJsonValue& value) {
     return {a[0].toDouble(), a[1].toDouble(), a[2].toDouble(), a[3].toDouble()};
 }
 
-/// Цвет плиток и фона экрана по умолчанию (классический экран 900), если в remote.json цвет не задан.
+/// Цвет плиток и фона экрана по умолчанию (классический экран 900), если в profile.json цвет не задан.
 inline const QColor DEFAULT_TILE_COLOUR("#0b3442");
 
 /** pill with the look of the Harmony LCD buttons */
 inline void paintPill(QPainter& p, const QRectF& r, bool selected, bool hover,
                const QColor& base = DEFAULT_TILE_COLOUR, const QColor& border = QColor("#ffffff")) {
-    // Цвета по умолчанию (из remote.json) дают классический вид пульта; другой цвет плитки
+    // Цвета по умолчанию (из profile.json) дают классический вид пульта; другой цвет плитки
     // и рамки перекрашивает плитку, сохраняя объём (светлый верх, тёмный низ).
     const bool customFill = base.isValid() && base != DEFAULT_TILE_COLOUR;
     const bool customBorder = border.isValid() && border != QColor("#ffffff");

@@ -238,7 +238,7 @@ void drawCellIcon(QPainter& p, const QRectF& rect, const CellContent& cell, qrea
     }
 }
 
-/// Цвет подписей на панелях экрана: `panel.text` экрана в remote.json, по умолчанию белый.
+/// Цвет подписей на панелях экрана: `panel.text` экрана в profile.json, по умолчанию белый.
 QColor panelTextColor(const QJsonObject& layout) {
     const QColor colour(layout.value("panel").toObject().value("text").toString());
     return colour.isValid() ? colour : QColor(Qt::white);
@@ -312,7 +312,7 @@ void drawStyledText(QPainter& p, const QRectF& rect, const QString& text, const 
 }
 
 /**
- * Плитка-картинка из resources/sprites (`cell.image` экрана в remote.json), одна на все
+ * Плитка-картинка из resources/sprites (`cell.image` экрана в profile.json), одна на все
  * ячейки: на экране избранного это уменьшенная плитка активностей. "shadow": true — мягкая
  * тень вправо-вниз, как у плиток 1000 (числа подогнаны глазами по фотографии экрана 1000;
  * скрипт-генератор compose.py удалён 20.11.2026 — эти значения остались в коде).
@@ -440,7 +440,7 @@ struct SpriteItem {
 };
 
 /**
- * Картинки собранных экранов пульта: `layers` экранов remote.json. Каждая картинка — файл
+ * Картинки собранных экранов пульта: `layers` экранов profile.json. Каждая картинка — файл
  * из resources/sprites, готовые фото экранов не используются. Формат — в remotes/SCHEMA.md.
  */
 struct SpriteSet {
@@ -649,7 +649,7 @@ QString RemoteView::serviceText(const QString& id, const QJsonObject& layout) co
 }
 
 void RemoteView::paintGridScreen(QPainter& p, const QJsonObject& layout) {
-    // Единый рендерер экранов remote.json: фон — картинка или заливка цветом,
+    // Единый рендерер экранов profile.json: фон — картинка или заливка цветом,
     // плитки — картинка или «таблетка» цветом с рамкой (по умолчанию DEFAULT_TILE_COLOUR и белая).
     const auto ref = layout.value("ref").toArray();
     const qreal refW = ref[0].toDouble();

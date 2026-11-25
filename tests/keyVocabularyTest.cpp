@@ -152,7 +152,7 @@ TEST(KeyVocabulary, DictionaryCoversEveryZoneNameOfBuiltInProfiles) {
     ASSERT_TRUE(std::filesystem::exists(profiles));
     std::size_t checked = 0;
     for (const auto& entry : std::filesystem::directory_iterator(profiles)) {
-        const auto file = entry.path() / "remote.json";
+        const auto file = entry.path() / "profile.json";
         if (!std::filesystem::exists(file))
             continue;
         std::fstream stream(file);

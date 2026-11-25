@@ -86,7 +86,7 @@ def cross():
 
 
 def screen(model):
-    """Фон экрана в remote.json: фон модели, белая шапка и вкладка Devices (ячейка [40, 160, 92, 20])."""
+    """Фон экрана в profile.json: фон модели, белая шапка и вкладка Devices (ячейка [40, 160, 92, 20])."""
     bg = Image.open(OUT / f"background_{model}.png").convert("RGBA")
     layer = Image.new("RGBA", bg.size, (0, 0, 0, 0))
     layer.paste(Image.open(OUT / "head_600.png").convert("RGBA"), (0, 0))

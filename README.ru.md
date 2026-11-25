@@ -356,7 +356,7 @@ harmony-cli shell <команда…>     # команда в консоли п�
 ## Документация
 
 - [Ресурсы пультов](app/resources/README.md).
-- [Схема визуального профиля remote.json](app/resources/remotes/SCHEMA.md).
+- [Схема визуального профиля profile.json](app/resources/remotes/SCHEMA.md).
 - `harmony-cli models` — каталог моделей, запуск `harmony-cli` без аргументов — команды утилиты.
 
 ## Переводы

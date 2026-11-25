@@ -15,11 +15,11 @@ custom models: they cannot be restored from the bundled files.
 ```
 sprites/                  screen images (backgrounds, tiles, icons)
 remotes/<id>/
-  remote.json             remote description: photo, buttons, screens
+  profile.json            remote description: photo, buttons, screens
   photo.png               remote photo with transparent background
 ```
 
-## remote.json
+## profile.json
 
 ```json
 {
@@ -51,7 +51,7 @@ remotes/<id>/
 | `screens` | the remote's screens with tiles and cells; easiest to create in the zone editor |
 
 The model catalog is the reference and decides whether writing to the remote is allowed:
-remote.json chooses only how the program talks to the remote, not whether it may write. The
+profile.json chooses only how the program talks to the remote, not whether it may write. The
 format of the configuration comes from the catalog family and from the file that was read.
 
 Zone: `rect` is x, y, width, height in photo pixels from the top-left corner.
@@ -63,6 +63,6 @@ A zone must lie inside the photo; ids must be unique.
 ## New model
 
 Copy a similar model's folder to `remotes/<new-id>/`, change `id` and `name` in
-`remote.json`, replace the photo (and `hardware.size`) and adjust the zones and screens
+`profile.json`, replace the photo (and `hardware.size`) and adjust the zones and screens
 in the zone editor. The model appears in the remote choice. A similar look does not
 mean the same connection protocol.

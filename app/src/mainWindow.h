@@ -272,7 +272,7 @@ private:
     void applyRemoteResources(bool interactive);
     /// Открыть конфигурацию при запуске: «открывать при запуске», последнюю или окно выбора.
     void openStartupConfig();
-    /// Открыть редактор зон пультов (remote.json).
+    /// Открыть редактор зон пультов (profile.json).
     void editRemoteZones();
     /// Выгрузить ресурсы текущей модели или все в папку для правки.
     void exportRemoteResources();

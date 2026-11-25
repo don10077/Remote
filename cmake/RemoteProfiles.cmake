@@ -1,6 +1,6 @@
 # Общий каталог моделей для core (без Qt) и ресурсов приложения.
-# Каждая модель описана одним файлом remotes/<id>/remote.json (схема — remotes/SCHEMA.md).
-file(GLOB remoteProfiles CONFIGURE_DEPENDS "${PROJECT_SOURCE_DIR}/app/resources/remotes/*/remote.json")
+# Каждая модель описана одним файлом remotes/<id>/profile.json (схема — remotes/SCHEMA.md).
+file(GLOB remoteProfiles CONFIGURE_DEPENDS "${PROJECT_SOURCE_DIR}/app/resources/remotes/*/profile.json")
 # U1: модель по умолчанию отсутствует, профиль 900 не обязателен. Порядок — по id (имена
 # папок); он же порядок списка моделей в программе.
 list(SORT remoteProfiles)

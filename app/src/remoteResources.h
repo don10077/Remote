@@ -7,7 +7,22 @@
 #include <QString>
 #include <QStringList>
 
+class QDir;
+
 namespace harmony::app::remoteResources {
+/// Имя файла профиля в папке пульта.
+inline const QString kProfileFile = QStringLiteral("profile.json");
+/// Старое имя файла профиля (до 2026-11): читается, если profile.json ещё нет.
+inline const QString kLegacyProfileFile = QStringLiteral("remote.json");
+/// Суффикс, под которым остаётся старый файл после первой записи профиля.
+inline const QString kLegacyProfileBackup = QStringLiteral("remote.json.bak");
+
+/**
+ * @brief Путь к файлу профиля в папке пульта.
+ * @return `profile.json`, если он есть; иначе `remote.json`; иначе `profile.json` (имя для записи).
+ */
+QString profileFilePath(const QDir& modelDir);
+
 /// Рабочая папка resources рядом с исполняемым файлом, независимо от настроек и cwd.
 QString folder();
 /**
@@ -24,18 +39,19 @@ QString reload(const QString& root = folder());
  * @brief Модели для редактора зон: проверенный каталог и папки внешних ресурсов.
  *
  * В отличие от harmony::remoteProfiles включает новые папки `remotes/<id>/`
- * даже тогда, когда reload() отклонил их remote.json: зоны такой модели
- * всё равно нужно уметь открыть и исправить. Папка без remote.json не
+ * даже тогда, когда reload() отклонил их файл профиля: зоны такой модели
+ * всё равно нужно уметь открыть и исправить. Папка без файла профиля не
  * считается моделью.
  * @param root Корень папки ресурсов; явный путь используется в тестах.
  */
 QStringList modelIds(const QString& root = folder());
 
 /**
- * @brief Создать заготовку remote.json для папки `remotes/<id>/`, где есть только photo.png.
+ * @brief Создать заготовку профиля для папки `remotes/<id>/`, где есть только photo.png.
  *
  * Размер берётся из PNG, зон нет, один экран `devices` 232×290 с чёрным фоном. Существующий
- * remote.json не изменяется. Заготовка проходит проверку reload(), если id папки допустим.
+ * файл профиля (profile.json или старый remote.json) не изменяется. Заготовка проходит
+ * проверку reload(), если id папки допустим.
  * @param modelId id пульта (имя папки).
  * @param root Корень папки ресурсов; явный путь используется в тестах.
  * @return Пусто — файл есть или создан; иначе текст ошибки (нет photo.png, не PNG, не записан).
@@ -53,7 +69,7 @@ struct ScreenZones {
 };
 /**
  * @brief Разобрать зоны фона экрана.
- * @param screen Экран из remote.json (нужны `ref` и `background`).
+ * @param screen Экран из профиля пульта (нужны `ref` и `background`).
  * @return `any == false`, если зон нет или высоты не помещаются в экран (шапка + подвал ≥ высота).
  */
 ScreenZones screenZones(const QJsonObject& screen);
@@ -63,33 +79,35 @@ QByteArray data(const QString& path);
 /**
  * @brief Описание пульта из последнего корректного снимка.
  *
- * Это remote.json пульта после перевода старой схемы (migrateRemote) и normalizeRemote():
+ * Это профиль пульта после перевода старой схемы (migrateRemote) и normalizeRemote():
  * у всех ячеек экранов есть `rect`. Других файлов описания пульта нет.
  * @param modelId id пульта (папка `remotes/<id>/`).
  * @return Пустой объект — пульта нет в снимке или он пропущен из-за ошибок.
  */
 QJsonObject remote(const QString& modelId);
 
-/// remote.json пульта как файл: текст на диске и описание, разобранное из этого же текста.
+/// Профиль пульта как файл: текст на диске и описание, разобранное из этого же текста.
 struct RemoteFile {
-    QString path;        ///< путь от корня папки ресурсов: `remotes/<id>/remote.json`
+    QString path;        ///< путь для записи от корня папки ресурсов: `remotes/<id>/profile.json`
+    QString sourcePath;  ///< где файл лежит сейчас: `profile.json` или старый `remote.json`; пусто — только встроенный
     QByteArray text;     ///< текст файла; пусто — файла нет ни в папке, ни во встроенных ресурсах
     QByteArray current;  ///< text в текущей схеме: сам text либо переведённый migrateRemote() файл
     QJsonObject remote;  ///< описание, как его видит reload(): migrateRemote() и normalizeRemote()
     QString error;       ///< ошибка чтения или разбора JSON; пусто — описание разобрано
 };
 /**
- * @brief Прочитать remote.json пульта для правки.
+ * @brief Прочитать профиль пульта для правки.
  *
  * В отличие от remote() читает файл с диска, а не снимок: правка должна опираться на точный
  * текст файла (точечная замена фрагментов, проверка внешних изменений). Открывает и пульты,
- * которые reload() отклонил. Если файла в папке нет — встроенное описание.
+ * которые reload() отклонил. Если файла в папке нет — встроенное описание. Читается
+ * `profile.json`, а пока его нет — старый `remote.json` (sourcePath называет прочитанный файл).
  * @param modelId id пульта (папка `remotes/<id>/`).
  * @param root Корень папки ресурсов; явный путь используется в тестах.
  */
 RemoteFile readRemote(const QString& modelId, const QString& root = folder());
 /**
- * @brief Текст remote.json в текущей схеме.
+ * @brief Текст профиля пульта в текущей схеме.
  * @return Сам `text`, если перевод не нужен или текст не разобран; иначе описание после
  *         migrateRemote() с отступами (так редактор сразу записывает файл в новой схеме).
  */
@@ -101,7 +119,7 @@ QByteArray currentSchema(const QByteArray& text, const QString& modelId);
  * (`cols`, `rows`, `gap`, по умолчанию 4; `colSpan`/`rowSpan` — по умолчанию 1) внутри
  * зоны плиток `grid.area` `[x, y, w, h]`, без неё — внутри `defaultArea`, а без обеих — по всему экрану;
  * без `kind` они становятся `ScreenSlot`. Остальное не меняется.
- * @param screen Экран из `screens` remote.json.
+ * @param screen Экран из `screens` профиля пульта.
  * @return Экран с достроенными `rect`; без сетки — как есть.
  */
 QJsonObject normalizeScreen(QJsonObject screen, const QJsonValue& defaultArea = {});
@@ -111,8 +129,15 @@ QJsonObject normalizeRemote(QJsonObject remote);
 quint64 revision();
 /// Пользовательские модели, пропущенные последним reload() из-за ошибок: сами ошибки не мешают остальным пультам.
 QStringList skipped();
-/// Файлы remote.json в старой схеме, которые последний reload() перевёл на новую в памяти.
+/// Файлы профиля в старой схеме, которые последний reload() перевёл на новую в памяти.
 QStringList migratedByReload();
+/**
+ * @brief Предупреждения последнего reload(): модель загружена, но данные расходятся.
+ *
+ * Сейчас одно: в папке пульта лежат и `profile.json`, и старый `remote.json` — используется
+ * `profile.json` (правило 18: названы оба файла). Модель при этом загружается.
+ */
+QStringList profileWarnings();
 /**
  * @brief Переводит описание пульта прошлой версии программы на текущую схему.
  *
@@ -131,9 +156,33 @@ QString modelError(const QString& id);
 QStringList skippedIds();
 
 /**
+ * @brief Убрать старый файл профиля после первой записи `profile.json`.
+ *
+ * `remote.json` переименовывается в `remote.json.bak` (существующий .bak заменяется): файл
+ * пользователя не удаляется, а повторное чтение уже берёт `profile.json`. Ничего не делает,
+ * если старого файла нет или `profile.json` ещё не записан.
+ * @param modelId id пульта (папка `remotes/<id>/`).
+ * @param root Корень папки ресурсов; явный путь используется в тестах.
+ * @return Пустая строка — успех или делать нечего; иначе диагностика с путём.
+ */
+QString archiveLegacyProfile(const QString& modelId, const QString& root = folder());
+
+/**
+ * @brief Перевести старый файл профиля на новое имя перед первой записью.
+ *
+ * Прежний текст сохраняется как `remote.json.bak`, после чего `remote.json` переименовывается
+ * в `profile.json`: запись пойдёт уже в новый файл, а старый не теряется. Ничего не делает,
+ * если старого файла нет или `profile.json` уже существует.
+ * @param modelId id пульта (папка `remotes/<id>/`).
+ * @param root Корень папки ресурсов; явный путь используется в тестах.
+ * @return Пустая строка — успех или делать нечего; иначе диагностика с путём.
+ */
+QString adoptLegacyProfile(const QString& modelId, const QString& root = folder());
+
+/**
  * @brief Файлы текущего снимка для выгрузки, пути относительно корня папки ресурсов.
  * @param modelId Модель (`remotes/<id>/…`); пустая строка — все ресурсы, включая общие `sprites/`.
- * @return Отсортированный список вида `remotes/900/remote.json`; пустой — модели нет в снимке.
+ * @return Отсортированный список вида `remotes/900/profile.json`; пустой — модели нет в снимке.
  */
 QStringList exportFiles(const QString& modelId);
 

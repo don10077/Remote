@@ -4,9 +4,9 @@
   python tools/autoZones.py <папка модели|фото.png> --json
       Только JSON-массив рамок [[x, y, w, h], …] в stdout — для кнопки «Авто-зоны» приложения.
   python tools/autoZones.py <папка модели> <папка вывода>
-      Сравнение с ручными зонами корпуса (remote.json: hardware.zones) и отладочный оверлей overlay.png.
+      Сравнение с ручными зонами корпуса (profile.json: hardware.zones) и отладочный оверлей overlay.png.
 
-Рамки не пересекаются друг с другом, не заходят на прозрачный фон и на экран (remote.json: display.rect).
+Рамки не пересекаются друг с другом, не заходят на прозрачный фон и на экран (profile.json: display.rect).
 """
 import json
 import sys
@@ -34,12 +34,21 @@ def overlap(a, b):
     return max(0, x1 - x0) * max(0, y1 - y0)
 
 
+def profile_file(photo: Path) -> Path:
+    """Файл профиля рядом с photo.png: profile.json, затем старое имя remote.json."""
+    for name in ("profile.json", "remote.json"):
+        path = photo.parent / name
+        if path.is_file():
+            return path
+    return photo.parent / "profile.json"
+
+
 def load(photo: Path):
     bgr = cv2.imread(str(photo), cv2.IMREAD_UNCHANGED)
     if bgr is None or bgr.ndim != 3 or bgr.shape[2] != 4:
         raise SystemExit(f"нужно PNG с прозрачным фоном: {photo}")
     screen = None
-    remote = photo.parent / "remote.json"
+    remote = profile_file(photo)
     if remote.is_file():
         rect = json.loads(remote.read_text(encoding="utf-8")).get("display", {}).get("rect")
         if rect:
@@ -189,7 +198,7 @@ def main():
         return
     out = Path(args[1])
     out.mkdir(parents=True, exist_ok=True)
-    remote = json.loads((photo.parent / "remote.json").read_text(encoding="utf-8"))
+    remote = json.loads(profile_file(photo).read_text(encoding="utf-8"))
     manual = remote.get("hardware", {}).get("zones", [])
     print(f"найдено зон: {len(boxes)}, ручных зон: {len(manual)}")
     ov = rgb.copy()

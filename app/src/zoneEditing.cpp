@@ -147,7 +147,7 @@ QByteArray lineIndent(const QByteArray& t, qsizetype pos) {
     return t.mid(start, end - start);
 }
 
-/// Объект экрана `screenId` в массиве `screens` remote.json; nullopt — такого экрана нет.
+/// Объект экрана `screenId` в массиве `screens` profile.json; nullopt — такого экрана нет.
 std::optional<Span> screenSpan(const QByteArray& t, const QString& screenId) {
     const auto screens = memberValue(t, rootStart(t), QStringLiteral("screens"));
     if (!screens) return std::nullopt;
@@ -162,7 +162,7 @@ std::optional<Span> screenSpan(const QByteArray& t, const QString& screenId) {
     return std::nullopt;
 }
 
-/// Массив зон в remote.json: `hardware.zones` при пустом `screenId`, иначе `cells` экрана `screenId`.
+/// Массив зон в profile.json: `hardware.zones` при пустом `screenId`, иначе `cells` экрана `screenId`.
 std::optional<Span> zonesSpan(const QByteArray& t, const QString& screenId) {
     if (screenId.isEmpty()) {
         const auto hardware = memberValue(t, rootStart(t), QStringLiteral("hardware"));
@@ -428,7 +428,7 @@ QList<Issue> checkScreen(const QJsonArray& zones, const QSizeF& ref, const QSet<
         if (id.isEmpty()) warning(i, tr("%1: id is empty").arg(name));
         else if (seen.contains(id)) warning(i, tr("%1: the id is used twice").arg(name));
         seen.insert(id);
-        // Так же проверяет загрузка ресурсов: без корректного rect весь remote.json отвергается.
+        // Так же проверяет загрузка ресурсов: без корректного rect весь profile.json отвергается.
         if (!r.isValid()) error(i, tr("%1: width and height must be positive").arg(name));
         else if (!bounds.contains(r) && !(kind == "ScreenPanel" && zone.value("role") == "band"))
             warning(i, tr("%1 goes beyond the screen").arg(name));

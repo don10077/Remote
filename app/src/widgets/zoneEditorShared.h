@@ -24,7 +24,7 @@
 
 namespace harmony::app::zoneEditorDetail {
 
-/// Роль экрана, которую можно добавить: роль в remote.json и id экрана по умолчанию.
+/// Роль экрана, которую можно добавить: роль в profile.json и id экрана по умолчанию.
 struct ScreenRole {
     const char* role;
     const char* id;
@@ -80,7 +80,7 @@ inline std::optional<QRectF> tilesBounds(const QJsonArray& zones, qreal gap) {
     return area.adjusted(-gap, -gap, gap, gap);
 }
 
-/// `[x, y, w, h]` с округлением до сотых, как пишутся прямоугольники в remote.json.
+/// `[x, y, w, h]` с округлением до сотых, как пишутся прямоугольники в profile.json.
 inline QJsonArray rectArray(const QRectF& r) {
     using zoneEditing::round2;
     return {round2(r.x()), round2(r.y()), round2(r.width()), round2(r.height())};

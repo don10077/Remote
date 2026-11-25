@@ -118,7 +118,7 @@ includes automatic zone detection, alignment tools and undo/redo.
 
 ![Harmony zone editor showing button zones and the screen area of a Harmony 665](website/assets/zone-editor.jpg)
 
-Visual profiles are stored in `app/resources/remotes/<id>/remote.json` with a `photo.png`.
+Visual profiles are stored in `app/resources/remotes/<id>/profile.json` with a `photo.png`.
 Configuration parsing and USB communication need their own model support.
 See the [resource guide](app/resources/README.md) and [profile schema](app/resources/remotes/SCHEMA.md).
 
@@ -165,6 +165,10 @@ shared libraries. Native Linux/macOS builds and tests are still required.
 `build/ucrt64/win-clang`, installing Clang through MSYS2 when needed. The first
 build takes longer; subsequent builds are incremental. This catches Clang
 warnings GCC may miss; Apple SDK and Apple Clang differences still require macOS CI.
+Both local compilers target Windows and use UCRT headers. They cannot reproduce
+Linux glibc diagnostics or every warning from the GCC 13 used on Ubuntu 24.04.
+For Linux parity, also build and test the `core-only` and `release` presets on
+Ubuntu 24.04 (natively, in WSL, or in a container) with its GCC 13 toolchain.
 
 Windows builds use MSYS2 UCRT64, both locally and in GitHub Actions. Local build files are kept in `build/ucrt64/<preset>/` to separate them from previous MinGW64 builds.
 

@@ -10,6 +10,7 @@
 #include <QDoubleSpinBox>
 #include <QElapsedTimer>
 #include <QFile>
+#include <QFileInfo>
 #include <QProcess>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -20,7 +21,67 @@
 #include <QUndoStack>
 #include <QTemporaryDir>
 #include <QDir>
+#include <utility>
 #include <gtest/gtest.h>
+
+namespace {
+/// Профиль модели в рабочей папке рядом с exe. Снимок обоих имён: после V0 каталог,
+/// оставшийся от прошлой версии, может содержать только старое `remote.json`.
+struct WorkingProfile {
+    QString model;
+    QString modern, legacy, backup;
+    QByteArray modernBytes, legacyBytes;
+
+    explicit WorkingProfile(const QString& id) : model(id) {
+        const QString dir = QDir(harmony::app::remoteResources::folder()).filePath("remotes/" + model);
+        modern = dir + "/profile.json";
+        legacy = dir + "/remote.json";
+        backup = dir + "/remote.json.bak";
+        modernBytes = read(modern);
+        legacyBytes = read(legacy);
+    }
+    static QByteArray read(const QString& path) {
+        QFile file(path);
+        return file.open(QIODevice::ReadOnly) ? file.readAll() : QByteArray();
+    }
+    /// Встроенный профиль модели — исходное состояние для теста.
+    QByteArray builtin() const {
+        QFile file(":/res/remotes/" + model + "/profile.json");
+        return file.open(QIODevice::ReadOnly) ? file.readAll() : QByteArray();
+    }
+    /// Положить встроенный профиль под новым именем, убрав старое имя и `.bak`.
+    /// Нужно потому, что рабочая папка живёт между прогонами: после падения в ней мог
+    /// остаться испорченный или пустой `profile.json`, а prepareFolder() его не трогает.
+    bool installBundled() const {
+        const QByteArray bytes = builtin();
+        if (bytes.isEmpty()) return false;
+        QFile::remove(legacy);
+        QFile::remove(backup);
+        QFile out(modern);
+        if (!out.open(QIODevice::WriteOnly)) return false;
+        const bool written = out.write(bytes) == bytes.size();
+        out.close();
+        return written;
+    }
+    /// Состояние до V0: тот же встроенный профиль, но только под старым именем.
+    bool installLegacyOnly() const {
+        return installBundled() && QFile::rename(modern, legacy);
+    }
+    /// Вернуть ровно то, что было до теста, и перечитать ресурсы. Пустой снимок
+    /// (файла не было или он был нулевой длины) не восстанавливается: мусор не возвращаем.
+    void restore() const {
+        QFile::remove(modern);
+        QFile::remove(legacy);
+        QFile::remove(backup);
+        for (const auto& [path, bytes] : {std::pair{modern, modernBytes}, std::pair{legacy, legacyBytes}}) {
+            if (bytes.isEmpty()) continue;
+            QFile out(path);
+            if (out.open(QIODevice::WriteOnly)) out.write(bytes);
+        }
+        harmony::app::remoteResources::reload();
+    }
+};
+}
 
 TEST(ZoneEditorDialog, ActionFieldsUpdateJsonAndPreview) {
     QTemporaryDir resources;
@@ -143,7 +204,11 @@ TEST(ZoneEditorDialog, Harmony900HasDifferentActivityAndCommandLayers) {
 TEST(ZoneEditorDialog, AutoZonesFlowVisibleOnCanvas) {
     // Как при запуске приложения: рабочая папка заполняется встроенными ресурсами.
     // Папка — та, что рядом с exe: авто-зоны берут фото оттуда (remoteResources::folder()).
-    // Устаревшие remote.json штатных пультов в ней заменяются встроенными, ошибки не будет.
+    // Профиль 600 кладём заново из встроенного: папка живёт между прогонами и в ней мог
+    // остаться испорченный файл, который prepareFolder() не перезаписывает.
+    const WorkingProfile state("600");
+    const auto restore = qScopeGuard([&] { state.restore(); });
+    ASSERT_TRUE(state.installBundled());
     const auto error = harmony::app::remoteResources::reload();
     ASSERT_TRUE(error.isEmpty()) << error.toStdString();
     harmony::app::ZoneEditorDialog dialog("600");
@@ -184,6 +249,9 @@ TEST(ZoneEditorDialog, AutoZonesFlowVisibleOnCanvas) {
 
 TEST(ZoneEditorDialog, AutoZonesCanBeStopped) {
     // Второе нажатие останавливает распознавание: процесс завершается, зоны не добавляются.
+    const WorkingProfile state("600");
+    const auto restore = qScopeGuard([&] { state.restore(); });
+    ASSERT_TRUE(state.installBundled());
     const auto error = harmony::app::remoteResources::reload();
     ASSERT_TRUE(error.isEmpty()) << error.toStdString();
     harmony::app::ZoneEditorDialog dialog("600");
@@ -232,29 +300,15 @@ TEST(ZoneEditorDialog, AutoZonesActionOnlyOnBodyLayer) {
 }
 
 TEST(ZoneEditorDialog, RemoteFieldsAreWrittenToFileRightAway) {
-    // Редактор пишет в рабочую папку рядом с exe: подготовить её и вернуть штатный файл в конце.
-    ASSERT_TRUE(harmony::app::remoteResources::reload().isEmpty());
-    const QString path = QDir(harmony::app::remoteResources::folder()).filePath("remotes/600/remote.json");
-    QFile in(path);
-    ASSERT_TRUE(in.open(QIODevice::ReadOnly));
-    const QByteArray previous = in.readAll();
-    in.close();
-    const auto restore = qScopeGuard([&] {
-        QFile out(path);
-        if (out.open(QIODevice::WriteOnly)) out.write(previous);
-        out.close();
-        harmony::app::remoteResources::reload();
-    });
-    // В рабочей папке мог остаться файл прошлой версии: начинаем со штатного.
-    QFile builtin(":/res/remotes/600/remote.json");
-    ASSERT_TRUE(builtin.open(QIODevice::ReadOnly));
-    const QByteArray original = builtin.readAll();
-    {
-        QFile out(path);
-        ASSERT_TRUE(out.open(QIODevice::WriteOnly));
-        ASSERT_EQ(out.write(original), original.size());
-    }
-    ASSERT_TRUE(harmony::app::remoteResources::reload().isEmpty());
+    // Редактор пишет в рабочую папку рядом с exe. Начинаем со встроенного профиля:
+    // папка живёт между прогонами, и prepareFolder() не перезаписывает испорченный файл.
+    const WorkingProfile state("600");
+    const auto restore = qScopeGuard([&] { state.restore(); });
+    ASSERT_TRUE(state.installBundled());
+    const QByteArray original = state.builtin();
+    ASSERT_FALSE(original.isEmpty());
+    const auto error = harmony::app::remoteResources::reload();
+    ASSERT_TRUE(error.isEmpty()) << error.toStdString();
 
     harmony::app::ZoneEditorDialog dialog("600");
     auto* touch = dialog.findChild<QCheckBox*>("zoneTouch");
@@ -268,7 +322,7 @@ TEST(ZoneEditorDialog, RemoteFieldsAreWrittenToFileRightAway) {
     EXPECT_EQ(dialog.findChild<QComboBox*>("zoneFormat"), nullptr);
     EXPECT_FALSE(touch->isChecked());
     touch->setChecked(true);
-    QFile after(path);
+    QFile after(state.modern);
     ASSERT_TRUE(after.open(QIODevice::ReadOnly));
     const QByteArray text = after.readAll();
     const auto remote = QJsonDocument::fromJson(text).object();
@@ -282,27 +336,22 @@ TEST(ZoneEditorDialog, RemoteFieldsAreWrittenToFileRightAway) {
 // Файл прошлой версии: driver — значение пользователя, он сохраняется; поля format и
 // transport из прошлой схемы убираются (формат определяется семейством и данными файла).
 TEST(ZoneEditorDialog, ConnectionFieldIsKeptAndFormatIsDropped) {
-    ASSERT_TRUE(harmony::app::remoteResources::reload().isEmpty());
-    const QString path = QDir(harmony::app::remoteResources::folder()).filePath("remotes/600/remote.json");
-    QByteArray previous;
+    // Начинаем со встроенного профиля: в рабочей папке мог остаться испорченный файл.
+    const WorkingProfile state("600");
+    const auto restore = qScopeGuard([&] { state.restore(); });
+    ASSERT_TRUE(state.installBundled());
+    const auto remote = QJsonDocument::fromJson(state.builtin()).object();
+    ASSERT_FALSE(remote.isEmpty());
+    QJsonObject old{remote};
+    old["connection"] = QJsonObject{{"transport", "usb-hid"}, {"driver", "hid"}, {"configFormat", "unsupported"}};
     {
-        QFile in(path);
-        if (in.open(QIODevice::ReadOnly)) previous = in.readAll();
-        const auto remote = QJsonDocument::fromJson(previous).object();
-        QJsonObject old{ remote };
-        old["connection"] = QJsonObject{{"transport", "usb-hid"}, {"driver", "hid"}, {"configFormat", "unsupported"}};
-        QFile out(path);
+        QFile out(state.modern);
         ASSERT_TRUE(out.open(QIODevice::WriteOnly));
         const QByteArray bytes = QJsonDocument(old).toJson(QJsonDocument::Indented);
         ASSERT_EQ(out.write(bytes), bytes.size());
     }
-    const auto restore = qScopeGuard([&] {
-        QFile out(path);
-        if (out.open(QIODevice::WriteOnly)) out.write(previous);
-        out.close();
-        harmony::app::remoteResources::reload();
-    });
-    ASSERT_TRUE(harmony::app::remoteResources::reload().isEmpty());
+    const auto error = harmony::app::remoteResources::reload();
+    ASSERT_TRUE(error.isEmpty()) << error.toStdString();
 
     harmony::app::ZoneEditorDialog dialog("600");
     auto* driver = dialog.findChild<QComboBox*>("zoneDriver");
@@ -312,7 +361,7 @@ TEST(ZoneEditorDialog, ConnectionFieldIsKeptAndFormatIsDropped) {
     EXPECT_EQ(driver->currentData().toString(), "usb-hid") << "старое имя hid переводится на новую схему";
     touch->setChecked(true); // правка пишется сразу
 
-    QFile after(path);
+    QFile after(state.modern);
     ASSERT_TRUE(after.open(QIODevice::ReadOnly));
     const auto saved = QJsonDocument::fromJson(after.readAll()).object();
     const auto connection = saved["connection"].toObject();
@@ -444,4 +493,28 @@ TEST(ZoneEditorDialog, SelectAllSelectsEveryZoneOfLayer) {
     action->trigger();
     ASSERT_EQ(canvas->selection().size(), zones);
     for (int i = 0; i < zones; ++i) EXPECT_TRUE(canvas->selection().contains(i));
+}
+
+// V0: первая запись модели со старым remote.json — появляется profile.json, старый файл в .bak.
+TEST(ZoneEditorDialog, LegacyFileIsAdoptedOnFirstSave) {
+    // Рабочая папка живёт между прогонами: начинаем со встроенного профиля и сами
+    // раскладываем его под старым именем — от прошлого состояния ничего не зависит.
+    const WorkingProfile state("600");
+    const auto restore = qScopeGuard([&] { state.restore(); });
+    ASSERT_TRUE(state.installLegacyOnly());
+    const auto error = harmony::app::remoteResources::reload();
+    ASSERT_TRUE(error.isEmpty()) << error.toStdString();
+    ASSERT_FALSE(harmony::app::remoteResources::remote("600").isEmpty());
+
+    harmony::app::ZoneEditorDialog dialog("600");
+    auto* touch = dialog.findChild<QCheckBox*>("zoneTouch");
+    ASSERT_NE(touch, nullptr);
+    touch->setChecked(true); // поле пишется сразу
+
+    EXPECT_TRUE(QFileInfo::exists(state.modern)) << "запись пошла в новое имя";
+    EXPECT_TRUE(QFileInfo::exists(state.backup)) << "старый файл не потерян";
+    EXPECT_FALSE(QFileInfo::exists(state.legacy));
+    ASSERT_TRUE(harmony::app::remoteResources::reload().isEmpty());
+    EXPECT_TRUE(harmony::app::remoteResources::remote("600")
+                    .value("capabilities").toObject().value("touch").toBool());
 }

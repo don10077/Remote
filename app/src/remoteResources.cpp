@@ -24,14 +24,18 @@
 namespace harmony::app::remoteResources {
 namespace {
 QHash<QString, QByteArray> snapshot;
-/// Проверенные описания пультов последнего снимка: id → remote.json с достроенными rect ячеек.
+/// Проверенные описания пультов последнего снимка: id → профиль с достроенными rect ячеек.
 QHash<QString, QJsonObject> remotes;
 quint64 generation = 0;
 /// Пользовательские модели, пропущенные последним reload() из-за ошибок (тексты ошибок).
 QStringList skippedModels;
 QHash<QString, QString> skippedById;
-/// remote.json в старой схеме, переведённые последним reload() на новую (пути к файлам).
+/// Профили в старой схеме, переведённые последним reload() на новую (пути к файлам).
 QStringList migratedFiles;
+/// Предупреждения последнего reload(): модель загружена, но данные расходятся.
+QStringList warnings;
+const QString kPrefix = ":/res/";
+const QString kRemotes = ":/res/remotes/";
 /// Проверить конечные координаты прямоугольника и положительный размер.
 QRectF rect(const QJsonValue& value) {
     const auto a = value.toArray();
@@ -39,29 +43,55 @@ QRectF rect(const QJsonValue& value) {
     for (const auto& n : a) if (!n.isDouble() || !std::isfinite(n.toDouble())) return {};
     return {a[0].toDouble(), a[1].toDouble(), a[2].toDouble(), a[3].toDouble()};
 }
-/// Описание пульта: `remotes/<id>/remote.json`, путь от корня папки ресурсов.
-bool remoteFile(const QString& relative) {
-    static const QRegularExpression pattern(QStringLiteral("^remotes/[^/]+/remote\\.json$"));
+/// Путь профиля от корня папки ресурсов: `remotes/<id>/profile.json`.
+QString profileKey(const QString& modelId) {
+    return QStringLiteral("remotes/") + modelId + "/" + kProfileFile;
+}
+/// Старое имя профиля от корня папки ресурсов: `remotes/<id>/remote.json`.
+QString legacyKey(const QString& modelId) {
+    return QStringLiteral("remotes/") + modelId + "/" + kLegacyProfileFile;
+}
+/// Профиль пульта: `remotes/<id>/profile.json` или старое имя, путь от корня папки ресурсов.
+bool profileFile(const QString& relative) {
+    static const QRegularExpression pattern(
+        QStringLiteral("^remotes/[^/]+/(profile|remote)\\.json$"));
     return pattern.match(relative).hasMatch();
+}
+/// Имя файла — старое (`remote.json`), а не `profile.json`.
+bool legacyProfile(const QString& relative) {
+    return relative.endsWith("/" + kLegacyProfileFile);
+}
+/// Встроенный профиль пульта: `profile.json`, пока его нет — старый `remote.json`; пусто — нет.
+QByteArray builtinProfile(const QString& modelId) {
+    for (const QString& name : {kProfileFile, kLegacyProfileFile}) {
+        QFile file(kRemotes + modelId + "/" + name);
+        if (file.open(QIODevice::ReadOnly)) return file.readAll();
+    }
+    return {};
 }
 /**
  * Файл относится к ресурсам пультов: путь от корня папки ресурсов.
- * Из JSON читается только remote.json; оставшиеся от старых версий profile.json, zones.json,
+ * Из JSON читается только профиль пульта; оставшиеся от старых версий zones.json,
  * screens.json и layouts.json не читаются и не мешают загрузке.
  */
 bool managed(const QString& relative) {
-    if (relative.endsWith(".json")) return remoteFile(relative);
+    if (relative.endsWith(".json")) return profileFile(relative);
     return (relative.startsWith("remotes/") || relative.startsWith("sprites/")) &&
            (relative.endsWith(".png") || relative.endsWith(".svg"));
 }
-const QString kPrefix = ":/res/";
-const QString kRemotes = ":/res/remotes/";
+}
+
+QString profileFilePath(const QDir& modelDir) {
+    if (modelDir.exists(kProfileFile)) return modelDir.filePath(kProfileFile);
+    if (modelDir.exists(kLegacyProfileFile)) return modelDir.filePath(kLegacyProfileFile);
+    return modelDir.filePath(kProfileFile);
 }
 
 QString folder() { return QDir(QCoreApplication::applicationDirPath()).filePath("resources"); }
 quint64 revision() { return generation; }
 QStringList skipped() { return skippedModels; }
 QStringList migratedByReload() { return migratedFiles; }
+QStringList profileWarnings() { return warnings; }
 
 ScreenZones screenZones(const QJsonObject& screen) {
     ScreenZones zones;
@@ -140,27 +170,38 @@ QJsonObject normalizeRemote(QJsonObject remote) {
 QJsonObject remote(const QString& modelId) {
     if (generation == 0) {
         // reload() ещё не вызывался (тесты, ранний запуск): встроенное описание пульта.
-        QFile file(kRemotes + modelId + "/remote.json");
-        if (!file.open(QIODevice::ReadOnly)) return {};
-        return normalizeRemote(QJsonDocument::fromJson(file.readAll()).object());
+        const QByteArray bytes = builtinProfile(modelId);
+        if (bytes.isEmpty()) return {};
+        return normalizeRemote(QJsonDocument::fromJson(bytes).object());
     }
     return remotes.value(modelId);
 }
 
 RemoteFile readRemote(const QString& modelId, const QString& root) {
     RemoteFile file;
-    file.path = "remotes/" + modelId + "/remote.json";
-    QFile input(QDir(root).filePath(file.path));
-    if (!input.open(QIODevice::ReadOnly)) input.setFileName(kPrefix + file.path);
-    if (!input.isOpen() && !input.open(QIODevice::ReadOnly)) {
-        file.error = file.path + ": " + input.errorString();
-        return file;
+    file.path = profileKey(modelId);
+    const QDir dir(root);
+    // На диске: profile.json, пока его нет — старый remote.json; иначе встроенный ресурс.
+    QString source = file.path;
+    if (!QFileInfo::exists(dir.filePath(source)) && QFileInfo::exists(dir.filePath(legacyKey(modelId))))
+        source = legacyKey(modelId);
+    QFile input(dir.filePath(source));
+    if (input.open(QIODevice::ReadOnly)) {
+        file.sourcePath = source;
+    } else {
+        input.setFileName(kPrefix + file.path);
+        if (!input.open(QIODevice::ReadOnly)) input.setFileName(kPrefix + legacyKey(modelId));
+        if (!input.isOpen() && !input.open(QIODevice::ReadOnly)) {
+            file.error = file.path + ": " + input.errorString();
+            return file;
+        }
     }
+    const QString named = file.sourcePath.isEmpty() ? file.path : file.sourcePath;
     file.text = input.readAll();
     QJsonParseError parseError;
     const auto document = QJsonDocument::fromJson(file.text, &parseError);
     if (parseError.error != QJsonParseError::NoError || !document.isObject()) {
-        file.error = file.path + ": " +
+        file.error = named + ": " +
                      (parseError.error != QJsonParseError::NoError ? parseError.errorString() : QStringLiteral("invalid JSON structure"));
         file.current = file.text;
         return file;
@@ -182,8 +223,8 @@ bool migrateRemote(QJsonObject& remote, const QString& modelId) {
     bool changed = false;
     // Встроенное описание того же пульта — образец новых полей; у своих пультов его нет.
     QJsonObject builtin;
-    if (QFile file(":/res/remotes/" + modelId + "/remote.json"); file.open(QIODevice::ReadOnly))
-        builtin = QJsonDocument::fromJson(file.readAll()).object();
+    if (const QByteArray bytes = builtinProfile(modelId); !bytes.isEmpty())
+        builtin = QJsonDocument::fromJson(bytes).object();
 
     // W3: `connection.driver` — способ подключения модели, заданный пользователем; если поля
     // нет, связь берётся из каталога. Поля format, configFormat и transport из прошлой схемы
@@ -277,9 +318,13 @@ QByteArray data(const QString& path) {
 }
 
 QString reload(const QString& root) {
+    warnings.clear();
     if (const QString error = prepareFolder(root); !error.isEmpty()) return error;
     QHash<QString, QByteArray> candidate;
     QHash<QString, QString> sources;
+    // У пульта один профиль. Старый remote.json читается, пока profile.json нет, но ключ снимка
+    // всегда profile.json: иначе описание пульта попало бы дважды. Оба файла — предупреждение.
+    QStringList both;
     for (const QString& base : {root}) {
         if (base.isEmpty()) continue;
         QDirIterator files(base, QDir::Files, QDirIterator::Subdirectories);
@@ -287,21 +332,39 @@ QString reload(const QString& root) {
             const QString file = files.next();
             const QString relative = QDir(base).relativeFilePath(file);
             if (!managed(relative)) continue;
+            QString key = ":/res/" + relative;
+            if (profileFile(relative)) {
+                const QString modelId = relative.section('/', 1, 1);
+                const QString canonical = QDir(base).filePath(profileKey(modelId));
+                const QString legacy = QDir(base).filePath(legacyKey(modelId));
+                if (legacyProfile(relative)) {
+                    if (QFileInfo::exists(canonical)) {
+                        if (!both.contains(modelId)) both.append(modelId);
+                        continue; // profile.json прочитается своим файлом
+                    }
+                    key = ":/res/" + profileKey(modelId);
+                } else if (QFileInfo::exists(legacy) && !both.contains(modelId)) {
+                    both.append(modelId);
+                }
+            }
             QFile input(file);
             if (!input.open(QIODevice::ReadOnly)) return file + ": " + input.errorString();
-            const QString key = ":/res/" + relative;
             candidate.insert(key, input.readAll());
             sources.insert(key, file);
         }
     }
-    // remote.json прошлой версии программы переводится на новую схему в памяти: лишний connection
+    warnings.clear();
+    for (const QString& modelId : both)
+        warnings.append(QStringLiteral("remotes/") + modelId +
+                        ": both profile.json and remote.json exist; profile.json is used");
+    // Профиль прошлой версии программы переводится на новую схему в памяти: лишний connection
     // (связь теперь в каталоге модели) и старые style и compact экранов. Правки пользователя
     // (зоны, цвета, экраны) сохраняются. Файл на диске не меняется,
     // редактор зон запишет его в новой схеме при следующем сохранении.
     QStringList migrated;
     for (auto it = candidate.begin(); it != candidate.end(); ++it) {
         const QString& key = it.key();
-        if (!key.endsWith("/remote.json")) continue;
+        if (!key.endsWith("/" + kProfileFile)) continue;
         QJsonParseError parseError;
         const auto document = QJsonDocument::fromJson(it.value(), &parseError);
         if (parseError.error != QJsonParseError::NoError || !document.isObject()) continue; // ошибка — ниже
@@ -311,7 +374,7 @@ QString reload(const QString& root) {
         it.value() = QJsonDocument(remote).toJson(QJsonDocument::Compact);
         migrated.append(sources.value(key));
     }
-    QHash<QString, QJsonObject> parsed; // id пульта → remote.json
+    QHash<QString, QJsonObject> parsed; // id пульта → профиль
     // Ошибки пультов, которые не входят в штатный набор: пульт пропускается, остальные работают.
     QHash<QString, QString> failed;
     QString fatal;
@@ -351,7 +414,7 @@ QString reload(const QString& root) {
     // Проверить один пульт; при ошибке вернуть текст (пульт в каталог не попадает).
     const auto checkModel = [&](const QString& modelId, const QJsonObject& remote) -> QString {
         const QString dir = kRemotes + modelId;
-        const QString source = sources.value(dir + "/remote.json");
+        const QString source = sources.value(dir + "/" + kProfileFile);
         static const QRegularExpression validId("^[a-z0-9][a-z0-9_-]*$");
         if (!validId.match(modelId).hasMatch()) return source + ": invalid model id";
         const QString name = remote.value("name").toString().trimmed();
@@ -472,8 +535,10 @@ QStringList modelIds(const QString& root) {
     const QDir remotesDir(QDir(root).filePath(QStringLiteral("remotes")));
     for (const QString& id : remotesDir.entryList(QDir::Dirs | QDir::NoDotAndDotDot, QDir::Name)) {
         // Папка с одним photo.png тоже модель: для неё редактор создаст заготовку (createStub).
-        if (!result.contains(id) && (QFileInfo::exists(remotesDir.filePath(id + QStringLiteral("/remote.json"))) ||
-                                     QFileInfo::exists(remotesDir.filePath(id + QStringLiteral("/photo.png")))))
+        const QDir dir(remotesDir.filePath(id));
+        const bool hasProfile = QFileInfo::exists(dir.filePath(kProfileFile)) ||
+                                QFileInfo::exists(dir.filePath(kLegacyProfileFile));
+        if (!result.contains(id) && (hasProfile || QFileInfo::exists(dir.filePath("photo.png"))))
             result.append(id);
     }
     return result;
@@ -481,8 +546,9 @@ QStringList modelIds(const QString& root) {
 
 QString createStub(const QString& modelId, const QString& root) {
     const QDir dir(QDir(root).filePath("remotes/" + modelId));
-    const QString target = dir.filePath("remote.json");
-    if (QFileInfo::exists(target)) return {};
+    const QString target = dir.filePath(kProfileFile);
+    // Старый файл профиля тоже считается существующим: заготовка рядом с ним только мешала бы.
+    if (QFileInfo::exists(target) || QFileInfo::exists(dir.filePath(kLegacyProfileFile))) return {};
     const QString photo = dir.filePath("photo.png");
     const QImage image(photo);
     if (image.isNull()) return photo + ": no valid photo.png";
@@ -503,6 +569,36 @@ QString createStub(const QString& modelId, const QString& root) {
     if (!out.open(QIODevice::WriteOnly) || out.write(bytes) != bytes.size() || !out.commit())
         return target + ": " + out.errorString();
     return {};
+}
+
+QString archiveLegacyProfile(const QString& modelId, const QString& root) {
+    const QDir dir(QDir(root).filePath("remotes/" + modelId));
+    const QString legacy = dir.filePath(kLegacyProfileFile);
+    // Убирать нечего или профиль ещё не записан под новым именем — файл не трогаем.
+    if (!QFileInfo::exists(legacy) || !QFileInfo::exists(dir.filePath(kProfileFile))) return {};
+    const QString backup = dir.filePath(kLegacyProfileBackup);
+    if (QFileInfo::exists(backup) && !QFile::remove(backup)) return backup + ": cannot replace the backup";
+    QFile file(legacy);
+    if (!file.rename(backup)) return legacy + ": " + file.errorString();
+    return {};
+}
+
+QString adoptLegacyProfile(const QString& modelId, const QString& root) {
+    const QDir dir(QDir(root).filePath("remotes/" + modelId));
+    const QString legacy = dir.filePath(kLegacyProfileFile);
+    const QString target = dir.filePath(kProfileFile);
+    if (!QFileInfo::exists(legacy) || QFileInfo::exists(target)) return {};
+    QFile input(legacy);
+    if (!input.open(QIODevice::ReadOnly)) return legacy + ": " + input.errorString();
+    const QByteArray bytes = input.readAll();
+    if (input.error() != QFileDevice::NoError) return legacy + ": " + input.errorString();
+    input.close();
+    // Сначала profile.json с тем же текстом, потом старый файл в .bak: если второй шаг не удался,
+    // в папке остаются оба файла (читается profile.json), а не потерянный профиль.
+    QSaveFile out(target);
+    if (!out.open(QIODevice::WriteOnly) || out.write(bytes) != bytes.size() || !out.commit())
+        return target + ": " + out.errorString();
+    return archiveLegacyProfile(modelId, root);
 }
 
 QStringList exportFiles(const QString& modelId) {
@@ -540,6 +636,12 @@ QString prepareFolder(const QString& root) {
         const QString file = files.next();
         const QString relative = builtin.relativeFilePath(file);
         if (!managed(relative) || base.exists(relative)) continue;
+        // У пульта, у которого уже есть старый remote.json, встроенный profile.json не кладём:
+        // иначе правки пользователя оказались бы под чужим файлом с тем же именем пульта.
+        if (!legacyProfile(relative) && profileFile(relative)) {
+            const QDir modelDir = QFileInfo(base.filePath(relative)).dir();
+            if (modelDir.exists(kLegacyProfileFile)) continue;
+        }
         QFile input(file);
         if (!input.open(QIODevice::ReadOnly)) return file + ": " + input.errorString();
         const QString path = base.filePath(relative);

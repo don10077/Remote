@@ -156,7 +156,7 @@ TEST(RemoteCatalog, DisplayNameComesFromCatalogThenProfile) {
     remoteProfiles = saved;
 }
 
-// Решено владельцем 22.11: способ подключения берётся из remote.json модели, если поле задано;
+// Решено владельцем 22.11: способ подключения берётся из profile.json модели, если поле задано;
 // если поля нет — из каталога. Право записи при этом решает каталог (OD9, W2).
 TEST(RemoteCatalog, ConnectionFollowsFileWhenTheFieldIsSet) {
     // Без поля в файле — каталог.
@@ -181,7 +181,7 @@ TEST(RemoteCatalog, ConnectionFollowsFileWhenTheFieldIsSet) {
             if (profile.id == id) profile.driver = value;
     };
 
-    // Своя модель вне каталога: каталог её не знает, работает значение из remote.json.
+    // Своя модель вне каталога: каталог её не знает, работает значение из profile.json.
     remoteProfiles.push_back({"my-remote", "My remote", "", "usb-net"});
     EXPECT_EQ(modelLink("my-remote"), LinkKind::UsbNet);
     EXPECT_TRUE(usesUsbNet("my-remote"));

@@ -2,7 +2,7 @@
 
 /**
  * @file zoneEditorDialog.h
- * @brief Редактор зон пультов в remote.json: зоны корпуса (`hardware.zones`), ячейки экранов
+ * @brief Редактор зон пультов в profile.json: зоны корпуса (`hardware.zones`), ячейки экранов
  *        (`screens[].cells`), рамка экрана (`display.rect`).
  *
  * Слева холст (ZoneCanvas) с фото модели, справа список зон, свойства выделенной зоны
@@ -106,13 +106,13 @@ private:
     /// Слой разметки: корпус либо одна раскладка экрана модели.
     struct Layer {
         QString key;       ///< "body" или id раскладки при загрузке; не меняется до перезагрузки модели
-        QString layout;    ///< id экрана в remote.json (у черновика — его временный ключ); пусто у корпуса
+        QString layout;    ///< id экрана в profile.json (у черновика — его временный ключ); пусто у корпуса
         QStringList modes; ///< режимы экрана модели, показывающие эту раскладку
         QString caption;
-        QString role;       ///< роль экрана из remote.json
-        /// Экран из remote.json без `cells` (ячейки — в current); у черновика — оформление образца.
+        QString role;       ///< роль экрана из profile.json
+        /// Экран из profile.json без `cells` (ячейки — в current); у черновика — оформление образца.
         QJsonObject screen;
-        bool draft = false; ///< новый экран, ещё не записанный в remote.json (живёт только в редакторе)
+        bool draft = false; ///< новый экран, ещё не записанный в profile.json (живёт только в редакторе)
         QSizeF ref;        ///< единицы слоя: размер фото или `ref` раскладки
         State original;    ///< как в файле
         QList<QByteArray> originalText; ///< исходный текст зон `original` (пусто — не разобран)
@@ -131,8 +131,10 @@ private:
     void reloadModel(QString target, bool keepDrafts = true);
     /// Текст файла папки ресурсов, а если его нет — из загруженного снимка.
     static QByteArray readResource(const QString& relative);
-    /// `remotes/<id>/remote.json` открытой модели, путь от корня папки ресурсов.
+    /// `remotes/<id>/profile.json` открытой модели, путь от корня папки ресурсов.
     [[nodiscard]] QString remotePath() const;
+    /// Перевести старый `remote.json` модели на `profile.json` перед первой записью (V0).
+    bool adoptProfileFile();
 
     [[nodiscard]] bool hasLayer() const { return current_ >= 0 && current_ < layers_.size(); }
     Layer& layer() { return layers_[current_]; }
@@ -207,10 +209,10 @@ private:
     bool save();
     /// Обновить вкладку «Экраны»: список экранов модели и параметры открытого экрана.
     void refreshScreens();
-    /// Правка текста remote.json: текущий текст (в текущей схеме) → новый; nullopt — структура не распознана.
+    /// Правка текста profile.json: текущий текст (в текущей схеме) → новый; nullopt — структура не распознана.
     using TextChange = std::function<std::optional<QByteArray>(const QByteArray&)>;
     /**
-     * @brief Сразу изменить remote.json и перечитать модель.
+     * @brief Сразу изменить profile.json и перечитать модель.
      *
      * Несохранённые правки зон — сначала вопрос (сохранить, отбросить, отмена). Правка
      * применяется к тексту файла на диске в текущей схеме (remoteResources::currentSchema),
@@ -222,7 +224,7 @@ private:
      */
     bool modifyRemote(const TextChange& change, QString target, bool keepDrafts = true);
     /**
-     * @brief Сразу записать одно значение remote.json (zoneEditing::patchValue).
+     * @brief Сразу записать одно значение profile.json (zoneEditing::patchValue).
      * @param screenId Экран, внутри которого путь; пусто — от корня файла.
      * @param keys Путь ключей, например `{"tiles", "color"}`.
      * @param value Новое значение; `QJsonValue::Undefined` — удалить ключ.
@@ -282,7 +284,7 @@ private:
     void beginNewScreen();
     /// Оставить в списке типов только экраны, которых у пульта ещё нет.
     void updateRoleChoices();
-    /// Записать черновик нового экрана в remote.json.
+    /// Записать черновик нового экрана в profile.json.
     void createNewScreen();
     /// Отбросить черновик нового экрана.
     void cancelNewScreen();
@@ -300,6 +302,8 @@ private:
     int current_ = -1;
     /// Тексты файлов на момент загрузки/сохранения: для обнаружения правки извне.
     QHash<QString, QByteArray> files_;
+    /// Откуда прочитан профиль: `profile.json` или старый `remote.json`; запись всегда в profile.json (V0).
+    QString profileSource_;
     QUndoStack undo_;
 
     ZoneCanvas* canvas_ = nullptr;
@@ -330,7 +334,7 @@ private:
     QList<QCheckBox*> serviceChecks_;           ///< служебные элементы экрана: заголовок, страница, часы, батарея
     QLabel* screenHint_ = nullptr;              ///< что из оформления экрана перекрыто картинками
     QList<QWidget*> screenWidgets_;             ///< поля экрана: доступны, пока на холсте экран
-    // Вкладка «Пульт»: поля remote.json, общие для пульта.
+    // Вкладка «Пульт»: поля profile.json, общие для пульта.
     QJsonObject remote_;                        ///< описание открытой модели (readRemote)
     std::optional<QJsonObject> liveScreen_;     ///< открытый экран с вводимым, ещё не записанным цветом
     std::optional<QJsonObject> liveTiles_;      ///< блок tiles с вводимым, ещё не записанным цветом
@@ -340,7 +344,7 @@ private:
     QLineEdit* tileColorEdit_ = nullptr;        ///< tiles.color
     QLineEdit* tileBorderEdit_ = nullptr;       ///< tiles.border
     QLabel* tilesHint_ = nullptr;               ///< на каких экранах цвет плиток не виден
-    bool writing_ = false;                      ///< идёт запись remote.json (повторный editingFinished не пишет)
+    bool writing_ = false;                      ///< идёт запись profile.json (повторный editingFinished не пишет)
     QListWidget* zoneList_ = nullptr;
     QLineEdit* idEdit_ = nullptr;
     QComboBox* kindBox_ = nullptr;

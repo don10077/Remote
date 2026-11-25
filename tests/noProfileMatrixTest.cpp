@@ -47,7 +47,7 @@ protected:
     void clearCatalog() { harmony::remoteProfiles.clear(); }
 
     /// Модель в реестре профилей: оформление — id, имя и картинка; связь — значение из
-    /// remote.json, если оно задано (W3: пустое — берём каталог).
+    /// profile.json, если оно задано (W3: пустое — берём каталог).
     void addProfile(const std::string& id, const std::string& driver = {}) {
         harmony::remoteProfiles.push_back({id, id, "photo.png", driver});
     }
@@ -161,7 +161,7 @@ TEST_F(CatalogTest, SetTargetRemoteRejectsUnknownId) {
     EXPECT_EQ(document.targetRemote(), "525") << "неудачная попытка ничего не изменила";
 }
 
-// Связь: значение из remote.json, если оно задано; иначе — каталог (W3, решено владельцем
+// Связь: значение из profile.json, если оно задано; иначе — каталог (W3, решено владельцем
 // 22.11). 1000 — USB-сеть без профиля.
 TEST_F(CatalogTest, ConnectionFollowsFileWhenTheFieldIsSet) {
     clearCatalog();
@@ -172,7 +172,7 @@ TEST_F(CatalogTest, ConnectionFollowsFileWhenTheFieldIsSet) {
     addProfile("my-remote");
     EXPECT_FALSE(harmony::usesUsbNet("my-remote")) << "без поля в файле: модели нет в каталоге — связи нет";
     harmony::remoteProfiles.back().driver = "usb-net";
-    EXPECT_TRUE(harmony::usesUsbNet("my-remote")) << "своя модель: способ подключения из remote.json";
+    EXPECT_TRUE(harmony::usesUsbNet("my-remote")) << "своя модель: способ подключения из profile.json";
 
     // Заданное поле важнее каталога (право записи при этом решает каталог — OD9).
     addProfile("650", "usb-net");

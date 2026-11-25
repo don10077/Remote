@@ -59,10 +59,10 @@ protected:
     void TearDown() override { resources::reload(root.path()); }
 };
 
-/// Записать remote.json в папку тестового снимка.
+/// Записать profile.json в папку тестового снимка.
 void writeFixture(const QString& root, const QString& id, const QJsonObject& remote) {
     ASSERT_TRUE(QDir().mkpath(root + "/remotes/" + id));
-    QFile file(root + "/remotes/" + id + "/remote.json");
+    QFile file(root + "/remotes/" + id + "/profile.json");
     ASSERT_TRUE(file.open(QIODevice::WriteOnly));
     const QByteArray text = QJsonDocument(remote).toJson();
     ASSERT_EQ(file.write(text), text.size());

@@ -67,20 +67,20 @@ void ensureResourcesLoaded() {
     ASSERT_TRUE(loaded);
 }
 
-/** remote.json пульта из снимка ресурсов; пустой объект, если пульта нет. */
+/** profile.json пульта из снимка ресурсов; пустой объект, если пульта нет. */
 QJsonObject remoteOf(const QString& id) {
     ensureResourcesLoaded();
     return harmony::app::remoteResources::remote(id);
 }
 
-/** Размер фото из remote.json: тесты не должны дублировать данные ресурсов. */
+/** Размер фото из profile.json: тесты не должны дублировать данные ресурсов. */
 QSize profilePhotoSize(const QString& id) {
     const auto size = remoteOf(id).value("hardware").toObject().value("size").toArray();
     EXPECT_EQ(size.size(), 2);
     return {size[0].toInt(), size[1].toInt()};
 }
 
-/** Рамка дисплея из remote.json, в пикселях фото. */
+/** Рамка дисплея из profile.json, в пикселях фото. */
 QRectF profileScreen(const QString& id) {
     const auto rect = remoteOf(id).value("display").toObject().value("rect").toArray();
     EXPECT_EQ(rect.size(), 4);
@@ -125,7 +125,7 @@ TEST(RemoteView, BundledProfilesMatchPhotosAndHaveExplicitZones) {
             if (zone.value("kind").toString() == "Key") commandKeys.append(id);
         }
         // Назначаемые кнопки экранов модели ("key" ячеек) идут после физических:
-        // экраны по алфавиту id, ячейки в порядке remote.json.
+        // экраны по алфавиту id, ячейки в порядке profile.json.
         const auto screens = object.value("screens").toArray();
         ASSERT_FALSE(screens.isEmpty());
         QMap<QString, QJsonArray> cellsByScreen;

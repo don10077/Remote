@@ -1,6 +1,6 @@
 /**
  * @file zoneEditorRemoteFile.cpp
- * @brief Редактор зон: сохранение и запись полей remote.json, вкладка «Пульт».
+ * @brief Редактор зон: сохранение и запись полей profile.json, вкладка «Пульт».
  */
 
 #include "zoneEditorDialog.h"
@@ -73,6 +73,9 @@ bool ZoneEditorDialog::save() {
     }
 
     const QString path = remotePath();
+    // V0: профиль пишется только как profile.json. Если у модели ещё старый remote.json,
+    // он один раз переводится на новое имя: прежний текст остаётся в remote.json.bak.
+    if (!adoptProfileFile()) return false;
 
     // Внешние изменения нельзя незаметно заменить целым старым массивом зон.
     QHash<QString, QByteArray> disk;
@@ -116,7 +119,7 @@ bool ZoneEditorDialog::save() {
             remote = *patched;
         }
         if (!l.body() && (l.current.zones != l.original.zones || l.current.gap != l.original.gap)) {
-            // Сетка экрана (cols × rows, зазор) хранится в remote.json рядом с зонами и всегда им соответствует.
+            // Сетка экрана (cols × rows, зазор) хранится в profile.json рядом с зонами и всегда им соответствует.
             const QSize grid = slotGrid(l.current.zones);
             const auto withGrid = zoneEditing::patchGrid(remote, l.layout, grid.width(), grid.height(), l.current.gap);
             if (!withGrid) return fail(path);
@@ -156,6 +159,8 @@ bool ZoneEditorDialog::save() {
         QMessageBox::warning(this, windowTitle(), error);
         return false;
     }
+    // Старый файл рядом с новым (оба были в папке) убирается в .bak: дальше читается profile.json.
+    if (const QString error = remoteResources::archiveLegacyProfile(model_); !error.isEmpty()) note(error);
 
     reloadModel(hasLayer() ? layer().key : QString(), true); // превью слоёв строится из снимка
     note(tr("Saved"));
@@ -198,7 +203,7 @@ void ZoneEditorDialog::refreshRemote() {
     tilesHint_->setVisible(!pictured.isEmpty());
 }
 
-// ── Запись полей remote.json ──────────────────────────────────────────────────
+// ── Запись полей profile.json ──────────────────────────────────────────────────
 
 void ZoneEditorDialog::reloadModel(QString target, bool keepDrafts) {
     // target по значению: ссылка на ключ слоя устарела бы, когда loadModel() заменит layers_.
@@ -228,6 +233,8 @@ bool ZoneEditorDialog::modifyRemote(const TextChange& change, QString target, bo
     writing_ = true;
     const auto unlock = qScopeGuard([this] { writing_ = false; });
     if (!confirmDiscard()) return false;
+    // V0: точечная правка тоже пишет профиль только как profile.json.
+    if (!adoptProfileFile()) return false;
     const QString path = remotePath();
     QByteArray disk;
     {

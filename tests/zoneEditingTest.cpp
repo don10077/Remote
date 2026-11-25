@@ -153,7 +153,7 @@ TEST(ZoneEditing, ParseZonesReturnsEmptyOnInvalid) {
     EXPECT_TRUE(ze::parseZones("\"string\"").isEmpty());
 }
 
-/// Документ remote.json в миниатюре: зоны корпуса, рамка дисплея и два экрана с ячейками.
+/// Документ profile.json в миниатюре: зоны корпуса, рамка дисплея и два экрана с ячейками.
 const QByteArray kRemote = R"({
     "id": "880",
     "hardware": {
@@ -424,12 +424,12 @@ TEST(ZoneEditing, SaveFilesDetectsConflictAndWritesWholeSet) {
 TEST(ZoneEditing, SaveOnTopKeepsExternalRemoteChanges) {
     QTemporaryDir root;
     ASSERT_TRUE(root.isValid());
-    // Пока редактор был открыт, remote.json поправили вручную.
+    // Пока редактор был открыт, profile.json поправили вручную.
     QByteArray current = kRemote;
     current.replace("\"id\": \"880\"", "\"id\": \"880\", \"name\": \"Living room\"");
     ASSERT_NE(current, kRemote);
     {
-        QFile file(QDir(root.path()).filePath("remote.json"));
+        QFile file(QDir(root.path()).filePath("profile.json"));
         ASSERT_TRUE(file.open(QIODevice::WriteOnly));
         ASSERT_EQ(file.write(current), current.size());
     }
@@ -438,10 +438,10 @@ TEST(ZoneEditing, SaveOnTopKeepsExternalRemoteChanges) {
     ASSERT_TRUE(patched.has_value());
     patched = ze::patchZones(*patched, QString(), {R"({"id": "B", "rect": [1, 1, 5, 5]})"});
     ASSERT_TRUE(patched.has_value());
-    const QHash<QString, QByteArray> expected{{"remote.json", current}};
-    const QHash<QString, QByteArray> updates{{"remote.json", *patched}};
+    const QHash<QString, QByteArray> expected{{"profile.json", current}};
+    const QHash<QString, QByteArray> updates{{"profile.json", *patched}};
     ASSERT_TRUE(ze::saveFiles(root.path(), expected, updates).isEmpty());
-    QFile file(QDir(root.path()).filePath("remote.json"));
+    QFile file(QDir(root.path()).filePath("profile.json"));
     ASSERT_TRUE(file.open(QIODevice::ReadOnly));
     const auto saved = QJsonDocument::fromJson(file.readAll()).object();
     EXPECT_EQ(saved.value("name").toString(), "Living room"); // ручная правка сохранилась
