@@ -57,6 +57,8 @@ struct WorkingProfile {
     bool installBundled() const {
         const QByteArray bytes = builtin();
         if (bytes.isEmpty()) return false;
+        // A clean checkout has no model folder beside the test executable yet.
+        if (!QDir().mkpath(QFileInfo(modern).absolutePath())) return false;
         QFile::remove(legacy);
         QFile::remove(backup);
         QFile out(modern);

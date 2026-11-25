@@ -189,6 +189,9 @@ if(HARMONY_BUILD_APP)
     )
     target_link_libraries(harmony_gui_tests PRIVATE harmony::transport Qt6::Widgets Qt6::Svg GTest::gtest)
     harmony_set_warnings(harmony_gui_tests)
-    add_test(NAME Gui.CommandDialog COMMAND harmony_gui_tests)
+    add_test(NAME Gui.CommandDialog COMMAND "${CMAKE_COMMAND}"
+        "-DTEST_EXECUTABLE=$<TARGET_FILE:harmony_gui_tests>"
+        "-DAUTO_ZONES_SCRIPT=${PROJECT_SOURCE_DIR}/tools/autoZones.py"
+        -P "${CMAKE_CURRENT_SOURCE_DIR}/runGuiTests.cmake")
     set_tests_properties(Gui.CommandDialog PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen" TIMEOUT 900)
 endif()
