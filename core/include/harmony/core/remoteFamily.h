@@ -25,6 +25,28 @@ struct ScreenGeometry {
 };
 
 /**
+ * @brief Форма ответа на чтение файла по файловому протоколу.
+ *
+ * Два файла на одном пульте — две формы: `/sys/sysinfo` отвечает строками «имя значение»,
+ * `/rf/deviceinfo` — ответом на запрос в виде JSON. Форму нельзя переносить с файла на файл.
+ * `Unknown` означает, что форма файла не подтверждена: читатель её не предполагает.
+ */
+enum class FileShape { TextLines, JsonObject, BinaryContainer, Unknown };
+
+/**
+ * @brief Файл, который семейство подтверждает по файловому протоколу.
+ *
+ * `confirmedOn` — модели каталога, на которых ответ подтверждён readings. Пустой список —
+ * подтверждения нет. Строка ничего не обещает моделям, которых в списке нет: путь не считается
+ * существующим, пока пульт на него не ответил.
+ */
+struct AnswerableFile {
+    std::string_view path;                         ///< путь, который пульт открывает
+    FileShape shape;                               ///< чем именно он отвечает
+    std::span<const std::string_view> confirmedOn; ///< модели, где ответ подтверждён
+};
+
+/**
  * @brief Соответствие логического номера секции фактическому слоту контейнера.
  *
  * Пустая таблица означает прямое соответствие номера и слота. Если таблица заполнена,
@@ -57,6 +79,10 @@ struct RemoteFamily {
 
     ScreenGeometry screen;
 
+    /// Файлы, которые семейство подтверждает по файловому протоколу (I9). Пустой список —
+    /// подтверждений нет, и читатель ничего не отправляет.
+    std::span<const AnswerableFile> answerableFiles;
+
     /// @return фактический слот секции по логическому номеру; nullopt — секции нет.
     [[nodiscard]] std::optional<unsigned> sectionSlot(unsigned base) const {
         if (!sectionSlots.empty()) {
@@ -80,5 +106,9 @@ struct RemoteFamily {
 
 /// @return описание семейства по архитектуре; nullptr — семейство не описано.
 [[nodiscard]] const RemoteFamily* remoteFamily(int architecture);
+/// @return строка файла по пути для архитектуры; nullptr — такой строки в семействе нет.
+[[nodiscard]] const AnswerableFile* answerableFile(int architecture, std::string_view path);
+/// @return true, если ответ на этот путь подтверждён именно на этой модели семейства.
+[[nodiscard]] bool confirmedOn(const AnswerableFile& entry, std::string_view modelId);
 
 } // namespace harmony

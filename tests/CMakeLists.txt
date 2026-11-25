@@ -61,6 +61,7 @@ add_executable(harmony_tests
     remotePreferencesTest.cpp
     transport/harmony900LinkTest.cpp
     transport/harmonyHidReaderTest.cpp
+    transport/fileProtocolReaderTest.cpp
     transport/hubConfigReaderTest.cpp
     transport/linkFactoryTest.cpp
     transport/remoteServicesTest.cpp

@@ -12,6 +12,7 @@ add_library(harmony_transport
     src/usbnet.cpp
     src/harmonyHidReader.cpp
     src/hidChannel.cpp
+    src/fileProtocolReader.cpp
     src/hubConfigReader.cpp
 )
 add_library(harmony::transport ALIAS harmony_transport)

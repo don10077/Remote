@@ -1,4 +1,4 @@
-#include "harmony/transport/harmonyHidReader.h"
+#include "harmony/transport/hidChannel.h"
 #include <hidapi.h>
 #include <algorithm>
 
