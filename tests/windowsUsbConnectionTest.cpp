@@ -31,7 +31,13 @@ QByteArray runScript(const QString& name, const QString& fixture, int& code) {
     QProcess process;
     process.start(QDir(qEnvironmentVariable("SystemRoot")).filePath("System32/WindowsPowerShell/v1.0/powershell.exe"),
                   {"-NoProfile", "-NonInteractive", "-EncodedCommand", QString::fromLatin1(utf16.toBase64())});
-    if (!process.waitForFinished(10000)) { process.kill(); process.waitForFinished(1000); code = -1; return {}; }
+    // PowerShell must see EOF on redirected stdin; CI hosts can also start it slowly.
+    process.closeWriteChannel();
+    if (!process.waitForFinished(60000)) {
+        ADD_FAILURE() << "PowerShell did not finish: " << process.errorString().toStdString()
+                      << "; stderr: " << process.readAllStandardError().toStdString();
+        process.kill(); process.waitForFinished(1000); code = -1; return {};
+    }
     code = process.exitCode();
     return process.readAllStandardOutput();
 }
