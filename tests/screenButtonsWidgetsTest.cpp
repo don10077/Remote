@@ -9,6 +9,8 @@
 #include "../app/src/widgets/configView.h"
 
 #include <QApplication>
+#include <QComboBox>
+#include <QLabel>
 #include <QLineEdit>
 #include <QListWidget>
 #include <QPushButton>
@@ -131,5 +133,46 @@ TEST_P(ScreenButtonsWidgets, ActivityAddsScreenButtonToFirstFreePosition) { chec
 TEST_P(ScreenButtonsWidgets, DeviceAddsScreenButtonToFirstFreePosition) { checkAddition(true); }
 
 INSTANTIATE_TEST_SUITE_P(TargetModels, ScreenButtonsWidgets, testing::Values("885", "", "650"));
+
+// Список значков в окне — данные семейства (U6): у 900 — 87 имён, у 650 поля нет,
+// без модели — прежний общий список.
+TEST(ScreenButtonsWidgets, IconFieldShowsTheFamilyNamesAndIsHiddenWhenTheFamilyHasNone) {
+    auto document = harmony::test::configFixture();
+    const auto owner = harmony::ButtonOwner::device(harmony::test::kTvId);
+    // Список значков — тот combo, у которого первый пункт «No icon — show the label».
+    const auto iconCombo = [](const QDialog& dialog) {
+        for (const auto* combo : dialog.findChildren<QComboBox*>()) {
+            if (combo->itemText(0).contains("No icon")) return combo;
+        }
+        return static_cast<const QComboBox*>(nullptr);
+    };
+
+    ASSERT_TRUE(document.setTargetRemote("900"));
+    const app::ButtonDialog for900(document.model(), "900", owner, app::ButtonRef::screen(-1));
+    const auto* icons = iconCombo(for900);
+    ASSERT_NE(icons, nullptr);
+    EXPECT_EQ(icons->count(), 88);          // пункт «No icon» плюс 87 имён arch 15
+    EXPECT_GE(icons->findData(QString::fromUtf8("aspect")), 0);
+    EXPECT_FALSE(icons->isHidden());
+
+    ASSERT_TRUE(document.setTargetRemote("650"));
+    const app::ButtonDialog for650(document.model(), "650", owner, app::ButtonRef::screen(-1));
+    const auto* empty = iconCombo(for650);
+    ASSERT_NE(empty, nullptr);
+    EXPECT_EQ(empty->count(), 1);           // только пункт «No icon»: имён у семейства нет
+    EXPECT_TRUE(empty->isHidden());
+    const QLabel* hint = nullptr;
+    for (const auto* label : for650.findChildren<QLabel*>()) {
+        if (label->text().contains("no icon names")) hint = label;
+    }
+    ASSERT_NE(hint, nullptr);
+
+    // Модель не выбрана — прежний общий список, он не проверен для модели.
+    const app::ButtonDialog forUnknown(document.model(), "", owner, app::ButtonRef::screen(-1));
+    const auto* general = iconCombo(forUnknown);
+    ASSERT_NE(general, nullptr);
+    EXPECT_EQ(general->count(), 88);
+    EXPECT_GE(general->findData(QString::fromUtf8("aspect")), 0);
+}
 
 } // namespace

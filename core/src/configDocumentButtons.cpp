@@ -272,8 +272,9 @@ Result<void> ConfigDocument::setSoftButtonIcon(const ButtonOwner& owner, int pos
         if (!button) {
             return makeError(ErrorCode::NotFound, "there is no button at this screen position");
         }
-        // Незнакомый значок, который уже стоит в файле, не трогаем; новый — только из прошивки.
-        if (!icon.empty() && !isKnownButtonIcon(icon) && detail::textOf(button.child("Icon")) != icon) {
+        // Незнакомый значок, который уже стоит в файле, не трогаем; новый — только из имён,
+        // которые знает семейство модели (пустой список — мы не можем знать).
+        if (!icon.empty() && !isKnownButtonIcon(targetModel(), icon) && detail::textOf(button.child("Icon")) != icon) {
             return makeError(ErrorCode::Format, "the remote has no icon “%1”: the button would be blank", {icon});
         }
         pugi::xml_node label = button.child("Label");

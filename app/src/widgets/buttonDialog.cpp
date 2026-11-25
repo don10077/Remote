@@ -142,10 +142,11 @@ ButtonDialog::ButtonDialog(const model::RemoteConfig& config, std::string target
         label_->setPlaceholderText(tr("empty — command name"));
         form->addRow(tr("Label:"), label_);
 
-        // Значок вместо подписи: только из тех, что есть в прошивке пульта.
+        // Значок вместо подписи: только имена, которые знает семейство модели.
+        const auto names = buttonIcons(modelInfo(targetRemote_));
         icon_ = new QComboBox(this);
         icon_->addItem(tr("No icon — show the label"), QString());
-        for (const std::string_view name : buttonIcons()) {
+        for (const std::string_view name : names) {
             const QString id = QString::fromUtf8(name.data(), static_cast<qsizetype>(name.size()));
             icon_->addItem(buttonIconPreview(id, palette()), id, id);
         }
@@ -154,9 +155,17 @@ ButtonDialog::ButtonDialog(const model::RemoteConfig& config, std::string target
             icon_->addItem(tr("%1 (not in the remote)").arg(current), current); // показываем как есть
         }
         icon_->setCurrentIndex(std::max(0, icon_->findData(current)));
-        icon_->setToolTip(tr("The icon replaces the label on the remote's screen"));
         icon_->setIconSize(QSize(28, 28));
-        form->addRow(tr("Icon:"), icon_);
+        if (names.empty()) {
+            // Имён значков у семейства нет (кнопки текстовые): показывать нечего.
+            icon_->setVisible(false);
+            form->addRow(tr("Icon:"), new QLabel(tr("This family has no icon names; its screen buttons draw text."), this));
+        } else {
+            icon_->setToolTip(targetRemote_.empty()
+                ? tr("Icon names are not verified for this model; the list is the Harmony 900 firmware list.")
+                : tr("The icon replaces the label on the remote's screen"));
+            form->addRow(tr("Icon:"), icon_);
+        }
         auto* preview = new QLabel(this);
         preview->setMinimumHeight(48);
         auto updatePreview = [this, preview] {

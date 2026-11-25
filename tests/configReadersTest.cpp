@@ -157,7 +157,7 @@ TEST(ConfigReaders, TableOpensBothExistingPathsTheSameWayAsFromEzHex) {
     ASSERT_TRUE(imageByEntry) << imageByEntry.error().message;
     EXPECT_EQ(imageByTable->backend()->format(), harmony::ConfigFormat::BinaryHid);
     EXPECT_EQ(imageByTable->model().devices.size(), imageByEntry->model().devices.size());
-    EXPECT_EQ(byEntry->backend()->format(), harmony::ConfigFormat::Harmony900);
+    EXPECT_EQ(byEntry->backend()->format(), harmony::ConfigFormat::UserXml);
 }
 
 } // namespace

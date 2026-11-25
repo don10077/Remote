@@ -353,7 +353,7 @@ TEST(ConfigBackend, Harmony900DocumentIsEditableAndSharesModel) {
     ASSERT_TRUE(document) << document.error().message;
 
     const auto backend = document->backend();
-    EXPECT_EQ(backend->format(), ConfigFormat::Harmony900);
+    EXPECT_EQ(backend->format(), ConfigFormat::UserXml);
     EXPECT_TRUE(backend->canWriteToRemote());
     EXPECT_EQ(&backend->model(), &document->model());
     EXPECT_EQ(backend->name(), document->name());
@@ -418,7 +418,7 @@ TEST(ConfigBackend, NewDocumentHasNoLocation) {
     const auto document = ConfigDocument::createNew("Тест");
 
     const auto backend = document.backend();
-    EXPECT_EQ(backend->format(), ConfigFormat::Harmony900);
+    EXPECT_EQ(backend->format(), ConfigFormat::UserXml);
     EXPECT_TRUE(backend->canWriteToRemote());
     EXPECT_TRUE(backend->location().empty());
 }

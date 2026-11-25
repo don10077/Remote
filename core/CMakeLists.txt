@@ -17,7 +17,7 @@ add_library(harmony_core
     src/activityDraft.cpp
     src/buttonIcons.cpp
     src/configDocument.cpp
-    src/harmony900Backend.cpp
+    src/xmlConfigBackend.cpp
     src/configDocumentAdd.cpp
     src/configDocumentButtons.cpp
     src/configDocumentCheck.cpp

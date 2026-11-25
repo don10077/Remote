@@ -1,39 +1,39 @@
 /**
  * @file buttonIcons.cpp
- * @brief Имена значков экранных кнопок Harmony 900 (по afterglow icons/buttons).
+ * @brief Имена значков экранных кнопок по семейству модели (U6).
  */
 
 #include "harmony/core/buttonIcons.h"
 
+#include "harmony/core/remoteFamily.h"
+
 #include <algorithm>
-#include <array>
 
 namespace harmony {
 
 namespace {
 
-constexpr auto kIcons = std::to_array<std::string_view>({
-    "3musicNote", "55_sbNowPlaying", "A", "aspect", "B", "back", "Cart", "cbox_circle_default",
-    "cbox_square_default", "cbox_triangle_default", "circle", "clock", "closedCaption", "eject", "fastforward",
-    "filmstrip", "heart", "list", "live", "mail", "mediaCenter", "myDVR", "myMusic", "myPictures", "myRadio", "myTV",
-    "myVideo", "nowplaying", "off", "on", "pause", "play", "playList", "podcasts", "powerOFF", "powerON",
-    "powerOnOff", "PS-Circle", "PS-Cross", "PS-Square", "PS_Triangle", "purple", "record", "repeat", "replay",
-    "replayTV", "rewind", "sbAdd", "sbFavorites", "sbNowPlaying", "sbPodcast", "sbRepeat", "sbSearch", "sbShuffle",
-    "search", "shuffle", "skipBack", "skipForward", "sky", "sleep", "slowMotion", "slowPlay", "SoundEffect",
-    "SoundMode", "square", "star", "start", "stop", "stop2", "Subtitle", "switchDisplay", "teletext_blue_default",
-    "teletext_green_default", "teletext_off", "teletext_on", "teletext_onoff", "teletext_red_default",
-    "teletext_yellow_default", "thumbsdown_default", "thumbsup_default", "tivo", "topMenu", "triangle", "VOD", "X",
-    "xBox_Button", "Y",
-});
+// Прежний общий список — данные arch 15 (900). Он не проверен для других моделей, поэтому
+// используется только когда модель не выбрана или семейство не описано.
+constexpr int kUnverifiedFamily = 15;
 
 } // namespace
 
-std::span<const std::string_view> buttonIcons() {
-    return kIcons;
+std::span<const std::string_view> buttonIcons(const ModelInfo& model) {
+    if (!model.id.empty()) {
+        if (const auto* family = remoteFamily(model.architecture); family) {
+            return family->buttonIcons;
+        }
+    }
+    // Модель не выбрана (или семейство не описано) — прежний общий список, то есть данные
+    // arch 15; он не проверен для этой модели.
+    const auto* general = remoteFamily(kUnverifiedFamily);
+    return general ? general->buttonIcons : std::span<const std::string_view>{};
 }
 
-bool isKnownButtonIcon(std::string_view name) {
-    return std::ranges::find(kIcons, name) != kIcons.end();
+bool isKnownButtonIcon(const ModelInfo& model, std::string_view name) {
+    const auto names = buttonIcons(model);
+    return std::ranges::find(names, name) != names.end();
 }
 
 } // namespace harmony

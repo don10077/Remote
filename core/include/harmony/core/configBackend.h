@@ -20,7 +20,7 @@ namespace harmony {
 
 /// Формат файла, который хранит конфигурацию.
 enum class ConfigFormat {
-    Harmony900, ///< UserConfiguration.xml + таблицы IrProto.bin/SsIr.bin (в том числе .EZHex)
+    UserXml,    ///< UserConfiguration.xml + таблицы IrProto.bin/SsIr.bin (ZIP-конфигурации arch 11 и 15)
     Hub,        ///< Файлы ресурсов Harmony Hub (правка и сохранение в папку; на пульт не пишется)
     BinaryHid,  ///< Импортированный бинарный HID: редактируемый проект с сохранённым исходным образом
 };

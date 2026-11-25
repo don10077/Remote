@@ -340,6 +340,8 @@ private:
     /// Экранные кнопки: несуществующая команда, две кнопки на одном месте.
     void checkSoftButtons(const std::vector<const model::Button*>& buttons, Problem::Where where,
                           const std::string& id, const std::string& name) {
+        const ModelInfo target = document_.targetModel();
+        const auto names = buttonIcons(target);
         std::map<int, int> positions;
         for (const model::Button* button : buttons) {
             const std::string label = button->label.empty() ? button->icon : button->label;
@@ -353,7 +355,7 @@ private:
                 problem.softPosition = button->position;
                 problem.fix = Problem::Fix::MoveSoftButton;
             }
-            if (!button->icon.empty() && !isKnownButtonIcon(button->icon)) {
+            if (!button->icon.empty() && !names.empty() && !isKnownButtonIcon(target, button->icon)) {
                 Problem& problem = warning(where, id, place,
                                            say("the remote has no icon “%1”: the button is drawn blank",
                                                {button->icon}));

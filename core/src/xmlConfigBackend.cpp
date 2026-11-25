@@ -1,6 +1,7 @@
 /**
- * @file harmony900Backend.cpp
- * @brief Вид ConfigBackend на документ, хранящий UserConfiguration.xml (Harmony 900 и хаб).
+ * @file xmlConfigBackend.cpp
+ * @brief Вид ConfigBackend на документ, хранящий UserConfiguration.xml (формат UserXml:
+ *        пульты этого формата и хаб).
  */
 
 #include "configDocumentImpl.h"
@@ -13,7 +14,7 @@ namespace detail {
 
 ConfigFormat sourceFormat(const model::RemoteConfig& model) {
     if (model.property(kSourceFormatProperty) == kBinaryHidSourceFormat) return ConfigFormat::BinaryHid;
-    return model.property(kSourceFormatProperty) == kHubSourceFormat ? ConfigFormat::Hub : ConfigFormat::Harmony900;
+    return model.property(kSourceFormatProperty) == kHubSourceFormat ? ConfigFormat::Hub : ConfigFormat::UserXml;
 }
 
 } // namespace detail
@@ -26,9 +27,9 @@ namespace {
  * Принадлежит самому Impl и живёт ровно столько же. Формат не хранится отдельно,
  * а читается из XML (свойство SourceFormat), поэтому всегда совпадает с содержимым.
  */
-class Harmony900Backend final : public ConfigBackend {
+class XmlConfigBackend final : public ConfigBackend {
 public:
-    explicit Harmony900Backend(const ConfigDocument::Impl& impl) : impl_(impl) {}
+    explicit XmlConfigBackend(const ConfigDocument::Impl& impl) : impl_(impl) {}
 
     [[nodiscard]] ConfigFormat format() const override { return detail::sourceFormat(impl_.model); }
     [[nodiscard]] const model::RemoteConfig& model() const override { return impl_.model; }
@@ -42,7 +43,7 @@ public:
     [[nodiscard]] BackendCapabilities capabilities() const override {
         BackendCapabilities caps;
         switch (format()) {
-        case ConfigFormat::Harmony900:
+        case ConfigFormat::UserXml:
             // XML правится целиком и сохраняется в исходный .EZHex/ZIP.
             caps.writeToRemote = true;
             caps.saveToSource = true;
@@ -68,7 +69,7 @@ private:
 } // namespace
 
 std::unique_ptr<const ConfigBackend> detail::makeBackend(const ConfigDocument::Impl& impl) {
-    return std::make_unique<Harmony900Backend>(impl);
+    return std::make_unique<XmlConfigBackend>(impl);
 }
 
 const ConfigBackend* ConfigDocument::backend() const {

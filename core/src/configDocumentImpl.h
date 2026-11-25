@@ -80,7 +80,7 @@ struct ConfigDocument::Snapshot::Data {
 
 namespace detail {
 
-/// Свойство UserConfiguration.xml с форматом источника; нет свойства — Harmony 900.
+/// Свойство UserConfiguration.xml с форматом источника; нет свойства — формат UserXml.
 inline constexpr const char* kSourceFormatProperty = "SourceFormat";
 /// Значение kSourceFormatProperty у конфигурации, собранной из файлов Harmony Hub.
 inline constexpr std::string_view kHubSourceFormat = "Hub";
@@ -96,7 +96,7 @@ inline constexpr std::string_view kBinaryHidSourceFormat = "BinaryHid";
  */
 [[nodiscard]] ConfigFormat sourceFormat(const model::RemoteConfig& model);
 
-/// Вид ConfigBackend на документ (harmony900Backend.cpp).
+/// Вид ConfigBackend на документ (xmlConfigBackend.cpp).
 [[nodiscard]] std::unique_ptr<const ConfigBackend> makeBackend(const ConfigDocument::Impl& impl);
 
 /// .EZHex для пульта без помеченного «не отправлять на пульт» (configDocumentNotSent.cpp).

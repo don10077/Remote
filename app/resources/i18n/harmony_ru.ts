@@ -4217,6 +4217,11 @@ The file holds the Hub's answer as it is — device names, models and commands, 
     </message>
     <message>
       <location filename="../../../app/src/widgets/buttonDialog.cpp" />
+      <source>Icon names are not verified for this model; the list is the Harmony 900 firmware list.</source>
+      <translation type="unfinished" />
+    </message>
+    <message>
+      <location filename="../../../app/src/widgets/buttonDialog.cpp" />
       <source>Icon:</source>
       <translation>Значок:</translation>
     </message>
@@ -9130,6 +9135,11 @@ They will not be sent to the remote either. When the device is made active again
     <message>
       <location filename="../../../app/src/labels.cpp" />
       <source>This document format is not written to the remote</source>
+      <translation type="unfinished" />
+    </message>
+    <message>
+      <location filename="../../../app/src/widgets/buttonDialog.cpp" />
+      <source>This family has no icon names; its screen buttons draw text.</source>
       <translation type="unfinished" />
     </message>
     <message>

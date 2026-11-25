@@ -83,6 +83,10 @@ struct RemoteFamily {
     /// подтверждений нет, и читатель ничего не отправляет.
     std::span<const AnswerableFile> answerableFiles;
 
+    /// Имена значков экранных кнопок, которые знает семейство (U6). Пустой список — имён нет:
+    /// семейство ничего не утверждает, и проверка не пишет предупреждение про значок.
+    std::span<const std::string_view> buttonIcons;
+
     /// @return фактический слот секции по логическому номеру; nullopt — секции нет.
     [[nodiscard]] std::optional<unsigned> sectionSlot(unsigned base) const {
         if (!sectionSlots.empty()) {

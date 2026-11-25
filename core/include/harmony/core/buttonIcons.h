@@ -2,7 +2,7 @@
 
 /**
  * @file buttonIcons.h
- * @brief Значки экранных кнопок Harmony 900: какие имена знает прошивка.
+ * @brief Значки экранных кнопок: имена, которые знает семейство модели (U6).
  *
  * Экранная кнопка показывает либо подпись, либо значок:
  * @code
@@ -11,23 +11,33 @@
  * <Icon> — имя картинки во встроенной графике пульта (app-main.swf). Имени, которого
  * там нет, пульт не нарисует — кнопка останется пустой.
  *
- * Список имён — по выгрузке значков прошивки 900 из проекта afterglow
- * (icons/buttons, сами картинки — Logitech, сюда не копируются). Регистр важен.
+ * Список имён — данные семейства (`RemoteFamily::buttonIcons`), а не один общий список:
+ * семейство без имён ничего не утверждает. Источник arch 15 — выгрузка значков прошивки 900.
+ * Регистр важен.
  */
+
+#include "harmony/core/modelInfo.h"
 
 #include <span>
 #include <string_view>
 
 namespace harmony {
 
-/// @return Имена значков, которые рисует Harmony 900, по алфавиту (без учёта регистра).
-[[nodiscard]] std::span<const std::string_view> buttonIcons();
+/**
+ * @brief Имена значков, которые знает семейство модели.
+ * @param model Модель документа. Пустой id — модель не выбрана: прежний общий список, который
+ *        не проверен для этой модели.
+ * @return Список по алфавиту (без учёта регистра). Пустой — имён значков у семейства нет,
+ *         и проверке нечего утверждать.
+ */
+[[nodiscard]] std::span<const std::string_view> buttonIcons(const ModelInfo& model);
 
 /**
  * @brief Есть ли значок в прошивке пульта.
+ * @param model Модель документа.
  * @param name Имя значка, как в <Icon>.
  * @return true, если такой значок есть (с учётом регистра).
  */
-[[nodiscard]] bool isKnownButtonIcon(std::string_view name);
+[[nodiscard]] bool isKnownButtonIcon(const ModelInfo& model, std::string_view name);
 
 } // namespace harmony
