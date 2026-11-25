@@ -13,7 +13,6 @@ struct ModelInfo {
     bool known = false;        ///< Модель есть в каталоге.
     bool custom = false;       ///< Модели нет в каталоге, но есть загруженное оформление.
     bool hasProfile = false;   ///< profileFor(id).loaded в момент запроса.
-    bool supportsExtender = false; ///< Может ли модель иметь модуль Z-Wave (строка каталога).
 };
 
 /// @brief Собирает сведения о модели без зависимости от Qt и содержимого оформления.

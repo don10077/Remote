@@ -11,7 +11,6 @@ ModelInfo modelInfo(std::string_view modelId) {
     if (const auto* model = catalogModel(modelId)) {
         result.architecture = model->architecture;
         result.known = true;
-        result.supportsExtender = model->supportsExtender;
     }
     // Способ связи: значение файла приоритетнее каталога (W3).
     result.link = modelLink(modelId);

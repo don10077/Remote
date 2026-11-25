@@ -9,11 +9,9 @@
 #include "../journal.h"
 #include "../labels.h"
 #include "harmony/core/remotePreferences.h"
-#include "harmony/core/modelInfo.h"
 #include "harmony/transport/remoteServices.h"
 
 #include <QApplication>
-#include <QCheckBox>
 #include <QComboBox>
 #include <QDialogButtonBox>
 #include <QFormLayout>
@@ -101,15 +99,6 @@ RemoteSettingsDialog::RemoteSettingsDialog(const ConfigDocument* document,
         form->addRow(preferenceLabel(preference.label) + ":", field);
     }
     layout->addLayout(form);
-
-    // Модуль Z-Wave: у 900 своё радио включается само, у остальных моделей с Z-Wave окно
-    // сопряжения открывает программа (решение владельца). Ответ — поле каталога, не список моделей.
-    if (document_ != nullptr && document_->targetModel().supportsExtender) {
-        extender_ = new QCheckBox(tr("Enable the Z-Wave radio module"), this);
-        extender_->setToolTip(tr("The remote searches for the extender for 45 seconds. Switch the extender "
-                                 "to pairing mode after pressing “Apply to remote”."));
-        form->addRow(tr("Radio module:"), extender_);
-    }
 
     status_ = new QLabel(this);
     status_->setWordWrap(true);
@@ -202,25 +191,6 @@ void RemoteSettingsDialog::writeToRemote() {
                 return;
             }
             ++written;
-        }
-        if (extender_ != nullptr && extender_->isChecked()) {
-            auto paired = transport::startExtenderPairing(host);
-            if (!paired) {
-                status_->setText(labels::errorText(paired.error()));
-                journal::error(tr("Radio module: %1").arg(labels::errorText(paired.error())));
-                return;
-            }
-            if (!*paired) {
-                status_->setText(tr("The remote did not report a new radio module. Switch the extender "
-                                    "to pairing mode and try again."));
-                journal::warning(tr("The radio module was not found"));
-                return;
-            }
-            extender_->setChecked(false);
-            status_->setText(tr("Radio module enabled: the remote found the extender. Read the "
-                                "configuration again to get its address."));
-            journal::info(tr("Radio module enabled from the program"));
-            return;
         }
     }
     status_->setText(tr("Applied to the connected remote: %1.").arg(written));
