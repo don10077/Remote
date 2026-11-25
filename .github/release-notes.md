@@ -1,4 +1,4 @@
-# Harmony 0.7.0
+# Harmony 0.8.0
 
 **English** · [Русский](#русский)
 
@@ -7,25 +7,22 @@ Linux and macOS, with local configuration backups and no dependency on Logitech'
 
 ## What's new
 
-- Zone editor: drag screen header and footer boundaries, set their colours and individual
-  button and tile colours. The tile area stays between the header and footer.
-- Simplified configuration capture dialog for USB remotes and network reads from Harmony Hub.
-  USB captures use `*.remote.json`, automatic model detection and validation after saving.
-  Writing was removed from this dialog; it remains available through the editor and CLI
-  for supported models and formats.
-- Shared binary container validation checks section tables, markers, addresses and checksums.
-  GSPM handling and capture validation use these checks. `harmony-cli info` reports container
-  details for supported container families, including `*.remote.json` captures.
-- Windows builds and packages now use MSYS2 UCRT64.
-- Updated English and Russian documentation.
+- Automatic update checks, with verified installer downloads for installed Windows copies.
+- Clearer USB connection diagnostics and recovery for Harmony USB network adapters on Windows.
+- Physical button assignments use model-specific key dictionaries and work without a visual profile.
+  The remote panel can be resized or hidden, and model changes show an assignment summary.
+- Improved configuration imports, model and family detection, HID reads and experimental
+  file-protocol reading for explicitly supported model/file combinations.
+- Screen button icons now follow the configuration family; improved profile and screen validation.
+- Expanded regression coverage and stricter GCC/Clang builds.
 
 ## Downloads
 
 | System | Package |
 |---|---|
-| Windows 10/11 x64 | `Harmony-0.7.0-setup.exe` or `Harmony-0.7.0-windows-portable.zip` |
-| Linux x86_64, glibc 2.39+ | `Harmony-0.7.0-x86_64.AppImage` |
-| macOS, Apple Silicon and Intel | `Harmony-0.7.0-macos.dmg` |
+| Windows 10/11 x64 | `Harmony-0.8.0-setup.exe` or `Harmony-0.8.0-windows-portable.zip` |
+| Linux x86_64, glibc 2.39+ | `Harmony-0.8.0-x86_64.AppImage` |
+| macOS, Apple Silicon and Intel | `Harmony-0.8.0-macos.dmg` |
 
 `SHA256SUMS.txt` contains package checksums. The packages include `harmony-cli`.
 Windows builds are unsigned and macOS builds use an ad-hoc signature; the operating
@@ -56,30 +53,24 @@ distributed under GPL-3.0-only without warranty. Logitech and Harmony are Logite
 
 **Предварительная версия (pre-release).**
 
-### Новое в 0.7.0
+### Новое в 0.8.0
 
-- Редактор зон: высоту шапки и подвала экрана можно менять перетаскиванием границ,
-  задавать цвета этих областей и отдельных кнопок и плиток. Область плиток остаётся
-  между шапкой и подвалом.
-- Упрощён диалог чтения конфигураций всех моделей: чтение по USB и из Harmony Hub
-  по сети. USB-копии сохраняются в `*.remote.json` с автоматическим определением модели
-  и проверкой после сохранения. Из этого диалога убрана запись; запись через редактор
-  и CLI остаётся доступной для поддерживаемых моделей и форматов.
-- Общая проверка бинарных контейнеров: таблицы секций, маркеры, адреса и контрольные
-  суммы. Она используется при обработке GSPM и проверке копий конфигураций.
-  `harmony-cli info` показывает сведения о поддерживаемых семействах контейнеров,
-  в том числе при анализе файлов `*.remote.json`.
-- Сборка и пакеты Windows переведены на MSYS2 UCRT64.
-- Обновлена документация на русском и английском, добавлен двуязычный сайт проекта,
-  улучшено окно «О программе».
+- Проверка обновлений; установленная Windows-версия загружает установщик с проверкой размера и SHA-256.
+- Подробная диагностика USB и восстановление подключения сетевых USB-адаптеров Harmony под Windows.
+- Назначения физических кнопок используют словари конкретных моделей и доступны без визуального
+  профиля. Панель пульта можно скрывать и менять её размер; при смене модели показана сводка назначений.
+- Улучшены импорт конфигураций, определение модели и семейства, чтение HID. Добавлено экспериментальное
+  чтение по файловому протоколу для явно поддерживаемых сочетаний модели и файла.
+- Значки экранных кнопок учитывают семейство конфигурации; улучшены проверки профилей и экранов.
+- Расширены регрессионные тесты и строгие сборки GCC/Clang.
 
 ### Файлы
 
 | Система | Файл |
 |---|---|
-| Windows 10/11 x64 | `Harmony-0.7.0-setup.exe` или `Harmony-0.7.0-windows-portable.zip` |
-| Linux x86_64, glibc 2.39+ | `Harmony-0.7.0-x86_64.AppImage` |
-| macOS, Apple Silicon и Intel | `Harmony-0.7.0-macos.dmg` |
+| Windows 10/11 x64 | `Harmony-0.8.0-setup.exe` или `Harmony-0.8.0-windows-portable.zip` |
+| Linux x86_64, glibc 2.39+ | `Harmony-0.8.0-x86_64.AppImage` |
+| macOS, Apple Silicon и Intel | `Harmony-0.8.0-macos.dmg` |
 
 `SHA256SUMS.txt` содержит контрольные суммы. В пакеты включён `harmony-cli`.
 Windows-сборка не подписана, macOS использует локальную подпись ad-hoc;
