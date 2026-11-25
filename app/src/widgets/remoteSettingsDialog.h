@@ -17,6 +17,7 @@
 #include <functional>
 
 class QLabel;
+class QCheckBox;
 class QWidget;
 
 namespace harmony::app {
@@ -46,6 +47,7 @@ private:
     const ConfigDocument* document_;
     std::function<bool(const QMap<QString, QString>&)> applyToDocument_;
     QMap<QString, QWidget*> fields_; ///< QComboBox или QSpinBox по ключу настройки
+    QCheckBox* extender_ = nullptr;  ///< Включить модуль Z-Wave из программы; nullptr — у модели его нет
     QLabel* status_ = nullptr;
 };
 

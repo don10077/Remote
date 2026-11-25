@@ -69,6 +69,8 @@ void printUsage(std::ostream& out) {
         << "  harmony-cli transfer-write <model-id> <config-file> --backup <new-file> --yes\n"
         << "                                   write an existing EZHex/MH ZIP without format conversion;\n"
         << "                                   use --without-backup only for models without readback\n"
+        << "                                   target c-re4a restores the RF extender's original dump;\n"
+        << "                                   it is also accepted by transfer-info and transfer-read\n"
         << "  harmony-cli hub-read <hub-address> <new-file.hub.json> [--port 8088]\n"
         << "                                   read devices and activities of a stock Harmony Hub over\n"
         << "                                   the local network (Elite, Ultimate, 950, Companion…);\n"

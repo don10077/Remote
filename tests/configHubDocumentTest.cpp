@@ -4,13 +4,16 @@
  */
 
 #include "harmony/core/configDocument.h"
+#include "harmony/core/configCheck.h"
 #include "harmony/core/formats/hubConfig.h"
 #include "harmony/core/ir/irSignal.h"
+#include "harmony/core/modelKeys.h"
 
 #include "formatFixtures.h"
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <filesystem>
 #include <fstream>
 #include <string>
@@ -381,6 +384,7 @@ TEST(ConfigBackend, CapabilitiesDescribeHubFormat) {
     EXPECT_FALSE(caps.importedApproximation);
     EXPECT_TRUE(caps.powerStateKnown);
     EXPECT_TRUE(caps.commandCodesEditable);
+    EXPECT_FALSE(caps.identityKnown); // файл хаба не хранит архитектуру и skin
 }
 
 TEST(ConfigBackend, CapabilitiesDescribeBinaryImport) {
@@ -427,4 +431,44 @@ TEST(ConfigBackend, Harmony900EditStillWorks) {
 
     ASSERT_TRUE(document->setDeviceLabel(id, "Переименовано"));
     EXPECT_EQ(document->model().devices[0].displayName(), "Переименовано");
+}
+
+// I5: файл хаба не несёт аппаратного id (ни skin, ни модели), поэтому программа называет его
+// строкой каталога, а не 900 по умолчанию. Identity у формата нет — это поле возможностей.
+TEST(ConfigHubDocument, HubTakesItsModelFromTheCatalog) {
+    const auto document = hubDocument();
+    EXPECT_EQ(document.targetRemote(), "home-hub");
+    EXPECT_EQ(document.backend()->format(), ConfigFormat::Hub);
+    EXPECT_FALSE(document.backend()->canWriteToRemote());
+    EXPECT_FALSE(document.backend()->capabilities().identityKnown);
+}
+
+// Имя хаба и признак формата — свойства самого XML: переживают сохранение и открытие.
+TEST(ConfigHubDocument, HubModelSurvivesSavingAndReopening) {
+    const auto document = hubDocument();
+    const auto reopened = ConfigDocument::fromXml(document.toXml(), "again");
+    ASSERT_TRUE(reopened) << reopened.error().message;
+    EXPECT_EQ(reopened->targetRemote(), "home-hub");
+    EXPECT_EQ(reopened->backend()->format(), ConfigFormat::Hub);
+}
+
+// Кнопки хаба назначаются без профиля (A): список клавиш берётся из самой конфигурации,
+// а не из оформления пульта.
+TEST(ConfigHubDocument, HubKeysAreAssignedWithoutProfile) {
+    auto document = ConfigDocument::fromHub(*harmony::formats::parseHubConfig(kMapListJson), "hub");
+    ASSERT_TRUE(document) << document.error().message;
+    const auto keys = harmony::modelKeys(document->targetModel(), {}, {}, &document->model());
+    EXPECT_FALSE(keys.complete) << "профиля нет — список не исчерпывающий";
+    EXPECT_TRUE(std::ranges::any_of(keys.keys, [](const harmony::ModelKey& key) {
+        return key.name == "VolumeUp" && key.source == harmony::KeySource::Config;
+    })) << "аппаратная клавиша конфигурации не попала в список модели";
+}
+
+// У хаба нет identity: проверка не называет skin 61 (900 по умолчанию) противоречием модели.
+TEST(ConfigHubDocument, HubCheckDoesNotWarnAboutTheDefaultSkin) {
+    const auto document = hubDocument();
+    const auto problems = document.check();
+    EXPECT_TRUE(std::ranges::none_of(problems, [](const harmony::Problem& problem) {
+        return problem.what.format.find("belongs to model") != std::string::npos;
+    }));
 }

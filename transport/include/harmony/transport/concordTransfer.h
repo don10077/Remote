@@ -2,11 +2,30 @@
 
 #include "remoteLink.h"
 #include "harmony/core/formats/remoteCapture.h"
+#include "harmony/core/remoteCatalog.h"
 #include <filesystem>
 #include <memory>
 #include <span>
 
 namespace harmony::transport {
+
+/// Назначение исходного образа: пульт из каталога либо периферийное устройство.
+/// Не даёт права редактировать конфигурацию и не добавляет периферию в каталог пультов.
+struct TransferTarget {
+    std::string_view id;
+    std::string_view name;
+    std::span<const int> skins;
+    LinkKind link = LinkKind::None;
+    bool readable = false;
+    bool writable = false;
+    int architecture = 0; ///< Для периферии: обязательная архитектура; 0 — проверяется транспортом.
+    int containerSlots = 0; ///< Для периферии: обязательный вариант контейнера.
+};
+
+/// @return Назначение по id (включая auto и c-re4a); пусто для неизвестного id.
+std::optional<TransferTarget> transferTarget(std::string_view id);
+/// @return Назначение по skin; неизвестные устройства не получают права чтения или записи.
+std::optional<TransferTarget> transferTargetBySkin(int skin);
 
 /// Готовый файл конфигурации; внутренний формат не требует поддержки редактором.
 struct TransferFile {
@@ -46,7 +65,7 @@ Result<CaptureCheck> inspectCapture(const formats::RemoteCapture& capture);
 
 /// Состояние транспорта, полученное от настоящего пульта, а не из фотографии.
 struct TransferInfo {
-    std::string modelId;       ///< id модели из каталога (при «auto» — найденной по skin)
+    std::string modelId;       ///< id назначения транспорта (пульт либо периферия); auto определяет его по skin.
     RemoteInfo remote;
     int protocol = -1;
     bool mh = false;
@@ -54,6 +73,7 @@ struct TransferInfo {
     bool readable = false;
     bool writable = false;
     std::uint32_t capacity = 0;
+    int containerSlots = 0;    ///< Обязательное число слотов образа периферии; 0 — не ограничено.
 };
 
 /// Проверяет совместимость готового файла с устройством до любых команд записи.
@@ -77,7 +97,7 @@ public:
     ConcordTransfer(const ConcordTransfer&) = delete;
     ConcordTransfer& operator=(const ConcordTransfer&) = delete;
 
-    /// Подключает выбранную модель и сверяет фактический skin; неизвестный id отклоняется.
+    /// Подключает назначение транспорта и сверяет фактический skin; неизвестный id отклоняется.
     Result<TransferInfo> connect(std::string_view modelId, const Endpoint& endpoint = {});
     /// Читает исходный контейнер EZHex либо ZIP MH; не преобразует внутренние данные.
     Result<formats::Bytes> read(const ProgressHandler& progress = {});

@@ -11,6 +11,7 @@
 #include "actionLists.h"
 #include "harmony/core/formats/remoteCapture.h"
 #include "harmony/core/formats/userConfiguration.h"
+#include "harmony/core/remoteCatalog.h"
 
 #ifdef _WIN32
 #ifndef NOMINMAX
@@ -529,7 +530,14 @@ std::string detail::importedModelXml(const model::RemoteConfig& model, std::stri
 Result<ConfigDocument> ConfigDocument::fromHub(const formats::HubConfiguration& hub, std::string name) {
     // Правится как обычная конфигурация, но на пульт не пишется: формат — свойство SourceFormat
     // в XML, см. ConfigBackend::canWriteToRemote().
-    return fromXml(hubAsXml(formats::toRemoteConfig(hub)), std::move(name));
+    model::RemoteConfig config = formats::toRemoteConfig(hub);
+    // Файл хаба не несёт аппаратного id (ни skin, ни модели), поэтому без этого свойства
+    // документ назывался бы 900 по умолчанию. Имя хаба — строка каталога (I5), не ветка кода.
+    if (config.property("HarmonyTargetRemote").empty()) {
+        if (const auto* hubModelEntry = hubModel())
+            config.properties.emplace_back("HarmonyTargetRemote", std::string(hubModelEntry->id));
+    }
+    return fromXml(hubAsXml(config), std::move(name));
 }
 
 Result<ConfigDocument> ConfigDocument::fromFiles(const Files& files, std::string name) {

@@ -50,6 +50,7 @@ public:
         case ConfigFormat::Hub:
             // Хаб правится и сохраняется в папку или .EZHex, но на пульт не пишется.
             caps.saveToSource = true;
+            caps.identityKnown = false;
             break;
         case ConfigFormat::BinaryHid:
             // Исходный образ сохраняется рядом с проектом; правки в него не собираются.

@@ -37,8 +37,8 @@ int runTransferCommand(std::span<char*> args, const std::string& host) {
         std::cerr << "Specify model ID and (for read/write) a configuration file. See --help.\n";
         return 1;
     }
-    const auto* model = harmony::catalogModel(args[2]);
-    if (!model) { std::cerr << "Unknown model; use harmony-cli models.\n"; return 1; }
+    const auto model = harmony::transport::transferTarget(args[2]);
+    if (!model) { std::cerr << "Unknown transfer target; use harmony-cli models or c-re4a for the extender.\n"; return 1; }
     bool yes = false, withoutBackup = false;
     std::filesystem::path backup;
     for (std::size_t i = writing || reading ? 4u : 3u; i < args.size(); ++i) {
@@ -67,13 +67,26 @@ int runTransferCommand(std::span<char*> args, const std::string& host) {
     auto info = session.connect(model->id, {.host = host});
     if (!info) return failure(info.error());
     std::cout << info->remote.model << ": architecture=" << info->remote.identity.architecture
-              << " skin=" << info->remote.identity.skin << " protocol=" << info->protocol << '\n';
+              << " skin=" << info->remote.identity.skin << " protocol=" << info->protocol << '\n' << std::flush;
+    // Прогресс нужен и в CLI: при сбое USB видно, шло чтение копии или уже запись.
+    const auto progress = [previous = std::optional<harmony::transport::Stage>{}]
+        (harmony::transport::Stage stage, std::size_t done, std::size_t total) mutable {
+        using harmony::transport::Stage;
+        if (previous != stage || (total > 0 && done == total)) {
+            const char* label = stage == Stage::Read ? "Reading" : stage == Stage::Verify ? "Verifying" :
+                stage == Stage::Restart ? "Restarting" : stage == Stage::SetTime ? "Setting time" :
+                stage == Stage::Connect ? "Connecting" : "Writing";
+            std::cerr << label << ": " << done << '/' << total << '\n';
+        }
+        previous = stage;
+        return true;
+    };
     if (writing) {
-        const auto result = session.write(data, backup, withoutBackup);
+        const auto result = session.write(data, backup, withoutBackup, progress);
         if (!result) return failure(result.error());
         std::cout << "Configuration written.\n";
     } else if (reading) {
-        auto result = session.read();
+        auto result = session.read(progress);
         if (!result) return failure(result.error());
         // Один файл для пересылки: контейнер с пульта и сведения о снятии (*.remote.json).
         const auto capture = harmony::transport::makeCapture(*info, std::move(*result));

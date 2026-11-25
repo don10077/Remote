@@ -37,6 +37,12 @@ const RemoteModel* catalogModelBySkin(int skin) {
     return nullptr;
 }
 
+const RemoteModel* hubModel() {
+    for (const auto& model : remoteCatalog())
+        if (model.hubDefault) return &model;
+    return nullptr;
+}
+
 std::optional<LinkKind> linkFromName(std::string_view name) {
     for (const auto& item : kLinkNames) {
         if (item != name) continue;

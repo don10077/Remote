@@ -2260,6 +2260,11 @@ Add a device?</source>
       <translation>Окно выбора конфигурации</translation>
     </message>
     <message>
+      <location filename="../../../transport/src/concordTransfer.cpp" />
+      <source>Configuration container does not match the connected device</source>
+      <translation type="unfinished" />
+    </message>
+    <message>
       <location filename="../../../app/src/mainWindow.cpp" />
       <source>Configuration created: %1</source>
       <translation>Создана конфигурация: %1</translation>
@@ -2368,6 +2373,11 @@ Add a device?</source>
       <location filename="../../../core/src/propertyCatalog.cpp" />
       <source>Connected by SCART: switching it on makes the television switch to it by itself. The remote powers it first and waits for it to settle.</source>
       <translation>Подключено по SCART: при его включении телевизор сам переключается на него. Пульт включает его первым и ждёт, пока оно будет готово.</translation>
+    </message>
+    <message>
+      <location filename="../../../transport/src/concordTransfer.cpp" />
+      <source>Connected device architecture does not match its transfer target</source>
+      <translation type="unfinished" />
     </message>
     <message>
       <location filename="../../../app/src/helpContent.cpp" />
@@ -3324,6 +3334,11 @@ Copy saved: %2</source>
       <location filename="../../../app/src/widgets/buttonDialog.cpp" />
       <source>empty — command name</source>
       <translation>пусто — имя команды</translation>
+    </message>
+    <message>
+      <location filename="../../../app/src/widgets/remoteSettingsDialog.cpp" />
+      <source>Enable the Z-Wave radio module</source>
+      <translation type="unfinished" />
     </message>
     <message>
       <location filename="../../../app/src/widgets/configView.cpp" />
@@ -6134,6 +6149,26 @@ The file holds the Hub's answer as it is — device names, models and commands, 
       <translation>Радио</translation>
     </message>
     <message>
+      <location filename="../../../app/src/widgets/remoteSettingsDialog.cpp" />
+      <source>Radio module enabled from the program</source>
+      <translation type="unfinished" />
+    </message>
+    <message>
+      <location filename="../../../app/src/widgets/remoteSettingsDialog.cpp" />
+      <source>Radio module enabled: the remote found the extender. Read the configuration again to get its address.</source>
+      <translation type="unfinished" />
+    </message>
+    <message>
+      <location filename="../../../app/src/widgets/remoteSettingsDialog.cpp" />
+      <source>Radio module:</source>
+      <translation type="unfinished" />
+    </message>
+    <message>
+      <location filename="../../../app/src/widgets/remoteSettingsDialog.cpp" />
+      <source>Radio module: %1</source>
+      <translation type="unfinished" />
+    </message>
+    <message>
       <location filename="../../../app/src/labels.cpp" />
       <source>Radio tuner</source>
       <translation>Радиотюнер</translation>
@@ -8362,6 +8397,11 @@ They will not be sent to the remote either. When the device is made active again
       <translation>сигнал протокола слишком длинный (%1 длительностей)</translation>
     </message>
     <message>
+      <location filename="../../../app/src/widgets/remoteSettingsDialog.cpp" />
+      <source>The radio module was not found</source>
+      <translation type="unfinished" />
+    </message>
+    <message>
       <location filename="../../../core/src/propertyCatalog.cpp" />
       <source>The recorder writes to a built-in disc.</source>
       <translation>Рекордер пишет на встроенный диск.</translation>
@@ -8467,6 +8507,11 @@ They will not be sent to the remote either. When the device is made active again
       <translation>пульт не подтвердил настройку %1</translation>
     </message>
     <message>
+      <location filename="../../../app/src/widgets/remoteSettingsDialog.cpp" />
+      <source>The remote did not report a new radio module. Switch the extender to pairing mode and try again.</source>
+      <translation type="unfinished" />
+    </message>
+    <message>
       <location filename="../../../transport/src/usbNetLink.cpp" />
       <source>the remote did not report the configuration size</source>
       <translation>пульт не сообщил размер конфигурации</translation>
@@ -8560,6 +8605,11 @@ They will not be sent to the remote either. When the device is made active again
       <location filename="../../../transport/src/usbNetLink.cpp" />
       <source>the remote reported an implausible configuration size: %1 bytes</source>
       <translation>пульт сообщил неправдоподобный размер конфигурации: %1 байт</translation>
+    </message>
+    <message>
+      <location filename="../../../app/src/widgets/remoteSettingsDialog.cpp" />
+      <source>The remote searches for the extender for 45 seconds. Switch the extender to pairing mode after pressing “Apply to remote”.</source>
+      <translation type="unfinished" />
     </message>
     <message>
       <location filename="../../../transport/src/usbNetLink.cpp" />

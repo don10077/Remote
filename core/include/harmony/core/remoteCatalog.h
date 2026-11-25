@@ -40,6 +40,7 @@ struct RemoteModel {
     bool rawRestore = false;       ///< Библиотека пересылает снятый образ как есть (восстановление); отредактированную конфигурацию — нет.
     bool configWriteTested = false; ///< Правка конфигурации и запись на пульт проверены на настоящем пульте; единственный источник для canWriteTo().
     bool supportsExtender = false;  ///< Может ли модель иметь модуль Z-Wave. Единственное место ответа: в коде нет ни списка моделей, ни слова «экстендер» (I7).
+    bool hubDefault = false;        ///< Строка называет конфигурацию хаба: файл хаба не несёт аппаратного id (I5).
 };
 
 /// @return Все записи каталога, включая модели без профиля.
@@ -48,6 +49,8 @@ std::span<const RemoteModel> remoteCatalog();
 const RemoteModel* catalogModel(std::string_view id);
 /// @return Модель по skin (идентификатор из файла или с пульта); nullptr — skin неизвестен.
 const RemoteModel* catalogModelBySkin(int skin);
+/// @return Строка, которой программа называет конфигурацию хаба; nullptr — в каталоге такой нет.
+const RemoteModel* hubModel();
 /// @return Способ связи модели: поле `connection.driver` файла remote.json, если оно задано,
 /// иначе — каталог; неизвестная модель без поля — `LinkKind::None`.
 LinkKind modelLink(std::string_view modelId);

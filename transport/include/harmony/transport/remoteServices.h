@@ -31,6 +31,8 @@ namespace harmony::transport {
 inline constexpr std::uint16_t kSettingsPort = 80;
 /// Порт telnet.
 inline constexpr std::uint16_t kTelnetPort = 23;
+/// Порт канала событий HAO: RF, активности, тесты устройств.
+inline constexpr std::uint16_t kEventPort = 1100;
 
 /// Учётная запись telnet Harmony 900 (не секрет: одинакова на всех пультах модели).
 inline constexpr std::string_view kTelnetUser = "root";
@@ -53,6 +55,24 @@ inline constexpr std::string_view kTelnetPassword = "ethanol";
  */
 [[nodiscard]] Result<void> writeRemoteSetting(const std::string& host, std::string_view endpoint,
                                               std::string_view value, const ChannelFactory& factory = {});
+
+/**
+ * @brief Открывает на пульте окно сопряжения модуля Z-Wave (RF:ReadyForRF, затем RF:AddReceiver).
+ *
+ * Harmony 900 включает свой радиомодуль сам. У моделей с Z-Wave окно открывает программа:
+ * сообщения уходят в канал событий (порт 1100), после чего пользователь переводит модуль
+ * в режим сопряжения. MAC модуль сообщает позже в XmlUserRfSetting.xml, поэтому после
+ * успеха конфигурацию читают заново.
+ * @param host Адрес пульта.
+ * @param wait Сколько ждать события NewReceiversFound; 0 — не ждать его (подтверждение
+ *        готовности перед включением всё равно ждётся до 500 мс).
+ * @param factory Как подключаться; пусто — TCP к host:1100 (в тестах — подставной канал).
+ * @return true — пульт сообщил о найденном модуле; false — за @p wait не сообщил;
+ *         ErrorCode::Io — канал не открылся или закрылся.
+ */
+[[nodiscard]] Result<bool> startExtenderPairing(const std::string& host,
+                                                std::chrono::milliseconds wait = std::chrono::seconds(45),
+                                                const ChannelFactory& factory = {});
 
 /**
  * @brief Выполняет команду в консоли пульта (telnet) и возвращает её вывод.

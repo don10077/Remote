@@ -266,15 +266,18 @@ TEST(Harmony900Link, ReadsConfigAsConcordanceBackup) {
     EXPECT_EQ(std::ranges::count(remote->commands, Command::ReadRegionDone), 1);
 }
 
+// Имя по skin — ответ каталога: skins 62 и 63 → `1100`, skin 64 → `1100i` (24.11). Транспорт
+// identity не меняет: архитектурой и skin остаются то, что ответил пульт.
 TEST(Harmony900Link, Reads1100VariantsWithoutChangingTheirIdentity) {
-    for (const int skin : {62, 63, 64}) {
+    for (const auto& [skin, name] : {std::pair{62, "Harmony 1100"}, std::pair{63, "Harmony 1100"},
+                                     std::pair{64, "Harmony 1100i"}}) {
         auto remote = remoteWithSample();
         remote->skin = skin;
         remote->architecture = 11;
         auto link = linkTo(remote);
         auto info = link.connect({});
         ASSERT_TRUE(info);
-        EXPECT_EQ(info->model, "Harmony 1100");
+        EXPECT_EQ(info->model, name) << skin;
         auto backup = link.readConfig({});
         ASSERT_TRUE(backup) << backup.error().message;
         auto container = harmony::formats::parseEzHex(*backup);

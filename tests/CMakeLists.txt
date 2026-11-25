@@ -11,6 +11,7 @@ add_executable(harmony_tests
     checkModelKeysTest.cpp
     checkModelMismatchTest.cpp
     configReadersTest.cpp
+    readerRequirementsTest.cpp
     configDocumentTest.cpp
     configHubDocumentTest.cpp
     buttonCopyTest.cpp

@@ -22,12 +22,45 @@ TEST(RemoteCatalog, FindsModelBySkin) {
     ASSERT_NE(catalogModelBySkin(72), nullptr);
     EXPECT_EQ(catalogModelBySkin(72)->id, "650");
 
-    for (const int skin : {62, 63, 64}) {
+    for (const int skin : {62, 63}) {
         ASSERT_NE(catalogModelBySkin(skin), nullptr) << skin;
         EXPECT_EQ(catalogModelBySkin(skin)->id, "1100") << skin;
     }
 
     EXPECT_EQ(catalogModelBySkin(9999), nullptr);
+}
+
+// Строка, которой программа называет конфигурацию хаба (I5): файл хаба не несёт аппаратного id,
+// поэтому имя берётся из каталога, а не из ветки кода. Строка одна — иначе выбор был бы скрыт.
+TEST(RemoteCatalog, HubModelIsOneCatalogRow) {
+    const auto* hub = hubModel();
+    ASSERT_NE(hub, nullptr);
+    EXPECT_EQ(hub->link, LinkKind::Hub);
+    EXPECT_TRUE(hub->hubDefault);
+    std::size_t marked = 0;
+    for (const auto& model : remoteCatalog()) {
+        if (model.hubDefault) {
+            ++marked;
+            EXPECT_EQ(&model, hub);
+        }
+    }
+    EXPECT_EQ(marked, 1U) << "строка хаба должна быть одна";
+}
+
+// Красное на этапе А: правило «модель с суффиксом i — нет» (владелец, 24.11) доходит до
+// настоящего пульта только через skin, потому что пульт отвечает skin, а не именем. Skin 64
+// справочник skins Logitech называет «Harmony 1100i» (reference/remotes/README.md строка 144),
+// поэтому он должен отвечать строке `1100i`. До этого он отвечал строке `1100`, а строка `1100i`
+// стояла без skins, то есть правило про i не могло сработать ни для одного устройства.
+TEST(RemoteCatalog, Skin64AnswersTheIModel) {
+    const auto* model = catalogModelBySkin(64);
+    ASSERT_NE(model, nullptr);
+    EXPECT_EQ(model->id, "1100i");
+    EXPECT_FALSE(model->supportsExtender) << "skin 64 — правило про i, а не ответ источника";
+
+    // Следствие переноса, названное: ответы для skin 64 — значения строки `1100i`, а она говорит,
+    // что модель этого ряда никогда не читалась (`support/14-ЧТО-НЕ-ХВАТАЕТ.md` строка 46).
+    EXPECT_FALSE(model->readable) << "read — значение строки";
 }
 
 // Красное на этапе А: каталог — список моделей пультов. Skin 24 пультом не является:

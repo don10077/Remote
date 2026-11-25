@@ -141,6 +141,58 @@ int httpStatus(std::string_view response) {
     return code;
 }
 
+// --- канал событий (HAO) -----------------------------------------------------------
+
+/// Что отправляет собственный интерфейс пульта перед сопряжением Z-Wave (afterglow rf_pairing.py).
+constexpr std::string_view kReadyForRf = "<Event><Payload><Name>RF:ReadyForRF</Name></Payload></Event>";
+constexpr std::string_view kAddReceiver =
+    "<Event><Payload><Name>RF:AddReceiver</Name><Params></Params></Payload></Event>";
+/// Предел одного сообщения канала событий: настоящие — сотни байт.
+constexpr std::size_t kMaxEvent = 64U * 1024U;
+/// Сколько ждать подтверждения готовности перед включением сопряжения.
+constexpr std::chrono::milliseconds kReadyWait{500};
+
+Result<void> sendEvent(Channel& channel, std::string_view message) {
+    std::string framed(message);
+    framed.push_back('\0');
+    return sendText(channel, framed);
+}
+
+/// Одно сообщение канала событий до '\0'; nullopt — время вышло или канал закрыт.
+std::optional<std::string> readEvent(Channel& channel, Clock::time_point deadline) {
+    std::string event;
+    while (Clock::now() < deadline) {
+        const auto left = std::chrono::duration_cast<std::chrono::milliseconds>(deadline - Clock::now());
+        auto byte = channel.receive(1, left);
+        if (!byte) {
+            return std::nullopt;
+        }
+        if ((*byte)[0] == 0) {
+            return event;
+        }
+        event.push_back(static_cast<char>((*byte)[0]));
+        if (event.size() > kMaxEvent) {
+            return std::nullopt;
+        }
+    }
+    return std::nullopt;
+}
+
+/// Имя события из `<Name>…</Name>`; пусто — поля нет.
+std::string_view eventName(std::string_view event) {
+    constexpr std::string_view open = "<Name>";
+    constexpr std::string_view close = "</Name>";
+    const auto start = event.find(open);
+    if (start == std::string_view::npos) {
+        return {};
+    }
+    const auto end = event.find(close, start + open.size());
+    if (end == std::string_view::npos) {
+        return {};
+    }
+    return event.substr(start + open.size(), end - start - open.size());
+}
+
 // --- telnet ------------------------------------------------------------------------
 
 constexpr std::uint8_t kIac = 255;
@@ -301,6 +353,36 @@ Result<void> writeRemoteSetting(const std::string& host, std::string_view endpoi
         return makeError(ErrorCode::Remote, "the remote did not confirm the setting %1", {std::string(endpoint)});
     }
     return {};
+}
+
+Result<bool> startExtenderPairing(const std::string& host, std::chrono::milliseconds wait,
+                                  const ChannelFactory& factory) {
+    auto channel = open(factory, host, kEventPort);
+    if (!channel) {
+        return std::unexpected(std::move(channel.error()));
+    }
+    if (auto sent = sendEvent(**channel, kReadyForRf); !sent) {
+        return std::unexpected(std::move(sent.error()));
+    }
+    // Пульт отвечает на готовность событием (netmgr_app_ready), и окно сопряжения открывается
+    // после него: сообщения не должны идти вплотную (afterglow rf_pairing.py). Ответ не
+    // обязателен — если его нет, через kReadyWait уходит включение.
+    static_cast<void>(readEvent(**channel, Clock::now() + kReadyWait));
+    if (auto sent = sendEvent(**channel, kAddReceiver); !sent) {
+        return std::unexpected(std::move(sent.error()));
+    }
+
+    const auto deadline = Clock::now() + wait;
+    while (Clock::now() < deadline) {
+        const auto event = readEvent(**channel, deadline);
+        if (!event) {
+            break;
+        }
+        if (eventName(*event) == "NewReceiversFound") {
+            return true;
+        }
+    }
+    return false;
 }
 
 Result<std::string> runRemoteShell(const std::string& host, std::string_view command,

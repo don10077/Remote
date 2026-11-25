@@ -56,8 +56,7 @@
     "name": "Harmony 1100",
     "skins": [
       62,
-      63,
-      64
+      63
     ],
     "architecture": 11,
     "link": "usb-net",
@@ -69,7 +68,9 @@
   {
     "id": "1100i",
     "name": "Harmony 1100i",
-    "skins": [],
+    "skins": [
+      64
+    ],
     "architecture": 11,
     "link": "usb-net",
     "read": false,
@@ -605,7 +606,8 @@
     "link": "hub",
     "read": false,
     "rawRestore": true,
-    "configWriteTested": false
+    "configWriteTested": false,
+    "hubDefault": true
   },
   {
     "id": "link",

@@ -428,6 +428,11 @@ private:
     /// Проверка называет обе величины (правило 18) и сообщает о противоречии независимо от
     /// права записи: формат, который на пульт не пишется, не отменяет факт об identity файла.
     void checkModelMismatch() {
+        // У хаба нет identity: сравнивать skin файла не с чем, иначе документ хаба получал бы
+        // предупреждение о 900 по умолчанию (I5).
+        if (!document_.backend()->capabilities().identityKnown) {
+            return;
+        }
         const ModelInfo model = document_.targetModel();
         const int skin = document_.identity().skin;
         if (!model.known || skinBelongs(model, skin)) {

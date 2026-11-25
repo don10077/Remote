@@ -27,6 +27,13 @@ namespace {
 constexpr std::size_t maxFileSize = 64 * 1024 * 1024;
 std::mutex sessionMutex;
 
+// Периферия — только назначения транспорта, не модели пультов (I7).
+constexpr std::array extenderSkins{24};
+constexpr std::array peripheralTargets{
+    TransferTarget{"c-re4a", "RF Wireless Extender C-RE4A", extenderSkins, LinkKind::UsbHid,
+                   true, true, 10, 11}
+};
+
 /// Переводит ошибку библиотеки в ошибку приложения, сохраняя номер.
 Result<void> checked(int code, std::string_view operation) {
     if (!code) return {};
@@ -197,6 +204,13 @@ Result<void> validateTransfer(const TransferFile& file, const TransferInfo& info
     if (file.payload.empty() || file.payload.size() > maxFileSize ||
         (!info.network && info.capacity > 1 && file.payload.size() > info.capacity))
         return makeError(ErrorCode::Format, "Configuration exceeds the remote's configuration area");
+    if (info.containerSlots > 0) {
+        auto container = formats::parseContainer(file.payload);
+        if (!container) return std::unexpected(container.error());
+        if (container->family->architecture != info.remote.identity.architecture ||
+            container->family->slots != static_cast<std::uint32_t>(info.containerSlots))
+            return makeError(ErrorCode::Format, "Configuration container does not match the connected device");
+    }
     if (!info.mh) return checkGspmFrame(file.payload, info.remote.identity.architecture);
     return {};
 }
@@ -277,14 +291,30 @@ struct ConcordTransfer::Impl {
 ConcordTransfer::ConcordTransfer() : impl_(std::make_unique<Impl>()) {}
 ConcordTransfer::~ConcordTransfer() = default;
 
+std::optional<TransferTarget> transferTarget(std::string_view id) {
+    for (const auto& target : peripheralTargets)
+        if (target.id == id) return target;
+    if (const auto* model = catalogModel(id))
+        return TransferTarget{model->id, model->name, model->skins, modelLink(id),
+                              model->readable, model->rawRestore};
+    return std::nullopt;
+}
+
+std::optional<TransferTarget> transferTargetBySkin(int skin) {
+    for (const auto& target : peripheralTargets)
+        if (std::ranges::find(target.skins, skin) != target.skins.end()) return target;
+    if (const auto* model = catalogModelBySkin(skin)) return transferTarget(model->id);
+    return std::nullopt;
+}
+
 Result<TransferInfo> ConcordTransfer::connect(std::string_view modelId, const Endpoint& endpoint) {
     if (!impl_->lock.owns_lock()) return makeError(ErrorCode::Io, "Another remote transfer is running");
     if (impl_->initialized || impl_->network) return makeError(ErrorCode::Io, "This transfer session is already connected");
-    const auto* model = catalogModel(modelId);
+    auto model = transferTarget(modelId);
     const bool automatic = modelId == "auto";
     if (!model || (!automatic && model->skins.empty())) return makeError(ErrorCode::Unsupported, "Unknown remote identity");
     auto& info = impl_->info;
-    info.network = modelLink(modelId) == LinkKind::UsbNet;
+    info.network = model->link == LinkKind::UsbNet;
     int hidCount = 0;
     if (!info.network) {
         if (hid_init() != 0) return makeError(ErrorCode::Io, "Cannot initialize HID");
@@ -325,16 +355,15 @@ Result<TransferInfo> ConcordTransfer::connect(std::string_view modelId, const En
         return makeError(ErrorCode::Unsupported, "Selected %1, but connected %2 (skin %3)",
             {std::string(model->name), info.remote.model, std::to_string(info.remote.identity.skin)});
     if (automatic) {
-        const auto models = remoteCatalog();
-        const auto actual = std::ranges::find_if(models, [&](const RemoteModel& candidate) {
-            return std::ranges::find(candidate.skins, info.remote.identity.skin) != candidate.skins.end();
-        });
-        if (actual == models.end()) return makeError(ErrorCode::Unsupported, "Unknown remote identity");
-        model = &*actual;
+        model = transferTargetBySkin(info.remote.identity.skin);
+        if (!model) return makeError(ErrorCode::Unsupported, "Unknown remote identity");
     }
+    if (model->architecture > 0 && model->architecture != info.remote.identity.architecture)
+        return makeError(ErrorCode::Unsupported, "Connected device architecture does not match its transfer target");
     info.modelId = std::string(model->id);
     info.readable = model->readable;
-    info.writable = model->rawRestore;
+    info.writable = model->writable;
+    info.containerSlots = model->containerSlots;
     impl_->connected = true;
     return info;
 }

@@ -32,6 +32,7 @@ struct BackendCapabilities {
     bool importedApproximation = false; ///< Модель получена импортом с потерями: часть данных осталась в исходном образе.
     bool powerStateKnown = true;        ///< Известно, какие устройства включает и выключает активность.
     bool commandCodesEditable = true;   ///< ИК-код команды можно править.
+    bool identityKnown = true;          ///< Формат хранит identity (архитектуру и skin); у хаба её нет.
 };
 
 /// Чтение общих сведений о конфигурации. Реализации не владеют документом: это вид на него.

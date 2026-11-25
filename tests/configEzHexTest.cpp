@@ -226,8 +226,10 @@ TEST(ConfigEzHex, ImportsNativeHidWaveformWithoutAnExternalRuntime) {
     EXPECT_EQ(*formats::entryContent(*archiveOf(*saved).find("source/Original.EZHex")),bytes);
 }
 
-TEST_F(ConfigEzHexDump, Recognizes1100IdentityButDoesNotEnableWriting) {
-    for (const int skin : {62, 63, 64}) {
+// Имя модели — ответ каталога по skin, а не имя из файла: skins 62 и 63 отвечают `1100`,
+// skin 64 — строку `1100i` (24.11, решение о переносе skin 64). Право записи решает каталог.
+TEST_F(ConfigEzHexDump, RecognizesModelBySkinButDoesNotEnableWriting) {
+    for (const auto& [skin, modelId] : {std::pair{62, "1100"}, std::pair{63, "1100"}, std::pair{64, "1100i"}}) {
         auto container = formats::parseEzHex(readFile(kSample));
         ASSERT_TRUE(container);
         container->identity.architecture = 11;
@@ -235,9 +237,9 @@ TEST_F(ConfigEzHexDump, Recognizes1100IdentityButDoesNotEnableWriting) {
         container->header.clear();
         auto bytes = formats::writeEzHex(*container);
         ASSERT_TRUE(bytes);
-        auto document = ConfigDocument::fromEzHex(*bytes, "1100 routing fixture");
+        auto document = ConfigDocument::fromEzHex(*bytes, "Cognac routing fixture");
         ASSERT_TRUE(document);
-        EXPECT_EQ(document->targetRemote(), "1100");
+        EXPECT_EQ(document->targetRemote(), modelId) << skin;
         EXPECT_EQ(*document->toEzHex(false), *bytes);
         EXPECT_FALSE(document->toEzHex(true));
     }

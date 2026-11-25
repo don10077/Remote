@@ -2,6 +2,7 @@
 #include "harmony/core/remoteCatalog.h"
 #include "harmony/core/remoteProfile.h"
 #include "harmony/core/formats/zipArchive.h"
+#include "../dumpFiles.h"
 #include <gtest/gtest.h>
 #include <algorithm>
 #include <set>
@@ -12,6 +13,63 @@
 
 using namespace harmony;
 using namespace harmony::transport;
+
+TEST(TransferTargets, ExtenderCanBeRestoredWithoutBecomingARemoteModel) {
+    const auto target = transferTarget("c-re4a");
+    ASSERT_TRUE(target);
+    EXPECT_TRUE(target->readable);
+    EXPECT_TRUE(target->writable);
+    EXPECT_EQ(target->link, LinkKind::UsbHid);
+    EXPECT_EQ(target->architecture, 10);
+    EXPECT_EQ(target->containerSlots, 11);
+    ASSERT_TRUE(transferTargetBySkin(24));
+    EXPECT_EQ(transferTargetBySkin(24)->id, target->id);
+    EXPECT_EQ(catalogModelBySkin(24), nullptr);
+    EXPECT_EQ(catalogModel("c-re4a"), nullptr);
+    EXPECT_FALSE(transferTargetBySkin(-1));
+    EXPECT_FALSE(transferTargetBySkin(20)); // Другой экстендер пока не подтверждён данными.
+    EXPECT_FALSE(transferTarget("896"));
+    for (const auto& model : remoteCatalog()) {
+        const auto remote = transferTarget(model.id);
+        ASSERT_TRUE(remote) << model.id;
+        EXPECT_EQ(remote->readable, model.readable);
+        EXPECT_EQ(remote->writable, model.rawRestore);
+        for (const int skin : model.skins) {
+            ASSERT_TRUE(transferTargetBySkin(skin));
+            EXPECT_EQ(transferTargetBySkin(skin)->id, model.id);
+        }
+    }
+}
+
+TEST(TransferTargets, ExtenderRejectsDamagedImagesAndWrongIdentityBeforeWriting) {
+    const auto path = harmony::test::dumpFile("Json/C-RE4A", "c-re4a-20261124.EZHex");
+    if (path.empty()) GTEST_SKIP() << "No local C-RE4A dump";
+    const auto file = inspectTransferFile(harmony::test::readFile(path));
+    ASSERT_TRUE(file) << file.error().message;
+    const auto target = transferTarget("c-re4a");
+    ASSERT_TRUE(target);
+    TransferInfo info;
+    info.writable = target->writable;
+    info.protocol = file->protocol;
+    info.remote.identity.architecture = target->architecture;
+    info.remote.identity.skin = target->skins.front();
+    info.containerSlots = target->containerSlots;
+    ASSERT_TRUE(validateTransfer(*file, info));
+    auto damaged = *file;
+    damaged.payload[60] ^= 1;
+    EXPECT_FALSE(validateTransfer(damaged, info));
+    info.containerSlots = 23;
+    EXPECT_FALSE(validateTransfer(*file, info));
+    info.containerSlots = target->containerSlots;
+    info.remote.identity.architecture = 14;
+    EXPECT_FALSE(validateTransfer(*file, info));
+    info.remote.identity.architecture = target->architecture;
+    info.remote.identity.skin = 19;
+    EXPECT_FALSE(validateTransfer(*file, info));
+    info.remote.identity.skin = target->skins.front();
+    ++info.protocol;
+    EXPECT_FALSE(validateTransfer(*file, info));
+}
 
 namespace {
 /// Exposes packet parsing without opening a USB device.

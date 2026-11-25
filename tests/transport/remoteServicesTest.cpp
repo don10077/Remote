@@ -71,6 +71,37 @@ TEST(RemoteServices, PostsTheBareValue) {
     EXPECT_TRUE(script->fromClient.ends_with("Content-Length: 1\r\n\r\n1"));
 }
 
+// I8: включение модуля Z-Wave из программы — те же сообщения, что шлёт интерфейс пульта.
+// Канал событий (порт 1100) принимает их с завершающим нулём; пульт подтверждает готовность,
+// затем сообщает NewReceiversFound.
+TEST(RemoteServices, ExtenderPairingSendsTheInterfaceMessages) {
+    auto script = std::make_shared<Script>();
+    say(*script, "<Event><Payload><Name>netmgr_app_ready</Name></Payload></Event>");
+    script->toClient.push_back(0);
+    say(*script, "<Event><Payload><Name>NewReceiversFound</Name></Payload></Event>");
+    script->toClient.push_back(0);
+
+    const auto paired = startExtenderPairing("host", std::chrono::seconds(1), factoryFor(script));
+    ASSERT_TRUE(paired) << paired.error().message;
+    EXPECT_TRUE(*paired);
+
+    const auto ready = script->fromClient.find("RF:ReadyForRF");
+    const auto add = script->fromClient.find("RF:AddReceiver");
+    ASSERT_NE(ready, std::string::npos) << script->fromClient;
+    ASSERT_NE(add, std::string::npos) << script->fromClient;
+    EXPECT_LT(ready, add) << "готовность уходит раньше включения";
+    EXPECT_EQ(script->fromClient.back(), '\0') << "сообщение канала событий завершается нулём";
+}
+
+// Модуль не найден — это не ошибка связи: окно сопряжения открыто, пульт просто не ответил.
+TEST(RemoteServices, ExtenderPairingWithoutAnEventIsNotConfirmed) {
+    auto script = std::make_shared<Script>();
+    const auto paired = startExtenderPairing("host", std::chrono::milliseconds(0), factoryFor(script));
+    ASSERT_TRUE(paired) << paired.error().message;
+    EXPECT_FALSE(*paired);
+    EXPECT_NE(script->fromClient.find("RF:AddReceiver"), std::string::npos);
+}
+
 TEST(RemoteServices, HttpErrorIsReported) {
     auto script = std::make_shared<Script>();
     say(*script, "HTTP/1.0 404 Not Found\r\n\r\n");
