@@ -932,6 +932,11 @@ The configuration from %1 will be copied into this archive.</source>
       <translation>активность|активности|активностей</translation>
     </message>
     <message>
+      <location filename="../../../app/src/windowsUsbConnection.cpp" />
+      <source>Adapter: %1</source>
+      <translation>Адаптер: %1</translation>
+    </message>
+    <message>
       <location filename="../../../app/src/widgets/addDeviceDialog.cpp" />
       <location filename="../../../app/src/widgets/configView.cpp" />
       <location filename="../../../app/src/widgets/deviceStatesDialog.cpp" />
@@ -1609,6 +1614,7 @@ Add a device?</source>
       <translation>Кабельная приставка</translation>
     </message>
     <message>
+      <location filename="../../../app/src/appUpdater.cpp" />
       <location filename="../../../app/src/mainWindowRemote.cpp" />
       <location filename="../../../app/src/widgets/activityDialog.cpp" />
       <location filename="../../../app/src/widgets/addDeviceDialog.cpp" />
@@ -1802,6 +1808,16 @@ Add a device?</source>
       <location filename="../../../app/src/mainWindowMenus.cpp" />
       <source>Check configuration…</source>
       <translation>Проверить конфигурацию…</translation>
+    </message>
+    <message>
+      <location filename="../../../app/src/widgets/settingsDialog.cpp" />
+      <source>Check for program updates at startup</source>
+      <translation>Проверять обновления программы при запуске</translation>
+    </message>
+    <message>
+      <location filename="../../../app/src/mainWindowMenus.cpp" />
+      <source>Check for updates…</source>
+      <translation>Проверить обновления…</translation>
     </message>
     <message>
       <location filename="../../../app/src/helpContent.cpp" />
@@ -2355,6 +2371,11 @@ Add a device?</source>
       <translation>Подключите только один HID-пульт Harmony</translation>
     </message>
     <message>
+      <location filename="../../../app/src/windowsUsbConnection.cpp" />
+      <source>Connect only one Harmony USB network device before recovering its connection.</source>
+      <translation>Перед восстановлением подключения оставьте подключённым только один сетевой USB-пульт Harmony.</translation>
+    </message>
+    <message>
       <location filename="../../../app/src/widgets/welcomePage.cpp" />
       <source>Connect remote</source>
       <translation>Подключить пульт</translation>
@@ -2363,6 +2384,11 @@ Add a device?</source>
       <location filename="../../../app/src/widgets/configTransferDialog.cpp" />
       <source>Connect the remote by USB and read its configuration into one file (*.remote.json). The model is detected automatically and the file is checked after saving; the remote is not changed. Remotes paired with a Hub (Elite, Ultimate, Touch, 950, Companion) are read with the Hub button instead.</source>
       <translation>Подключите пульт по USB и снимите его конфигурацию в один файл (*.remote.json). Модель определяется сама, файл после сохранения проверяется; пульт не изменяется. Пульты, привязанные к хабу (Elite, Ultimate, Touch, 950, Companion), читаются кнопкой хаба.</translation>
+    </message>
+    <message>
+      <location filename="../../../app/src/windowsUsbConnection.cpp" />
+      <source>Connect the remote by USB before recovering its connection.</source>
+      <translation>Перед восстановлением подключения подключите пульт по USB.</translation>
     </message>
     <message>
       <location filename="../../../app/src/mainWindowMenus.cpp" />
@@ -2565,6 +2591,11 @@ Add a device?</source>
       <translation>Не удалось создать резервную копию %1. Ничего не сохранено.</translation>
     </message>
     <message>
+      <location filename="../../../app/src/appUpdater.cpp" />
+      <source>Could not check for updates: %1</source>
+      <translation>Не удалось проверить обновления: %1</translation>
+    </message>
+    <message>
       <location filename="../../../transport/src/hubConfigReader.cpp" />
       <source>could not connect to the Harmony Hub at %1:%2</source>
       <translation>не удалось подключиться к Harmony Hub %1:%2</translation>
@@ -2615,6 +2646,16 @@ Add a device?</source>
       <translation>не удалось создать папку: %1</translation>
     </message>
     <message>
+      <location filename="../../../app/src/appUpdater.cpp" />
+      <source>Could not create the update folder.</source>
+      <translation>Не удалось создать папку обновлений.</translation>
+    </message>
+    <message>
+      <location filename="../../../app/src/appUpdater.cpp" />
+      <source>Could not download the update: %1</source>
+      <translation>Не удалось скачать обновление: %1</translation>
+    </message>
+    <message>
       <location filename="../../../app/src/mainWindowMenus.cpp" />
       <source>Could not export: %1</source>
       <translation>Не удалось выгрузить: %1</translation>
@@ -2623,6 +2664,11 @@ Add a device?</source>
       <location filename="../../../transport/src/hidChannel.cpp" />
       <source>Could not initialize USB HID</source>
       <translation>Не удалось инициализировать USB HID</translation>
+    </message>
+    <message>
+      <location filename="../../../app/src/windowsUsbConnection.cpp" />
+      <source>Could not inspect the Harmony USB connection: %1</source>
+      <translation>Не удалось проверить USB-подключение Harmony: %1</translation>
     </message>
     <message>
       <location filename="../../../app/src/mainWindow.cpp" />
@@ -2746,9 +2792,19 @@ Copy saved: %2</source>
       <translation>не удалось начать обучение ИК</translation>
     </message>
     <message>
+      <location filename="../../../app/src/appUpdater.cpp" />
+      <source>Could not start the installer (Windows error %1).</source>
+      <translation>Не удалось запустить установщик (ошибка Windows %1).</translation>
+    </message>
+    <message>
       <location filename="../../../transport/src/tcpChannel.cpp" />
       <source>could not start the network subsystem</source>
       <translation>не удалось запустить сетевую подсистему</translation>
+    </message>
+    <message>
+      <location filename="../../../app/src/windowsUsbConnection.cpp" />
+      <source>Could not start USB connection recovery (Windows error %1).</source>
+      <translation>Не удалось запустить восстановление USB-подключения (ошибка Windows %1).</translation>
     </message>
     <message>
       <location filename="../../../app/src/widgets/zoneEditorRemoteFile.cpp" />
@@ -3195,6 +3251,11 @@ Copy saved: %2</source>
       <translation>Скачать</translation>
     </message>
     <message>
+      <location filename="../../../app/src/appUpdater.cpp" />
+      <source>Download and install the update? Your settings and configurations will be kept. Harmony will close before installation.</source>
+      <translation>Скачать и установить обновление? Настройки и конфигурации сохранятся. Перед установкой Harmony закроется.</translation>
+    </message>
+    <message>
       <location filename="../../../app/src/irDatabaseService.cpp" />
       <source>Download failed: %1 (%2)</source>
       <translation>Не удалось скачать: %1 (%2)</translation>
@@ -3213,6 +3274,11 @@ Copy saved: %2</source>
       <location filename="../../../app/src/irDatabaseService.cpp" />
       <source>Downloading %1…</source>
       <translation>Скачивание %1…</translation>
+    </message>
+    <message>
+      <location filename="../../../app/src/appUpdater.cpp" />
+      <source>Downloading Harmony %1…</source>
+      <translation>Скачивание Harmony %1…</translation>
     </message>
     <message>
       <location filename="../../../app/src/widgets/configView.cpp" />
@@ -3334,6 +3400,11 @@ Copy saved: %2</source>
       <location filename="../../../app/src/widgets/buttonDialog.cpp" />
       <source>empty — command name</source>
       <translation>пусто — имя команды</translation>
+    </message>
+    <message>
+      <location filename="../../../app/src/mainWindowMenus.cpp" />
+      <source>Enable or restart only the Harmony USB network adapter. Windows will request administrator permission.</source>
+      <translation>Включить или перезапустить только сетевой USB-адаптер Harmony. Windows запросит права администратора.</translation>
     </message>
     <message>
       <location filename="../../../app/src/widgets/configView.cpp" />
@@ -3543,6 +3614,11 @@ Copy saved: %2</source>
       <translation>Закончить</translation>
     </message>
     <message>
+      <location filename="../../../app/src/mainWindow.cpp" />
+      <source>Finish the operation with the remote before installing the update.</source>
+      <translation>Перед установкой обновления дождитесь завершения операции с пультом.</translation>
+    </message>
+    <message>
       <location filename="../../../app/src/mainWindowRemote.cpp" />
       <source>Finishing the write…</source>
       <translation>Завершение записи…</translation>
@@ -3741,6 +3817,16 @@ Copy saved: %2</source>
       <translation>Harmony</translation>
     </message>
     <message>
+      <location filename="../../../app/src/appUpdater.cpp" />
+      <source>Harmony %1 is available. Current version: %2.</source>
+      <translation>Доступна Harmony %1. Текущая версия: %2.</translation>
+    </message>
+    <message>
+      <location filename="../../../app/src/appUpdater.cpp" />
+      <source>Harmony %1 is up to date.</source>
+      <translation>Установлена актуальная версия Harmony %1.</translation>
+    </message>
+    <message>
       <location filename="../../../app/src/helpContent.cpp" />
       <source>Harmony 600, 650, 665 and 700 are experimental: the program can only read them by USB and save the data for analysis. Writing to these models is blocked.</source>
       <translation>Harmony 600, 650, 665 и 700 — экспериментальные: программа умеет только читать их по USB и сохранять данные для анализа. Запись на эти модели заблокирована.</translation>
@@ -3776,6 +3862,21 @@ Copy saved: %2</source>
       <translation>Harmony — неофициальная программа. Logitech её не создавала, не одобряла и не поддерживает.</translation>
     </message>
     <message>
+      <location filename="../../../app/src/windowsUsbConnection.cpp" />
+      <source>Harmony is connected by USB, but its network adapter is disabled.</source>
+      <translation>Harmony подключён по USB, но его сетевой адаптер отключён.</translation>
+    </message>
+    <message>
+      <location filename="../../../app/src/windowsUsbConnection.cpp" />
+      <source>Harmony is connected by USB, but its USB network driver is missing.</source>
+      <translation>Harmony подключён по USB, но сетевой USB-драйвер не установлен.</translation>
+    </message>
+    <message>
+      <location filename="../../../app/src/windowsUsbConnection.cpp" />
+      <source>Harmony is connected by USB; waiting for its network adapter to obtain an IP address.</source>
+      <translation>Harmony подключён по USB; ожидается получение IP-адреса сетевым адаптером.</translation>
+    </message>
+    <message>
       <location filename="../../../app/src/widgets/aboutDialog.cpp" />
       <source>Harmony is free software: you can redistribute it and modify it under the terms of the GNU General Public License version 3 (%1). It comes without any warranty.</source>
       <translation>Harmony — свободная программа: её можно распространять и изменять на условиях GNU General Public License версии 3 (%1). Программа поставляется без каких-либо гарантий.</translation>
@@ -3794,6 +3895,11 @@ Copy saved: %2</source>
       <location filename="../../../app/src/mainWindow.cpp" />
       <source>Harmony — %1</source>
       <translation type="unfinished" />
+    </message>
+    <message>
+      <location filename="../../../app/src/windowsUsbConnection.cpp" />
+      <source>Harmony's USB network adapter is ready, but the remote is not answering.</source>
+      <translation>Сетевой USB-адаптер Harmony готов, но пульт не отвечает.</translation>
     </message>
     <message>
       <location filename="../../../core/src/propertyCatalog.cpp" />
@@ -4297,6 +4403,11 @@ The file holds the Hub's answer as it is — device names, models and commands, 
       <translation>IP-адрес Harmony Hub в вашей сети (виден в роутере или в приложении Harmony):</translation>
     </message>
     <message>
+      <location filename="../../../app/src/windowsUsbConnection.cpp" />
+      <source>IP address: %1</source>
+      <translation>IP-адрес: %1</translation>
+    </message>
+    <message>
       <location filename="../../../app/src/widgets/aboutDialog.cpp" />
       <source>IR code database</source>
       <translation>база ИК-кодов</translation>
@@ -4460,6 +4571,11 @@ The file holds the Hub's answer as it is — device names, models and commands, 
       <location filename="../../../app/src/widgets/settingsDialog.cpp" />
       <source>Last opened configuration</source>
       <translation>Последнюю открытую конфигурацию</translation>
+    </message>
+    <message>
+      <location filename="../../../app/src/appUpdater.cpp" />
+      <source>Later</source>
+      <translation>Позже</translation>
     </message>
     <message>
       <location filename="../../../app/src/widgets/zoneEditorRemoteFile.cpp" />
@@ -5091,6 +5207,11 @@ The file holds the Hub's answer as it is — device names, models and commands, 
       <translation>Знакомых имён команд (PowerOn, PowerToggle, InputHdmi1…) нет — выберите команды сами.</translation>
     </message>
     <message>
+      <location filename="../../../app/src/windowsUsbConnection.cpp" />
+      <source>No Harmony USB network device is connected.</source>
+      <translation>Сетевой USB-пульт Harmony не подключён.</translation>
+    </message>
+    <message>
       <location filename="../../../app/src/widgets/buttonDialog.cpp" />
       <source>No icon — show the label</source>
       <translation>Без значка — показывать подпись</translation>
@@ -5525,6 +5646,11 @@ The file holds the Hub's answer as it is — device names, models and commands, 
       <translation>Открыть папку</translation>
     </message>
     <message>
+      <location filename="../../../app/src/appUpdater.cpp" />
+      <source>Open release page</source>
+      <translation>Открыть страницу выпуска</translation>
+    </message>
+    <message>
       <location filename="../../../app/src/mainWindowMenus.cpp" />
       <source>Open remote resources folder</source>
       <translation>Открыть папку ресурсов пультов</translation>
@@ -5548,6 +5674,11 @@ The file holds the Hub's answer as it is — device names, models and commands, 
       <location filename="../../../app/src/widgets/settingsDialog.cpp" />
       <source>Open the editor after reading from the remote</source>
       <translation type="unfinished" />
+    </message>
+    <message>
+      <location filename="../../../app/src/appUpdater.cpp" />
+      <source>Open the release page to update this copy of Harmony?</source>
+      <translation>Открыть страницу выпуска для обновления этой копии Harmony?</translation>
     </message>
     <message>
       <location filename="../../../app/src/widgets/startDialog.cpp" />
@@ -6004,6 +6135,17 @@ The file holds the Hub's answer as it is — device names, models and commands, 
       <translation>Журнал программы…</translation>
     </message>
     <message>
+      <location filename="../../../app/src/appUpdater.cpp" />
+      <location filename="../../../app/src/mainWindow.cpp" />
+      <source>Program update</source>
+      <translation>Обновление программы</translation>
+    </message>
+    <message>
+      <location filename="../../../app/src/appUpdater.cpp" />
+      <source>Program update: %1</source>
+      <translation>Обновление программы: %1</translation>
+    </message>
+    <message>
       <location filename="../../../app/src/widgets/aboutDialog.cpp" />
       <source>Program, Qt and system versions — for a bug report</source>
       <translation>Версии программы, Qt и системы — для сообщения об ошибке</translation>
@@ -6347,6 +6489,16 @@ The file holds the Hub's answer as it is — device names, models and commands, 
       <translation>Восстановить ИК-данные из копии…</translation>
     </message>
     <message>
+      <location filename="../../../app/src/mainWindowMenus.cpp" />
+      <source>Recover USB connection…</source>
+      <translation>Восстановить USB-подключение…</translation>
+    </message>
+    <message>
+      <location filename="../../../app/src/windowsUsbConnection.cpp" />
+      <source>Recovering the Harmony USB connection…</source>
+      <translation>Восстановление USB-подключения Harmony…</translation>
+    </message>
+    <message>
       <location filename="../../../app/src/helpContent.cpp" />
       <location filename="../../../app/src/mainWindow.cpp" />
       <location filename="../../../app/src/mainWindowMenus.cpp" />
@@ -6457,14 +6609,14 @@ The file holds the Hub's answer as it is — device names, models and commands, 
       <translation>Пульт подключён: %1</translation>
     </message>
     <message>
+      <location filename="../../../app/src/remoteSession.cpp" />
+      <source>Remote connection: %1</source>
+      <translation>Подключение пульта: %1</translation>
+    </message>
+    <message>
       <location filename="../../../app/src/mainWindowMenus.cpp" />
       <source>Remote description %1 is in an old format and was converted on load. It is updated on disk the next time it is saved in the zone editor.</source>
       <translation>Описание пульта %1 в старом формате и переведено на новый при загрузке. Файл на диске обновится при следующем сохранении в редакторе зон.</translation>
-    </message>
-    <message>
-      <location filename="../../../app/src/remoteSession.cpp" />
-      <source>Remote disconnected</source>
-      <translation>Пульт отключён</translation>
     </message>
     <message>
       <location filename="../../../transport/src/concordTransfer.cpp" />
@@ -6478,7 +6630,6 @@ The file holds the Hub's answer as it is — device names, models and commands, 
       <translation>Модель пульта:</translation>
     </message>
     <message>
-      <location filename="../../../app/src/remoteSession.cpp" />
       <location filename="../../../app/src/widgets/appHeader.cpp" />
       <source>Remote not connected</source>
       <translation>Пульт не подключён</translation>
@@ -7290,6 +7441,11 @@ The remote was not changed. You can send this file to the developers.</source>
       <translation>Настроить не удалось:&lt;br&gt;&lt;code&gt;%1&lt;/code&gt;&lt;br&gt;&lt;br&gt;Можно выполнить в терминале:&lt;br&gt;&lt;code&gt;%2&lt;/code&gt;</translation>
     </message>
     <message>
+      <location filename="../../../app/src/windowsUsbConnection.cpp" />
+      <source>Several Harmony USB network devices are connected. Connect only one.</source>
+      <translation>Подключено несколько сетевых USB-пультов Harmony. Оставьте только один.</translation>
+    </message>
+    <message>
       <location filename="../../../app/src/mainWindowImport.cpp" />
       <source>Several models in the IR database fit “%1”. Choose the one that matches your device:</source>
       <translation>В базе ИК-кодов несколько моделей подходят к «%1». Выберите ту, что совпадает с вашим устройством:</translation>
@@ -8071,6 +8227,16 @@ They will not be sent to the remote either. When the device is made active again
       <translation>в файле ресурсов Harmony Hub нет ни устройств, ни активностей</translation>
     </message>
     <message>
+      <location filename="../../../app/src/windowsUsbConnection.cpp" />
+      <source>The Harmony USB adapter was enabled or restarted. Waiting for the remote…</source>
+      <translation>USB-адаптер Harmony включён или перезапущен. Ожидание пульта…</translation>
+    </message>
+    <message>
+      <location filename="../../../app/src/windowsUsbConnection.cpp" />
+      <source>The Harmony USB network driver is missing or its adapter could not be found.</source>
+      <translation>Сетевой USB-драйвер Harmony не установлен или его адаптер не найден.</translation>
+    </message>
+    <message>
       <location filename="../../../transport/src/hubConfigReader.cpp" />
       <source>the Hub answered %1 with code %2</source>
       <translation>Hub ответил на %1 кодом %2</translation>
@@ -8772,9 +8938,24 @@ They will not be sent to the remote either. When the device is made active again
       <translation>у шага отмены нет сохранённого состояния</translation>
     </message>
     <message>
+      <location filename="../../../app/src/appUpdater.cpp" />
+      <source>The update checksum does not match. Installation was cancelled.</source>
+      <translation>Контрольная сумма обновления не совпадает. Установка отменена.</translation>
+    </message>
+    <message>
+      <location filename="../../../app/src/appUpdater.cpp" />
+      <source>The update server returned an invalid release list.</source>
+      <translation>Сервер обновлений вернул некорректный список выпусков.</translation>
+    </message>
+    <message>
       <location filename="../../../app/src/linuxUsbSetup.cpp" />
       <source>The USB connection setup is removed.</source>
       <translation>Настройка связи по USB убрана.</translation>
+    </message>
+    <message>
+      <location filename="../../../app/src/windowsUsbConnection.cpp" />
+      <source>The USB recovery script is missing.</source>
+      <translation>Не найден сценарий восстановления USB-подключения.</translation>
     </message>
     <message>
       <location filename="../../../core/src/configDocumentCommands.cpp" />
@@ -9355,6 +9536,26 @@ They will not be sent to the remote either. When the device is made active again
       <translation>Вверх</translation>
     </message>
     <message>
+      <location filename="../../../app/src/appUpdater.cpp" />
+      <source>Update</source>
+      <translation>Обновить</translation>
+    </message>
+    <message>
+      <location filename="../../../app/src/windowsUsbConnection.cpp" />
+      <source>USB connection</source>
+      <translation>USB-подключение</translation>
+    </message>
+    <message>
+      <location filename="../../../app/src/windowsUsbConnection.cpp" />
+      <source>USB connection recovery failed (code %1).</source>
+      <translation>Не удалось восстановить USB-подключение (код %1).</translation>
+    </message>
+    <message>
+      <location filename="../../../app/src/mainWindowRemote.cpp" />
+      <source>USB connection recovery is still running. Wait for it to finish.</source>
+      <translation>Восстановление USB-подключения ещё выполняется. Дождитесь завершения.</translation>
+    </message>
+    <message>
       <location filename="../../../app/src/linuxUsbSetup.cpp" />
       <source>USB connection set up</source>
       <translation>Связь по USB настроена</translation>
@@ -9637,6 +9838,11 @@ They will not be sent to the remote either. When the device is made active again
       <location filename="../../../app/src/helpContent.cpp" />
       <source>Windows</source>
       <translation>Windows</translation>
+    </message>
+    <message>
+      <location filename="../../../app/src/windowsUsbConnection.cpp" />
+      <source>Windows reports a problem with the Harmony USB device (code %1).</source>
+      <translation>Windows сообщает о проблеме USB-устройства Harmony (код %1).</translation>
     </message>
     <message>
       <location filename="../../../app/src/widgets/zoneEditorScreens.cpp" />

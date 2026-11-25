@@ -128,6 +128,11 @@ private:
     std::atomic<bool> cancelled_{false};
     bool probing_ = false;       ///< Идёт проверка подключения (probe())
     bool lastConnected_ = false; ///< Последнее известное состояние (для журнала)
+    QString lastStateText_; ///< Подробности последнего состояния, без повторов в журнале.
+
+public:
+    /// @return Подробности последней проверки связи (обновляются в потоке интерфейса).
+    [[nodiscard]] QString connectionStatus() const { return lastStateText_; }
 };
 
 } // namespace harmony::app

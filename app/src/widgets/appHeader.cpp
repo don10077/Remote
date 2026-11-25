@@ -10,6 +10,7 @@
 #include "../theme.h"
 
 #include <QHBoxLayout>
+#include <QFontMetrics>
 #include <QMenu>
 #include <QPushButton>
 #include <QToolButton>
@@ -85,7 +86,8 @@ void AppHeader::setConnectionState(bool connected, const QString& text) {
     const QColor dot = connected ? theme::color(theme::Color::Success)
                                  : theme::color(theme::Color::TextMuted);
     connectionButton_->setIcon(icons::make(icons::Icon::Dot, dot));
-    connectionButton_->setText(text);
+    connectionButton_->setText(connectionButton_->fontMetrics().elidedText(text.section('\n', 0, 0), Qt::ElideRight, 300));
+    connectionButton_->setToolTip(text);
     // Записывать некуда, пока пульт не подключён, — кнопку не показываем вовсе,
     // чтобы не путать неактивной синей кнопкой.
     writeButton_->setVisible(connected);

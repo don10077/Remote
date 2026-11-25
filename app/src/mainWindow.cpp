@@ -8,6 +8,7 @@
 #include "harmony/core/writePolicy.h"
 #include "harmony/core/undo/documentEdit.h"
 #include "appSettings.h"
+#include "appUpdater.h"
 #include "configLibrary.h"
 #include "irDatabaseService.h"
 #include "documentSource.h"
@@ -53,6 +54,17 @@ constexpr const char* kGeometryKey = "window/geometry";
 } // namespace
 
 MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
+    updater_ = new AppUpdater(this);
+    connect(updater_, &AppUpdater::readyToInstall, this, [this] {
+        if (property("usbRecoveryRunning").toBool() || (remote_->busy() && !remote_->probing())) {
+            QMessageBox::information(this, tr("Program update"),
+                tr("Finish the operation with the remote before installing the update."));
+            return;
+        }
+        if (!confirmDiscard() || !updater_->launchInstaller()) return;
+        exitingForUpdate_ = true;
+        close();
+    });
     setWindowTitle(tr("Harmony"));
     setMinimumSize(1000, 600);
     resize(1320, 820);
@@ -185,7 +197,7 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
     probeTimer->setInterval(10'000);
     connect(probeTimer, &QTimer::timeout, this, [this] {
         // Проверку можно выключить в настройках (например, пульт подключают редко).
-          if (usesUsbNet(selectedRemote_.toStdString()) && settings::autoProbe() && isActiveWindow() && !remote_->busy()) {
+          if (settings::autoProbe() && isActiveWindow() && !remote_->busy()) {
             remote_->probe();
         }
     });
@@ -196,7 +208,7 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
     connect(autosaveTimer, &QTimer::timeout, this, &MainWindow::autosave);
     autosaveTimer->start();
     QTimer::singleShot(500, this, [this] {
-        if (usesUsbNet(selectedRemote_.toStdString()) && settings::autoProbe()) {
+        if (settings::autoProbe()) {
             remote_->probe();
         }
     });
@@ -210,6 +222,9 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
 }
 
 void MainWindow::startup() {
+    QTimer::singleShot(3000, this, [this] {
+        if (settings::checkUpdates()) updater_->check();
+    });
     // reload() создаёт resources и восстанавливает недостающие файлы перед чтением.
     applyRemoteResources(false);
     openStartupConfig();
@@ -454,9 +469,9 @@ void MainWindow::updateTitle() {
     header_->setWriteEnabled(canWrite, writing);
     header_->setReadSavesFile(true);
     const auto link = remoteModel.link;
-    if (link == LinkKind::None)
+    if (link == LinkKind::None && remote_->connectionStatus().isEmpty())
         header_->setConnectionState(false, tr("No connection driver"));
-    else if (link == LinkKind::UsbHid)
+    else if (link == LinkKind::UsbHid && remote_->connectionStatus().isEmpty())
         header_->setConnectionState(false, tr("USB HID · connect and read"));
     checkConfigAction_->setEnabled(open);
     versionsAction_->setEnabled(open);
@@ -589,7 +604,7 @@ void MainWindow::updateUndoState() {
 }
 
 void MainWindow::closeEvent(QCloseEvent* event) {
-    if (!confirmDiscard()) {
+    if (!exitingForUpdate_ && !confirmDiscard()) {
         event->ignore();
         return;
     }

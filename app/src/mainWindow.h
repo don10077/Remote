@@ -41,6 +41,7 @@ class JournalDialog;
 class ZoneEditorDialog;
 
 class AppHeader;
+class AppUpdater;
 class IrDatabaseService;
 class RemoteSession;
 class ConfigView;
@@ -163,6 +164,8 @@ private:
      * @return true — можно продолжать (сохранено или изменения не нужны), false — отмена.
      */
     bool confirmDiscard();
+    /// Включает или перезапускает USBLAN Harmony, затем проверяет связь.
+    void recoverUsbConnection();
 
     /// Объясняет, как подключить пульт и что уже умеет программа.
     void showConnectionHelp();
@@ -416,6 +419,8 @@ private:
     undo::UndoStack undoStack_;                ///< История изменений открытой конфигурации
 
     AppHeader* header_ = nullptr;
+    AppUpdater* updater_ = nullptr;
+    bool exitingForUpdate_ = false; ///< Правки уже проверены перед запуском установщика.
     QPointer<ZoneEditorDialog> zoneEditorDialog_; ///< Окно редактора зон (одно, немодальное)
     QPointer<JournalDialog> journalDialog_; ///< Окно журнала (создаётся при первом открытии)
     QStackedWidget* screens_ = nullptr; ///< 0 — стартовый экран, 1 — конфигурация
@@ -450,7 +455,7 @@ private:
     QPointer<QThread> remoteLogThread_;        ///< Чтение системного журнала пульта
     QPointer<QDialog> remoteLogDialog_;        ///< Окно системного журнала пульта
     QAction* recoverIrAction_ = nullptr;       ///< «Восстановить ИК-данные из копии…» (нужен документ)
-    QAction* usbSetupAction_ = nullptr;        ///< «Настроить USB…» (только Linux)
+    QAction* usbSetupAction_ = nullptr;        ///< Настройка USB в Linux / восстановление USB в Windows.
     bool remoteConnected_ = false;
     QAction* closeAction_ = nullptr;
 };

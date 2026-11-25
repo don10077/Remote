@@ -95,8 +95,14 @@ harmony_set_warnings(harmony_tests)
 gtest_discover_tests(harmony_tests)
 
 if(HARMONY_BUILD_APP)
-    find_package(Qt6 6.5 REQUIRED COMPONENTS Widgets Svg)
+    find_package(Qt6 6.5 REQUIRED COMPONENTS Widgets Svg Network)
     add_executable(harmony_gui_tests
+        appUpdaterTest.cpp
+        ../app/src/appUpdater.cpp
+        ../app/src/appUpdater.h
+        windowsUsbConnectionTest.cpp
+        ../app/src/windowsUsbConnection.cpp
+        ../app/src/windowsUsbConnection.h
         protocolCommandDialogTest.cpp
         ../app/src/widgets/protocolCommandDialog.cpp
         ../app/src/widgets/protocolCommandDialog.h
@@ -187,7 +193,15 @@ if(HARMONY_BUILD_APP)
         BASE "${PROJECT_SOURCE_DIR}/app/resources"
         FILES ${HARMONY_REMOTE_FILES} ${guiActivityIcons} "${PROJECT_SOURCE_DIR}/app/resources/i18n/harmony_ru.ts"
     )
-    target_link_libraries(harmony_gui_tests PRIVATE harmony::transport Qt6::Widgets Qt6::Svg GTest::gtest)
+    target_link_libraries(harmony_gui_tests PRIVATE harmony::transport Qt6::Widgets Qt6::Svg Qt6::Network GTest::gtest)
+    qt_add_resources(harmony_gui_tests "test_windows_connection"
+        PREFIX "/connection"
+        BASE "${PROJECT_SOURCE_DIR}/packaging/windows"
+        FILES "${PROJECT_SOURCE_DIR}/packaging/windows/usb-status.ps1"
+              "${PROJECT_SOURCE_DIR}/packaging/windows/usb-recover.ps1")
+    if(WIN32)
+        target_link_libraries(harmony_gui_tests PRIVATE shell32)
+    endif()
     harmony_set_warnings(harmony_gui_tests)
     add_test(NAME Gui.CommandDialog COMMAND "${CMAKE_COMMAND}"
         "-DTEST_EXECUTABLE=$<TARGET_FILE:harmony_gui_tests>"

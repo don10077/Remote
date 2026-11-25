@@ -47,6 +47,7 @@ private:
 
     QComboBox* language_ = nullptr;
     QComboBox* startup_ = nullptr;
+    QCheckBox* checkUpdates_ = nullptr;
     QComboBox* journalLevel_ = nullptr; ///< Что записывать в журнал
     QComboBox* theme_ = nullptr;        ///< Оформление: как в системе / светлое / тёмное
     QLineEdit* backupFolder_ = nullptr;

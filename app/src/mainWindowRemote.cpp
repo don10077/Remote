@@ -48,11 +48,15 @@
 namespace harmony::app {
 
 bool MainWindow::remoteReady(const std::function<void()>& retry) {
+    if (property("usbRecoveryRunning").toBool()) {
+        statusBar()->showMessage(tr("USB connection recovery is still running. Wait for it to finish."), 5000);
+        return false;
+    }
     if (!remote_->busy()) {
         return true;
     }
     if (remote_->probing()) {
-        // Проверка подключения длится не дольше полутора секунд — действие выполнится после неё.
+        // Дожидаемся проверки подключения и готовности USB-адаптера, затем выполняем действие.
         pendingRemoteAction_ = retry;
         statusBar()->showMessage(tr("Checking the connection to the remote — continuing in a moment…"), 3000);
     } else {

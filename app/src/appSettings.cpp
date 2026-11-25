@@ -34,6 +34,9 @@ constexpr auto kDisclaimer = "settings/acceptedDisclaimer"; // сброс нас
 
 } // namespace
 
+bool checkUpdates() { return QSettings().value("settings/checkUpdates", true).toBool(); }
+void setCheckUpdates(bool enabled) { QSettings().setValue("settings/checkUpdates", enabled); }
+
 QString language() {
     const QString stored = QSettings().value(kLanguage).toString();
     if (!stored.isEmpty()) {

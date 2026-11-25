@@ -9,6 +9,10 @@
 
 namespace harmony::app::settings {
 
+/// @return Проверять новые выпуски при запуске (по умолчанию включено).
+[[nodiscard]] bool checkUpdates();
+void setCheckUpdates(bool enabled);
+
 /// Что открывать при запуске, если конфигурация «при запуске» не выбрана.
 enum class Startup {
     Choose, ///< Окно выбора конфигурации

@@ -14,6 +14,8 @@
 Unicode true
 !include "MUI2.nsh"
 !include "x64.nsh"
+!include "FileFunc.nsh"
+Var UpdatePid
 
 !ifndef VERSION
     !error "Не задана версия: makensis /DVERSION=…"
@@ -70,6 +72,7 @@ VIAddVersionKey /LANG=0 "LegalCopyright" "Harmony"
 LangString SecProgram ${LANG_ENGLISH} "Harmony"
 LangString SecProgram ${LANG_RUSSIAN} "Harmony"
 LangString SecDesktop ${LANG_ENGLISH} "Desktop shortcut"
+LangString UpdateCloseFailed ${LANG_ENGLISH} "Harmony did not close in time. Close it and run the installer again."
 LangString Need64Bit  ${LANG_ENGLISH} "Harmony requires 64-bit Windows."
 !include "lang_ru.nsh"
 
@@ -81,6 +84,21 @@ Function .onInit
     ${EndIf}
     ; Ключи деинсталлятора — в 64-разрядной ветке реестра, рядом с другими программами.
     SetRegView 64
+    ; Обновляющий процесс остаётся открытым до ответа UAC. Дожидаемся его выхода
+    ; до замены exe/DLL; таймаут оставляет установленную версию нетронутой.
+    ${GetParameters} $0
+    ${GetOptions} $0 "/UPDATEPID=" $UpdatePid
+    ${If} $UpdatePid != ""
+        System::Call 'kernel32::OpenProcess(i 0x00100000, i 0, i $UpdatePid) p.r1'
+        ${If} $1 != 0
+            System::Call 'kernel32::WaitForSingleObject(p r1, i 60000) i.r2'
+            System::Call 'kernel32::CloseHandle(p r1)'
+            ${If} $2 != 0
+                MessageBox MB_ICONSTOP $(UpdateCloseFailed)
+                Abort
+            ${EndIf}
+        ${EndIf}
+    ${EndIf}
 FunctionEnd
 
 Section "!$(SecProgram)" SecMain
@@ -107,7 +125,10 @@ Section "!$(SecProgram)" SecMain
 SectionEnd
 
 Section "$(SecDesktop)" SecDesktopShortcut
-    CreateShortcut "$DESKTOP\Harmony.lnk" "$INSTDIR\harmony.exe"
+    ; Обновление сохраняет прежний выбор ярлыка пользователя.
+    ${If} $UpdatePid == ""
+        CreateShortcut "$DESKTOP\Harmony.lnk" "$INSTDIR\harmony.exe"
+    ${EndIf}
 SectionEnd
 
 ; --- Удаление -----------------------------------------------------------------

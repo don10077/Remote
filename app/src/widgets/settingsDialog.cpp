@@ -128,6 +128,8 @@ SettingsDialog::SettingsDialog(IrDatabaseService* irDatabase, QWidget* parent) :
     startup_->addItem(tr("Configuration chooser"), static_cast<int>(settings::Startup::Choose));
     startup_->addItem(tr("Last opened configuration"), static_cast<int>(settings::Startup::Last));
     general->addRow(tr("At startup open:"), startup_);
+    checkUpdates_ = new QCheckBox(tr("Check for program updates at startup"), this);
+    general->addRow({}, checkUpdates_);
     general->addRow({},
                     hint(tr("A configuration marked “open at startup” in the chooser is opened in "
                             "any case."),
@@ -233,6 +235,7 @@ void SettingsDialog::showIrDatabase() {
 }
 
 void SettingsDialog::load() {
+    checkUpdates_->setChecked(settings::checkUpdates());
     language_->setCurrentIndex(std::max(0, language_->findData(settings::language())));
     startup_->setCurrentIndex(
         std::max(0, startup_->findData(static_cast<int>(settings::startup()))));
@@ -263,12 +266,14 @@ void SettingsDialog::loadDefaults() {
     } else {
         // Язык не сбрасываем: это выбор пользователя, а не «настройка по умолчанию».
         startup_->setCurrentIndex(startup_->findData(static_cast<int>(settings::Startup::Choose)));
+        checkUpdates_->setChecked(true);
         journalLevel_->setCurrentIndex(journalLevel_->findData(static_cast<int>(journal::Level::Info)));
         theme_->setCurrentIndex(theme_->findData(static_cast<int>(settings::ThemeMode::System)));
     }
 }
 
 void SettingsDialog::store() {
+    settings::setCheckUpdates(checkUpdates_->isChecked());
     irDatabase_->store();
     const QString language = language_->currentData().toString();
     languageChanged_ = language != i18n::current();

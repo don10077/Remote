@@ -69,6 +69,20 @@ If it is disabled, enable it with administrator permission, then reconnect the r
 and wait for the adapter to obtain an IP address before reading. A disabled adapter
 prevents both detection and configuration reading, even when the USB driver is installed.
 
+The connection indicator distinguishes a missing USB device, missing driver, disabled
+adapter, missing IP address and a remote that does not answer. Hover over it or open
+**How to connect the remote… → Show Details** for diagnostics. **Recover USB connection…**
+enables or restarts only the connected Harmony USB network adapter, requests Windows
+administrator permission and checks the connection again. State changes are recorded
+in the program journal. Initial connection checks retry while the adapter becomes ready.
+
+Harmony checks GitHub releases at startup and offers newer versions. This can be disabled
+in Settings; **Help → Check for updates…** checks manually. An installed Windows copy
+downloads the installer, verifies its size and SHA-256, then asks Windows to start it.
+Unsaved changes are checked before Harmony closes, and the installer waits for it to exit.
+Portable copies and other operating systems open the release page instead. The driver
+is not bundled with program updates.
+
 On Linux, use **Set up USB connection…** in the connection menu for the initial setup.
 The application installs the required USB network and HID access rules with administrator
 permission. Reconnect the remote afterwards. The USB network setup requires `dnsmasq`,

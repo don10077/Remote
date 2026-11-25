@@ -8,6 +8,7 @@
 #include "harmony/core/remoteCatalog.h"
 #include "harmony/core/remoteProfile.h"
 #include "appSettings.h"
+#include "appUpdater.h"
 #include "remoteResources.h"
 #include "configLibrary.h"
 #include "irDatabaseService.h"
@@ -24,6 +25,7 @@
 #include "widgets/journalDialog.h"
 #include "journal.h"
 #include "linuxUsbSetup.h"
+#include "windowsUsbConnection.h"
 #include "widgets/zoneEditorDialog.h"
 
 #include <QAction>
@@ -152,8 +154,7 @@ void MainWindow::createActions() {
     connectionMenu->addSeparator();
     QAction* checkAction = connectionMenu->addAction(tr("Test connection"));
     connect(checkAction, &QAction::triggered, this, [this] {
-        if (usesUsbNet(selectedRemote_.toStdString())) remote_->probe();
-        else showConnectionHelp();
+        remote_->probe();
     });
     QAction* backupsAction = connectionMenu->addAction(tr("Backups folder"));
     connect(backupsAction, &QAction::triggered, this,
@@ -163,6 +164,11 @@ void MainWindow::createActions() {
     if (linuxUsb::available()) {
         usbSetupAction_ = connectionMenu->addAction(tr("Set up USB connection…"));
         connect(usbSetupAction_, &QAction::triggered, this, [this] { linuxUsb::install(this); });
+    }
+    if (windowsUsb::available()) {
+        usbSetupAction_ = connectionMenu->addAction(tr("Recover USB connection…"));
+        usbSetupAction_->setToolTip(tr("Enable or restart only the Harmony USB network adapter. Windows will request administrator permission."));
+        connect(usbSetupAction_, &QAction::triggered, this, &MainWindow::recoverUsbConnection);
     }
 
     // --- Отмена и повтор: только горячие клавиши, кнопки — в шапке ---
@@ -365,6 +371,8 @@ void MainWindow::createMenuBar(const QList<QAction*>& openActions, QAction* quit
 
     // --- Справка ---
     QMenu* help = bar->addMenu(tr("&Help"));
+    auto* updateAction = help->addAction(tr("Check for updates…"));
+    connect(updateAction, &QAction::triggered, this, [this] { updater_->check(true); });
     QAction* contentsAction = help->addAction(tr("Help contents"));
     contentsAction->setShortcut(QKeySequence::HelpContents);
     contentsAction->setStatusTip(tr("Help on the open page; the same key in a dialog opens help on that dialog"));
@@ -536,6 +544,7 @@ void MainWindow::showConnectionHelp() {
     QMessageBox box(this);
     box.setWindowTitle(tr("Connecting the remote"));
     box.setIcon(QMessageBox::Information);
+    if (!remote_->connectionStatus().isEmpty()) box.setDetailedText(remote_->connectionStatus());
     box.setProperty(help::kTopicProperty, static_cast<int>(help::Topic::Connect));
     if (!usesUsbNet(selectedRemote_.toStdString())) {
         box.setText(tr("Connect the remote by USB, close other Logitech applications and click Read from remote and save. The model is detected automatically and one file for analysis (*.remote.json) is saved and checked; the remote is not changed. No external utility is needed. Windows uses its HID driver; on Linux, access to the hidraw device is required."));
@@ -561,6 +570,10 @@ void MainWindow::showConnectionHelp() {
     }
     QPushButton* setUp = nullptr;
     QPushButton* removeSetup = nullptr;
+    QPushButton* recover = nullptr;
+    if (windowsUsb::available()) {
+        recover = box.addButton(tr("Recover USB connection…"), QMessageBox::ActionRole);
+    }
     if (linuxUsb::available()) {
         setUp = box.addButton(linuxUsb::installed() ? tr("Set up USB again") : tr("Set up USB"),
                               QMessageBox::ActionRole);
@@ -574,7 +587,14 @@ void MainWindow::showConnectionHelp() {
         linuxUsb::install(this);
     } else if (removeSetup != nullptr && box.clickedButton() == removeSetup) {
         linuxUsb::install(this, true);
+    } else if (recover != nullptr && box.clickedButton() == recover) {
+        recoverUsbConnection();
     }
+}
+
+void MainWindow::recoverUsbConnection() {
+    if (!remoteReady([this] { recoverUsbConnection(); })) return;
+    windowsUsb::recover(this, [this] { remote_->probe(); });
 }
 
 void MainWindow::showAbout() {

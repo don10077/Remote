@@ -8,6 +8,7 @@
 #include "labels.h"
 #include "appSettings.h"
 #include "journal.h"
+#include "windowsUsbConnection.h"
 
 #include "harmony/transport/linkFactory.h"
 #include "harmony/transport/usbNetLink.h"
@@ -36,9 +37,10 @@ QString describe(const transport::RemoteInfo& info) {
 RemoteSession::RemoteSession(QObject* parent) : QObject(parent) {
     // Журнал: итоги операций (проверка подключения — только когда состояние меняется).
     connect(this, &RemoteSession::stateChanged, this, [this](bool connected, const QString& text) {
-        if (connected != lastConnected_) {
+        if (connected != lastConnected_ || text != lastStateText_) {
             lastConnected_ = connected;
-            journal::info(connected ? tr("Remote connected: %1").arg(text) : tr("Remote disconnected"));
+            lastStateText_ = text;
+            journal::info(connected ? tr("Remote connected: %1").arg(text) : tr("Remote connection: %1").arg(text));
         }
     });
     connect(this, &RemoteSession::backupSaved, this, [](const QByteArray&, const QString& file) {
@@ -120,7 +122,7 @@ Result<transport::RemoteInfo> RemoteSession::connectAndReport(transport::RemoteL
                                        .port = static_cast<std::uint16_t>(settings::remotePort())};
     auto info = link.connect(endpoint);
     const bool connected = info.has_value();
-    reportState(connected, connected ? describe(*info) : tr("Remote not connected"));
+    reportState(connected, connected ? describe(*info) : labels::errorText(info.error()));
     return info;
 }
 
@@ -130,16 +132,31 @@ void RemoteSession::probe() {
     }
     probing_ = true; // сбрасывается по окончании потока
     run([this] {
-        const auto choice = openLink(std::chrono::milliseconds(1500));
-        if (!choice) {
-            reportState(false, labels::errorText(choice.error()));
-            return;
+        const transport::Endpoint endpoint{settings::remoteHost().toStdString(),
+                                           static_cast<std::uint16_t>(settings::remotePort())};
+        for (int attempt = 0; attempt < 3 && !cancelled_; ++attempt) {
+            QString error;
+            {
+                // Проверка физического подключения, как и чтение, доступна без выбранной модели.
+                auto choice = openLink(std::chrono::milliseconds(1500));
+                if (choice && choice->link) {
+                    const auto info = choice->link->connect(endpoint);
+                    if (info) { reportState(true, describe(*info)); return; }
+                    error = labels::errorText(info.error());
+                } else {
+                    transport::ConcordTransfer session;
+                    const auto info = session.connect("auto", endpoint);
+                    if (info) { reportState(true, describe(info->remote)); return; }
+                    error = labels::errorText(info.error());
+                }
+            }
+            if (!windowsUsb::available()) { reportState(false, error); return; }
+            const auto status = windowsUsb::inspect();
+            reportState(false, windowsUsb::describe(status) + "\n" + error);
+            if (status.state != windowsUsb::State::NoAddress && status.state != windowsUsb::State::Ready) return;
+            // Драйвер и DHCP могут ещё подниматься; повторяем связь без действий с настройками ОС.
+            if (attempt < 2) QThread::msleep(700);
         }
-        if (!choice->link) {
-            reportState(false, transferText());
-            return;
-        }
-        (void)connectAndReport(*choice->link);
     });
 }
 
@@ -150,7 +167,8 @@ void RemoteSession::readCapture() {
         // Чтение — по подключённому железу: модель документа на него не влияет (mainWindowRemote.cpp),
         // поэтому здесь остаётся путь auto, а не решение фабрики.
         transport::ConcordTransfer session;
-        auto info = session.connect("auto");
+        auto info = session.connect("auto", {settings::remoteHost().toStdString(),
+            static_cast<std::uint16_t>(settings::remotePort())});
         if (!info) { reportFailure(info.error()); return; }
         journal::info(tr("Reading %1: model %2, architecture %3, protocol %4, skin %5, transport %6")
             .arg(QString::fromStdString(info->remote.model), QString::fromStdString(info->modelId))

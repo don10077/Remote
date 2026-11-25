@@ -4,6 +4,10 @@ find_package(Qt6 6.5 REQUIRED COMPONENTS Widgets Network Svg)
 qt_standard_project_setup()   # включает AUTOMOC/AUTOUIC и стандартные настройки Qt
 
 qt_add_executable(harmony_app
+    src/appUpdater.cpp
+    src/appUpdater.h
+    src/windowsUsbConnection.cpp
+    src/windowsUsbConnection.h
     src/widgets/configTransferDialog.cpp
     src/widgets/configTransferDialog.h
     src/main.cpp
@@ -209,6 +213,12 @@ if(UNIX AND NOT APPLE)
     )
 endif()
 
+qt_add_resources(harmony_app "windows_connection"
+    PREFIX "/connection"
+    BASE "${PROJECT_SOURCE_DIR}/packaging/windows"
+    FILES "${PROJECT_SOURCE_DIR}/packaging/windows/usb-status.ps1"
+          "${PROJECT_SOURCE_DIR}/packaging/windows/usb-recover.ps1")
+
 # Значок exe в Проводнике Windows. Генерируется tools/makeAppIcon.py.
 if(WIN32)
     target_sources(harmony_app PRIVATE resources/app/harmony.rc)
@@ -264,6 +274,9 @@ target_link_libraries(harmony_app PRIVATE
     Qt6::Svg      # SVG-картинки экранов из resources/sprites
     Qt6::Network   # скачивание базы ИК-кодов
 )
+if(WIN32)
+    target_link_libraries(harmony_app PRIVATE shell32)
+endif()
 harmony_set_warnings(harmony_app)
 
 # --- Установка (cmake --install --component harmony): основа AppImage и бандла macOS ---
